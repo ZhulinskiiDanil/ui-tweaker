@@ -520,7 +520,15 @@ namespace
       m_tree = TreePanel::create();
       m_tree->setPosition({win.width - m_tree->getContentWidth() - MARGIN,
                            win.height - 26 - m_tree->getContentHeight()});
-      m_tree->setVisible(false);
+      m_tree->setVisible(Mod::get()->getSavedValue<bool>("tree", false));
+      m_help = Mod::get()->getSavedValue<bool>("help", false);
+      // Where the user put the panel last time, if they did
+      if (Mod::get()->getSavedValue<bool>("panel-placed", false))
+      {
+        m_panelPlaced = true;
+        m_panelTopLeft = ccp(Mod::get()->getSavedValue<float>("panel-x", MARGIN),
+                             Mod::get()->getSavedValue<float>("panel-y", win.height));
+      }
       addChild(m_tree);
 
       setBanner();
@@ -596,9 +604,23 @@ namespace
 
     void togglePanel() { m_panel->setVisible(!m_panel->isVisible()); }
 
+    // What's open and where the panel is, for the next time
+    void savePrefs()
+    {
+      auto& s = state();
+      Mod::get()->setSavedValue("tree", m_tree->isVisible());
+      Mod::get()->setSavedValue("help", m_help);
+      Mod::get()->setSavedValue("code", s.codeView);
+      Mod::get()->setSavedValue("aspect", s.aspectPreview);
+      Mod::get()->setSavedValue("panel-placed", m_panelPlaced);
+      Mod::get()->setSavedValue("panel-x", m_panelTopLeft.x);
+      Mod::get()->setSavedValue("panel-y", m_panelTopLeft.y);
+    }
+
     void toggleHelp()
     {
       m_help = !m_help;
+      savePrefs();
       setBanner();
       movePanel(m_panelTopLeft);
     }
@@ -1014,6 +1036,8 @@ namespace
       if (!s.leftDown)
         return ListenerResult::Propagate;
       s.leftDown = false;
+      if (s.panelDragging && s.overlay)
+        s.overlay->savePrefs();
       s.panelDragging = false;
       editor::release();
     }
@@ -1065,6 +1089,7 @@ namespace
       if (tree)
       {
         tree->setVisible(!tree->isVisible());
+        s.overlay->savePrefs();
         tree->setTyping(false);
       }
       break;
@@ -1120,13 +1145,19 @@ namespace
       break;
     case KEY_A:
       s.aspectPreview = !s.aspectPreview;
+      if (s.overlay)
+        s.overlay->savePrefs();
       break;
     case KEY_C:
       // Ctrl+C copies; C alone shows the code in the panel
       if (control)
         shift ? editor::copyAll() : editor::copySelected();
       else
+      {
         s.codeView = !s.codeView;
+        if (s.overlay)
+          s.overlay->savePrefs();
+      }
       break;
     case KEY_Enter:
     case KEY_NumEnter:
@@ -1207,6 +1238,8 @@ void editor::setActive(bool on)
   {
     forgetOtherScenes();
     unfocusTextFields(runningScene());
+    s.codeView = Mod::get()->getSavedValue<bool>("code", false);
+    s.aspectPreview = Mod::get()->getSavedValue<bool>("aspect", false);
     s.mouse = MouseInputEvent().listen(onMouse, PRIORITY);
     s.move = MouseMoveEvent().listen(
         [](int32_t, int32_t)

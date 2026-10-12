@@ -1,5 +1,6 @@
 # v0.6.0
 
+- The tree, the code view, the other screens, the help and a panel put somewhere by hand are as they were left, also after a restart
 - The content size can be typed too (`Enter`, the fourth and fifth fields): a menu with a layout lays its children out in it; the code has `setContentSize` and `updateLayout()`
 
 # v0.5.0
