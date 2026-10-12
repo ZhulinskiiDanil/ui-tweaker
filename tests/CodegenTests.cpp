@@ -249,6 +249,8 @@ namespace
     code = toKAndR(generate(loose));
     CHECK(has(code, "with `node` being it\n{\n    node->setPosition({10.f, 10.f});\n}"));
     // Empty lines stay empty; a block of all of them too
+    // Nor after a line ending in a comment: the brace would be in it
+    CHECK(toKAndR("x(); // note\n{\n  y();\n}\n") == "x(); // note\n{\n    y();\n}\n");
     code = toKAndR("a\n\nif (x)\n{\n  b();\n}\n");
     CHECK(code == "a\n\nif (x) {\n    b();\n}\n");
   }

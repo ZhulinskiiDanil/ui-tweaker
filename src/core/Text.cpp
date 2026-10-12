@@ -56,9 +56,16 @@ std::string text::fit(std::string_view text, size_t columns)
 {
   if (text.size() <= columns)
     return std::string(text);
+  // Not inside a letter of more than a byte: back to where one starts
+  auto cut = [&](size_t at)
+  {
+    while (at > 0 && at < text.size() && (static_cast<unsigned char>(text[at]) & 0xC0) == 0x80)
+      at--;
+    return std::string(text.substr(0, at));
+  };
   if (columns <= 2)
-    return std::string(text.substr(0, columns));
-  return std::string(text.substr(0, columns - 2)) + "..";
+    return cut(columns);
+  return cut(columns - 2) + "..";
 }
 
 std::string text::format(std::string_view pattern, std::initializer_list<std::string> values)

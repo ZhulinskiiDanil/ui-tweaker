@@ -27,11 +27,18 @@ int main(int argc, char** argv)
   out << codegen::generateAll(all);
   out << "  }\n};\n\n";
 
+  // All of them in K&R style
+  out << "struct AllSamplesKAndR : CCNode\n{\n  void run(CCNode* node)\n  {\n    (void)node;\n";
+  out << codegen::toKAndR(codegen::generateAll(all));
+  out << "  }\n};\n\n";
+
   out << "inline void runSamples()\n{\n";
   for (size_t i = 0; i < all.size(); i++)
     out << "  {\n    Sample" << i << " layer;\n    buildScene(layer);\n    layer.run(nodeOf(" << i
         << "));\n    checkSample(" << i << ");\n  }\n";
   out << "  {\n    AllSamples layer;\n    buildScene(layer);\n    layer.run(nodeOf(NO_ID));\n";
+  out << "    for (int i = 0; i < " << all.size() << "; i++)\n      checkSample(i);\n  }\n";
+  out << "  {\n    AllSamplesKAndR layer;\n    buildScene(layer);\n    layer.run(nodeOf(NO_ID));\n";
   out << "    for (int i = 0; i < " << all.size() << "; i++)\n      checkSample(i);\n  }\n}\n";
 
   // "Copy all" as hooks, at the top level as they're pasted: two nodes in MenuLayer's init, one in PauseLayer's

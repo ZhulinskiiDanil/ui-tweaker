@@ -188,7 +188,7 @@ inspect::NodeState inspect::stateOf(CCNode* node)
           node->getContentSize(), node->isVisible()};
 }
 
-void inspect::apply(CCNode* node, NodeState const& state, bool size)
+void inspect::apply(CCNode* node, NodeState const& state, bool size, bool visible)
 {
   node->setPosition(state.position);
   node->setScaleX(state.scaleX);
@@ -200,7 +200,7 @@ void inspect::apply(CCNode* node, NodeState const& state, bool size)
     node->setAnchorPoint(state.anchor);
   if (node->getZOrder() != state.zOrder)
     node->setZOrder(state.zOrder);
-  if (node->isVisible() != state.visible)
+  if (visible && node->isVisible() != state.visible)
     node->setVisible(state.visible);
   if (size && node->getContentSize() != state.size)
   {
@@ -392,10 +392,21 @@ namespace
       return "";
     auto texture = sprite->getTexture();
     auto rect = sprite->getTextureRect();
-    for (auto [name, frame] : CCDictionaryExt<std::string, CCSpriteFrame*>(frames))
-      if (frame->getTexture() == texture && frame->getRect().equals(rect))
-        return name;
+    // The frame's texture as it is, not getTexture(), which loads a texture not loaded yet
+    for (auto [name, frame] : CCDictionaryExt<std::string_view, CCSpriteFrame*>(frames))
+      if (frame->m_pobTexture == texture && frame->getRect().equals(rect))
+        return std::string(name);
     return "";
+  }
+} // namespace
+
+namespace
+{
+  std::string oneLine(char const* text)
+  {
+    std::string out = text ? text : "";
+    std::replace(out.begin(), out.end(), char(10), ' ');
+    return out;
   }
 } // namespace
 
@@ -403,13 +414,13 @@ std::string inspect::lookOf(CCNode* node)
 {
   if (auto label = typeinfo_cast<CCLabelBMFont*>(node))
     return fmt::format("{}: \"{}\"", label->getFntFile() ? label->getFntFile() : "?",
-                       text::fit(label->getString() ? label->getString() : "", 24));
+                       text::fit(oneLine(label->getString()), 24));
   if (auto label = typeinfo_cast<CCLabelTTF*>(node))
     return fmt::format("{}: \"{}\"", label->getFontName() ? label->getFontName() : "?",
-                       text::fit(label->getString() ? label->getString() : "", 24));
-  // A button shows its sprite
+                       text::fit(oneLine(label->getString()), 24));
+  // A button shows its sprite, or its label
   if (auto button = typeinfo_cast<CCMenuItemSprite*>(node))
-    node = button->getNormalImage();
+    return button->getNormalImage() ? lookOf(button->getNormalImage()) : "";
   if (auto sprite = typeinfo_cast<CCSprite*>(node))
     return frameName(sprite);
   return "";

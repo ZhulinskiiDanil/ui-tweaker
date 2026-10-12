@@ -172,6 +172,12 @@
 - 19:20 own: edited nodes marked in the tree. One real input run missed Shift+Right (the key's SendInput didn't land
   that time); the rerun was 9/9.
 
+- 19:24 README's GIF and screenshots made again (handles, code view, one-line banner); ARCHITECTURE updated.
+- 19:33 fourth review (separate agent, v0.7.0..HEAD): 2 important, fixed — visibility changed by the game being
+  written and put back (now only V's counts, like sizes), the panel's cached look surviving to a node at the same
+  address; and the smaller ones (tree colors, Ctrl+V/Ctrl+R, K&R after a trailing comment, UTF-8-safe fit,
+  every sample compiled in K&R, `/utf-8` for MSVC). A self test check that the game hiding a node isn't an edit.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
@@ -183,6 +189,7 @@
 | 18:09 (v0.5.0) | 13/13 | ok | PASS 104 / 115 / 115; real input 8/8 | several selected, code view |
 | 18:35 (v0.6.0) | 14/14 | ok | PASS 113 / 124 / 124; real input 9/9 | handles, hooks |
 | 18:58 (v0.7.0) | 14/14 | ok | PASS 116 / 127 / 127, tour 480 (119 nodes, 7 scenes); real input 9/9 | help wrapped |
+| 19:36 (v0.8.0) | 14/14 | ok | PASS 129 / 140 / 140, tour 493; real input 9/9; soak flat | README media |
 
 ## Not done / known
 

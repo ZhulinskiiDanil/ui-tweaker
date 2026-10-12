@@ -152,6 +152,8 @@ namespace
     // The nodes whose size was set by a resize or typed values: other nodes' sizes are their own (a label's
     // text, a layout growing) and aren't written or put back
     std::vector<CCNode*> sized;
+    // The same for visibility: only V's is an edit, not the game hiding a tab's buttons
+    std::vector<CCNode*> toggled;
 
     // The code of every edited node, kept up to date while its scene runs: the scene's nodes can't be described
     // once it's gone. Keyed by node, compared only
@@ -253,6 +255,8 @@ namespace
   {
     auto desc = inspect::describe(node, originalOf(node));
     desc.sizeChanged = desc.sizeChanged && isSized(node);
+    auto const& toggled = state().toggled;
+    desc.visibleChanged = desc.visibleChanged && std::find(toggled.begin(), toggled.end(), node) != toggled.end();
     return desc;
   }
 
@@ -277,6 +281,9 @@ namespace
     if ((kind == Resize || kind == Typed) && after.size != before.size &&
         std::find(s.sized.begin(), s.sized.end(), node) == s.sized.end())
       s.sized.push_back(node);
+    if (kind == Visibility && after.visible != before.visible &&
+        std::find(s.toggled.begin(), s.toggled.end(), node) == s.toggled.end())
+      s.toggled.push_back(node);
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
@@ -861,12 +868,13 @@ namespace
                "   " + text::format(w.size, {number(size.width), number(size.height)}) + "\n" +
                text::format(w.zOrder, {std::to_string(info.zOrder),
                                        text::fit(parent ? inspect::name(parent) : w.none, 26)});
-        // A sprite's frame, a label's font: looked for once a node, they go through every frame
-        if (node != m_lookNode)
-        {
-          m_lookNode = node;
+        // A label's font and text as they are now; a sprite's frame looked for once a node, it goes through
+        // every frame of the cache
+        if (typeinfo_cast<CCLabelProtocol*>(node))
           m_look = inspect::lookOf(node);
-        }
+        else if (node != m_lookNode)
+          m_look = inspect::lookOf(node);
+        m_lookNode = node;
         if (!m_look.empty())
           body += "\n" + text::format(w.look, {text::fit(m_look, PANEL_COLUMNS - 10)});
         // The layout's warning says what the code does about it, the other reasons come after it
@@ -889,6 +897,8 @@ namespace
       else
       {
         title = ui::words().nothingSelected;
+        // A node made later at the same address isn't this one
+        m_lookNode = nullptr;
         body = ui::words().clickHint;
       }
       auto edited = editor::editedCount();
@@ -1310,10 +1320,13 @@ namespace
       editor::startTyping();
       break;
     case KEY_R:
-      editor::reset();
+      if (!control)
+        editor::reset();
       break;
     case KEY_V:
-      editor::toggleVisible();
+      // Ctrl+V after Ctrl+C out of habit doesn't hide anything
+      if (!control)
+        editor::toggleVisible();
       break;
     case KEY_F1:
       if (s.overlay)
@@ -1588,7 +1601,7 @@ void editor::resizeTo(CCPoint world)
   auto after = inspect::stateOf(node);
   after.position = CCPoint(result.position.x, result.position.y);
   after.size = CCSize(result.content.width, result.content.height);
-  inspect::apply(node, after);
+  inspect::apply(node, after, true, false);
 }
 
 void editor::setSnapping(std::optional<bool> on)
@@ -1646,7 +1659,7 @@ void editor::wheel(float notches, bool fine)
             after.scaleX = scaled(after.scaleX);
             after.scaleY = scaled(after.scaleY);
             // apply sets a button's base scale too, which its press animation goes back to
-            inspect::apply(each, after, false);
+            inspect::apply(each, after, false, false);
           });
 }
 
@@ -1678,7 +1691,11 @@ void editor::reset()
           [](CCNode* node)
           {
             if (auto original = originalOf(node))
-              inspect::apply(node, *original, isSized(node));
+            {
+              auto const& toggled = state().toggled;
+              inspect::apply(node, *original, isSized(node),
+                             std::find(toggled.begin(), toggled.end(), node) != toggled.end());
+            }
           });
 }
 
@@ -1790,7 +1807,7 @@ void editor::typingKey(int key, bool shift)
     after.scaleX = *values[2];
     after.scaleY = *values[2] * ratio;
     after.size = CCSize(*values[3], *values[4]);
-    inspect::apply(node, after);
+    inspect::apply(node, after, true, false);
     record(node, before, Typed, 0);
     s.typing.reset();
   }
@@ -1819,7 +1836,8 @@ bool editor::undo()
         std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
         continue;
       }
-      inspect::apply(node, change.before, change.before.size != change.after.size);
+      inspect::apply(node, change.before, change.before.size != change.after.size,
+                     change.before.visible != change.after.visible);
       snapshot(node);
       undone.push_back(node);
       log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
@@ -1849,7 +1867,8 @@ bool editor::redo()
       auto node = change.target.get();
       if (!inspect::isIn(node, runningScene()))
         continue;
-      inspect::apply(node, change.after, change.before.size != change.after.size);
+      inspect::apply(node, change.after, change.before.size != change.after.size,
+                     change.before.visible != change.after.visible);
       snapshot(node);
       redone.push_back(node);
       log::info("Redid a step of {}", inspect::name(node));

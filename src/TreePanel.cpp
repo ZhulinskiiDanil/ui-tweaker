@@ -152,11 +152,11 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered, std::v
     std::string name = (changed ? "* " : "") + (row.id.empty() ? row.className : row.id + " " + row.className);
     auto text = text::fit(std::string(std::min(row.depth, 12) * 2, ' ') + name, COLUMNS);
     label->setString(text);
-    ccColor3B color = row.hidden ? HIDDEN : WHITE;
+    ccColor3B color = changed ? EDITED : WHITE;
     if (!m_query.empty() && tree::matches(row, m_query))
       color = MATCH;
-    if (changed)
-      color = EDITED;
+    if (row.hidden)
+      color = HIDDEN;
     if (node == hovered)
       color = HOVERED;
     if (node == selected)

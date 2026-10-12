@@ -1,5 +1,6 @@
 # v0.8.0
 
+- Fixes from a fourth review: visibility the game changes (a tab switched) isn't an edit: not in the code, not put back by undo; the panel's look of a node is the node's, a label's text as it is now; the tree keeps hidden and search colors over the edited one; Ctrl+V and Ctrl+R don't hide or reset; K&R never puts a brace after a comment; names cut at a letter, not inside one
 - The tree marks edited nodes with `*`, in green
 - The *Code style* setting: braces on their own lines with 2 spaces, or K&R with 4 spaces as most Geode mods are written; both compiled in the tests
 - `V` hides the selected nodes, or shows them again, as a step to undo: the code has `setVisible(false)`

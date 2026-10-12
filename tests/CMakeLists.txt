@@ -7,6 +7,11 @@ project(ui-tweaker-tests CXX)
 
 enable_testing()
 
+# The sources are UTF-8 (Russian words, tests with Cyrillic): MSVC reads them so too
+if (MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 add_executable(geometry-tests GeometryTests.cpp ../src/core/Geometry.cpp)
 add_test(NAME geometry COMMAND geometry-tests)
 

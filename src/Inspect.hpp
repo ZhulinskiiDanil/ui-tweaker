@@ -29,7 +29,7 @@ namespace inspect
 
   NodeState stateOf(cocos2d::CCNode* node);
   // `size`: the content size too (not for a node whose size is its own: a label's text)
-  void apply(cocos2d::CCNode* node, NodeState const& state, bool size = true);
+  void apply(cocos2d::CCNode* node, NodeState const& state, bool size = true, bool visible = true);
 
   // The class from RTTI without "class " and "cocos2d::": "CCMenuItemSpriteExtra"
   std::string className(cocos2d::CCObject const* object);

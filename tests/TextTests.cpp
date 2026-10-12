@@ -26,5 +26,7 @@ int main()
   CHECK(fit("CCMenuItemSpriteExtra", 10) == "CCMenuIt..");
   CHECK(fit("short", 10) == "short");
   CHECK(fit("abc", 2) == "ab");
+  // Not inside a letter of two bytes: "привет" cut at 5 bytes is 2 letters, not 2 and a half
+  CHECK(fit("привет", 7) == "пр..");
   return finish("text");
 }

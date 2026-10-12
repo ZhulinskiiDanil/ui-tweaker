@@ -298,7 +298,8 @@ std::string codegen::toKAndR(std::string const& code)
       auto lineStart = out.rfind(char(10), last);
       auto previous = out.substr(lineStart == std::string::npos ? 0 : lineStart + 1, last - (lineStart == std::string::npos ? 0 : lineStart + 1) + 1);
       auto previousBody = previous.substr(std::min(previous.find_first_not_of(' '), previous.size()));
-      if (!previousBody.empty() && previousBody.rfind("//", 0) != 0 && out.back() == char(10) && last + 1 == out.size() - 1)
+      if (!previousBody.empty() && previousBody.find("//") == std::string::npos && out.back() == char(10) &&
+          last + 1 == out.size() - 1)
       {
         out.pop_back();
         out += " {";

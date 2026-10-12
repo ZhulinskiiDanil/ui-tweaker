@@ -376,6 +376,14 @@ namespace
           fmt::format("the right side of {} went 10 to the right ({})", name, after.corners[1].x - quad.corners[1].x));
     check(editor::codeFor(node).find("setContentSize") != std::string::npos, "the code sets the new size");
     check(editor::undo() && inspect::stateOf(node) == before, fmt::format("undo put the size of {} back", name));
+
+    // The game hiding it after an edit (a tab switched) isn't an edit: not in the code, not shown again by undo
+    editor::nudge(2, 0);
+    node->setVisible(false);
+    check(editor::codeFor(node).find("setVisible") == std::string::npos, "the game hiding a node isn't in the code");
+    editor::undo();
+    check(!node->isVisible(), "undo leaves the game's hiding alone");
+    node->setVisible(true);
   }
 
   // A button in a menu in a menu: the outer one turned by 30, flipped and scaled, the inner one turned back by 10.
