@@ -63,6 +63,9 @@ namespace codegen
     std::string parentClass;
     // Among the parent's children castable to className, which one this is (for getChildByType)
     int typeIndex = 0;
+    // A class the code can't name (another mod's, in a namespace): typeIndex is which child it is of all, for
+    // getChildByIndex
+    bool byIndex = false;
 
     geom::Vec2 position;
     float scaleX = 1;

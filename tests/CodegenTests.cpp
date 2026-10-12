@@ -126,8 +126,15 @@ namespace
     auto code = generate(node);
     CHECK(has(layoutWarning(node), "main-menu has a RowLayout"));
     CHECK(has(code, "// main-menu has a RowLayout"));
-    CHECK(has(code, "node->setLayoutOptions(AxisLayoutOptions::create()->setPrevGap(12.f)->setAutoScale(false));"));
+    // The node's own options kept, the gap and the auto scale set on them
+    CHECK(has(code, "auto options = typeinfo_cast<AxisLayoutOptions*>(node->getLayoutOptions());"));
+    CHECK(has(code, "node->setLayoutOptions((options ? options : AxisLayoutOptions::create())->setPrevGap(12.f)"
+                    "->setAutoScale(false));"));
     CHECK(has(code, "node->setScale(1.2f);"));
+    // The scale before the options: setting them updates the layout
+    CHECK(code.find("node->setScale(1.2f);") < code.find("setLayoutOptions"));
+    // A button's press animation goes back to its base scale: that too
+    CHECK(has(code, "static_cast<CCMenuItemSpriteExtra*>(node)->m_baseScale = 1.2f;"));
     // The position only as a comment
     CHECK(has(code, "// Without the layout: node->setPosition({"));
     CHECK(!has(code, "\n  node->setPosition"));
@@ -162,11 +169,33 @@ namespace
     CHECK(has(code, "auto parent = this->getChildByIDRecursive(\"main-menu\"); auto node = parent ? "
                     "parent->getChildByType<CCSprite>(2) : nullptr"));
 
+    // A class the code can't name: by its index among all children
+    node.className = "`anonymous namespace'::Thing";
+    node.byIndex = true;
+    node.typeIndex = 5;
+    CHECK(has(generate(node), "parent->getChildByIndex(5) : nullptr"));
+    CHECK(!has(generate(node), "anonymous namespace'::Thing>"));
+    node.className = "CCSprite";
+    node.byIndex = false;
+
+    // IDs with quotes or backslashes stay one string literal
+    auto odd = node;
+    odd.id = "say \"hi\"";
+    CHECK(has(generate(odd), "getChildByIDRecursive(\"say \\\"hi\\\"\")"));
+
     node.parentId = "";
     code = generate(node);
     CHECK(lookup(node).empty());
     CHECK(has(code, "No ID to find it by"));
-    CHECK(has(code, "node->setPosition({10.f, 10.f});"));
+    CHECK(has(code, "  node->setPosition({10.f, 10.f});"));
+
+    // Two without IDs in one block of code: each in braces, so parentSize isn't declared twice
+    auto first = inParent({190, 50}, {200, 100});
+    first.id = first.parentId = "";
+    auto all = generateAll({first, first});
+    CHECK(has(all, "No ID to find it by: these go where you make it, with `node` being it\n{\n  auto parentSize"));
+    // Never at the top level of the block
+    CHECK(!has(all, "\nauto parentSize"));
   }
 
   void properties()

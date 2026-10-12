@@ -39,6 +39,10 @@ namespace inspect
   // The node's content box on the screen
   geom::Quad worldQuad(cocos2d::CCNode* node);
 
+  // Whether `node` is one of the nodes of `root`'s tree, found by walking the tree: `node` itself isn't read, so
+  // it may be a pointer to a node that's gone
+  bool contains(cocos2d::CCNode* root, cocos2d::CCNode const* node);
+
   // Whether the node is in `root`'s tree (false once it was removed, or its scene was replaced)
   bool isIn(cocos2d::CCNode* node, cocos2d::CCNode* root);
 

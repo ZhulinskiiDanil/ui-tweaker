@@ -24,8 +24,10 @@ grep -E "Self test (PASS|FAIL)" "$log" | cut -c1-120
 # Only what comes after the self test counts: it drags and scales the same button itself
 start=$(wc -l < "$log")
 fresh() { tail -n +"$((start + 1))" "$log"; }
-# Where the Geode button is, from the panel's line in the self test: its middle on the screen
-read -r gx gy < <(grep -o "the code for geode.loader/geode-button" "$log" >/dev/null && echo "448.5 20.5")
+# The Geode button's middle, and the main menu's title: a node outside layouts (with the MiSide menu installed
+# its layout guard puts the bottom menu's buttons back every frame, so a drag of them leaves no step)
+gx=448.5; gy=20.5
+tx=171; ty=252
 sleep 2
 
 passed=0; failed=0
@@ -34,20 +36,23 @@ expect() {
 }
 
 input move 300 200; input move "$gx" "$gy"; sleep 0.5; shot hover.png
-input drag "$gx" "$gy" 400 140; sleep 1.5
-expect "Dragged geode.loader/geode-button" "a real drag moved the Geode button"
+# Nothing selected: the panel is short and doesn't cover the title
+input key esc
+input drag "$tx" "$ty" 260 200; sleep 1.5
+expect "Dragged " "a real drag moved the title"
+fresh | grep "Dragged " | tail -1 | cut -c1-160
 input wheel 2; sleep 1.5
-expect "Scaled geode.loader/geode-button" "the real wheel scaled it"
-fresh | grep "Scaled geode.loader/geode-button" | tail -1 | cut -c1-160
+expect "Scaled " "the real wheel scaled it"
+fresh | grep "Scaled " | tail -1 | cut -c1-160
 input key right shift; sleep 1.5
-expect "Nudged geode.loader/geode-button" "Shift+Right nudged it"
-fresh | grep "Nudged geode.loader/geode-button" | cut -c1-160
+expect "Nudged " "Shift+Right nudged it"
+fresh | grep "Nudged " | cut -c1-160
 shot edited.png
 input key a; sleep 0.5; shot shapes.png; input key a
 input key z ctrl; input key z ctrl; input key z ctrl; sleep 1.5
-undos=$(fresh | grep -c "Undid a step of geode.loader/geode-button")
+undos=$(fresh | grep -c "Undid a step of ")
 [ "$undos" -ge 3 ] && { echo "ok: 3 real Ctrl+Z"; passed=$((passed + 1)); } || { echo "FAIL: $undos Ctrl+Z seen"; failed=$((failed + 1)); }
-fresh | grep "Undid a step of geode.loader/geode-button" | tail -1 | cut -c1-160
+fresh | grep "Undid a step of " | tail -1 | cut -c1-160
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

@@ -19,6 +19,8 @@
 
 #include <algorithm>
 #include <chrono>
+
+#include <Windows.h>
 #include <cmath>
 #include <functional>
 
@@ -44,6 +46,8 @@ namespace
   // Steps of one kind on one node this close together are one step to undo
   constexpr double WHEEL_MERGE = 0.6;
   constexpr double NUDGE_MERGE = 1.0;
+  // The mouse standing still: the scene is looked through for the hover this often, in frames
+  constexpr int HOVER_FRAMES = 10;
   // How close an edge or a center gets before it snaps, in points
   constexpr float SNAP_DISTANCE = 3.f;
 
@@ -87,6 +91,11 @@ namespace
     CCPoint panelGrab;
 
     std::optional<CCPoint> pinned;
+    // The last hover and where the mouse was for it
+    Retained<CCNode> hover;
+    CCPoint hoverPoint;
+    size_t hoverCycle = 0;
+    int hoverFrames = 0;
     // What a drag snaps to, gathered when it starts, and the lines it's on now
     std::vector<snap::Guide> guides;
     std::vector<snap::Guide> snapLines;
@@ -174,7 +183,24 @@ namespace
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
     if (s.selected && gone(s.selected))
+    {
       s.selected.reset();
+      s.pressed = s.dragging = false;
+    }
+    s.hover.reset();
+  }
+
+  // Characters come to a focused text field through the IME, not as key events: the edit mode takes the focus
+  // away so the tree's search and the edit mode's keys don't type into the game
+  void unfocusTextFields(CCNode* node)
+  {
+    if (!node || !CCIMEDispatcher::sharedDispatcher()->hasDelegate())
+      return;
+    if (auto input = typeinfo_cast<CCTextInputNode*>(node))
+      if (input->m_textField)
+        input->m_textField->detachWithIME();
+    for (auto child : CCArrayExt<CCNode*>(node->getChildren()))
+      unfocusTextFields(child);
   }
 
   bool hasModifier(KeyboardModifier modifiers, uint8_t which)
@@ -201,16 +227,21 @@ namespace
     }
   }
 
-  // The edit mode's own key: left to Geode, which calls toggle
-  bool isToggleKey(KeyboardInputData const& data)
+  // The edit mode's own key (or mouse button): left to Geode, which calls toggle
+  bool isToggle(enumKeyCodes key, KeyboardModifier modifiers)
   {
     auto setting = std::dynamic_pointer_cast<KeybindSettingV3>(Mod::get()->getSetting("toggle-key"));
     if (!setting)
       return false;
     for (auto const& bind : setting->getValue())
-      if (bind.key == data.key && bind.modifiers == data.modifiers)
+      if (bind.key == key && bind.modifiers == modifiers)
         return true;
     return false;
+  }
+
+  bool isToggleKey(KeyboardInputData const& data)
+  {
+    return isToggle(data.key, data.modifiers);
   }
 
   // The screen's edges and center, the parent's, and the siblings': what a drag of the node snaps to
@@ -654,20 +685,28 @@ namespace
 
   // ! --- Input --- !
 
-  CCNode* hovered(CCPoint mouse)
+  // What's under the mouse, held: a node that removes itself this frame stays valid until the frame is drawn
+  Retained<CCNode> hovered(CCPoint mouse)
   {
     auto& s = state();
     if (s.dragging || s.panelDragging || (s.overlay && s.overlay->panelContains(mouse)))
-      return nullptr;
-    // Over the tree, the row's node
+      return {};
+    // Over the tree, the row's node (checked to be in the scene: the tree doesn't hold its nodes)
     if (s.overlay && s.overlay->tree()->contains(mouse))
-      return s.overlay->tree()->rowAt(mouse);
+      return Retained<CCNode>(s.overlay->tree()->rowAt(mouse, runningScene()));
+
+    // The whole scene is looked through only when the mouse moved or Tab was pressed, else a few times a second
+    bool still = ccpDistance(mouse, s.hoverPoint) < 0.5f && s.hoverCycle == s.cycle;
+    if (still && ++s.hoverFrames < HOVER_FRAMES && (!s.hover || inspect::isIn(s.hover.get(), runningScene())))
+      return s.hover;
+    s.hoverFrames = 0;
+    s.hoverPoint = mouse;
+    s.hoverCycle = s.cycle;
     auto hits = inspect::hitsAt(runningScene(), mouse);
-    if (hits.empty())
-      return nullptr;
     if (ccpDistance(mouse, s.cyclePoint) > 1)
       s.cycle = 0;
-    return hits[s.cycle % hits.size()];
+    s.hover = Retained<CCNode>(hits.empty() ? nullptr : hits[s.cycle % hits.size()]);
+    return s.hover;
   }
 
   ListenerResult onMouse(MouseInputData& data)
@@ -678,6 +717,9 @@ namespace
     using enum MouseInputData::Action;
     using enum MouseInputData::Button;
 
+    if (auto key = MouseInputData::buttonToKeyCode(data.button); key != KEY_None && isToggle(key, data.modifiers))
+      return ListenerResult::Propagate;
+
     if (data.button == Left && data.action == Press)
     {
       s.leftDown = true;
@@ -686,7 +728,7 @@ namespace
         tree->setTyping(tree->searchAt(mouse));
       if (tree && tree->contains(mouse))
       {
-        if (auto node = tree->rowAt(mouse))
+        if (auto node = tree->rowAt(mouse, runningScene()))
           editor::select(node);
       }
       else if (auto button = s.overlay ? s.overlay->buttonAt(mouse) : nullptr)
@@ -732,7 +774,7 @@ namespace
         tree->setTyping(false);
       else if (data.key == KEY_Enter)
       {
-        if (auto node = tree->firstMatch())
+        if (auto node = tree->firstMatch(runningScene()))
           editor::select(node);
         tree->setTyping(false);
       }
@@ -837,16 +879,23 @@ namespace
     }
 
     auto mouse = mousePosition();
+    // A release lost to the window losing focus (Geode drops the input queued meanwhile): the drag ends with it
+    if ((s.pressed || s.panelDragging) && !s.pinned && GetActiveWindow() == nullptr)
+    {
+      s.leftDown = false;
+      s.panelDragging = false;
+      editor::release();
+    }
     if (s.panelDragging)
       movePanel(mouse - s.panelGrab);
     else if (s.pressed && !s.pinned)
       editor::dragTo(mouse);
     auto hover = hovered(mouse);
     if (m_tree->isVisible())
-      m_tree->refresh(runningScene(), s.selected.get(), hover);
+      m_tree->refresh(runningScene(), s.selected.get(), hover.get());
     else
       m_tree->forget();
-    redraw(hover, s.selected.get());
+    redraw(hover.get(), s.selected.get());
   }
 } // namespace
 
@@ -867,6 +916,7 @@ void editor::setActive(bool on)
   if (on)
   {
     forgetOtherScenes();
+    unfocusTextFields(runningScene());
     s.mouse = MouseInputEvent().listen(onMouse, PRIORITY);
     s.move = MouseMoveEvent().listen(
         [](int32_t, int32_t)
@@ -914,6 +964,11 @@ void editor::setActive(bool on)
       s.overlay->removeFromParent();
       s.overlay = nullptr;
     }
+    s.hover.reset();
+    // A scene change while it's off would leave its nodes held until it's on again
+    auto scene = runningScene();
+    s.history.forget([scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); });
+    std::erase_if(s.originals, [scene](auto const& entry) { return !inspect::isIn(entry.first.get(), scene); });
     logger_link::clear();
     log::info("Edit mode off");
   }
@@ -997,7 +1052,7 @@ void editor::release()
 void editor::wheel(float notches, bool fine)
 {
   auto& s = state();
-  if (!s.selected || notches == 0)
+  if (!s.selected || notches == 0 || s.dragging)
     return;
   auto node = s.selected.get();
   auto before = inspect::stateOf(node);
@@ -1014,8 +1069,11 @@ void editor::wheel(float notches, bool fine)
       next = size + (notches > 0 ? 0.01f : -0.01f);
     return sign * std::max(next, 0.01f);
   };
-  node->setScaleX(scaled(before.scaleX));
-  node->setScaleY(scaled(before.scaleY));
+  auto after = before;
+  after.scaleX = scaled(before.scaleX);
+  after.scaleY = scaled(before.scaleY);
+  // apply sets a button's base scale too, which its press animation goes back to
+  inspect::apply(node, after);
   record(node, before, Wheel, WHEEL_MERGE);
 }
 

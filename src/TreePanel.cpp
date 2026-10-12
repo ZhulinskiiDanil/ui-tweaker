@@ -17,6 +17,10 @@ namespace
   constexpr size_t COLUMNS = 46;
   // Deeper than this is cut: nothing in GD's menus is
   constexpr int MAX_DEPTH = 40;
+  // A level in the editor has thousands of objects: the tree stops at this many rows
+  constexpr size_t MAX_ROWS = 4000;
+  // The rows again this often while nothing about them changes, in frames
+  constexpr int REFRESH_FRAMES = 15;
 
   ccColor3B const WHITE = {255, 255, 255};
   ccColor3B const HIDDEN = {120, 120, 135};
@@ -32,17 +36,23 @@ namespace
     return true;
   }
 
-  void collect(CCNode* node, int depth, std::vector<Retained<CCNode>>& nodes, std::vector<tree::Row>& rows)
+  void collect(CCNode* node, int depth, bool hidden, std::vector<CCNode*>& nodes, std::vector<TreeRow>& rows)
   {
-    if (depth > MAX_DEPTH)
+    if (depth > MAX_DEPTH || nodes.size() >= MAX_ROWS)
       return;
-    nodes.emplace_back(node);
-    rows.push_back({depth, std::string(node->getID()), inspect::className(node)});
+    hidden = hidden || !node->isVisible();
+    nodes.push_back(node);
+    TreeRow row;
+    row.depth = depth;
+    row.id = std::string(node->getID());
+    row.className = inspect::className(node);
+    row.hidden = hidden;
+    rows.push_back(std::move(row));
     // A label's letters are sprites of their own: not worth a row each
     if (typeinfo_cast<CCLabelBMFont*>(node))
       return;
     for (auto child : CCArrayExt<CCNode*>(node->getChildren()))
-      collect(child, depth + 1, nodes, rows);
+      collect(child, depth + 1, hidden, nodes, rows);
   }
 
   UiLabel* label(CCNode* parent, bool ascii)
@@ -94,24 +104,33 @@ bool TreePanel::init()
 
 void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
 {
-  std::vector<tree::Row> rows;
-  m_nodes.clear();
-  if (scene)
-    collect(scene, 0, m_nodes, rows);
-  m_shown = tree::filter(rows, m_query);
+  // The scene again a few times a second, or when the search changed
+  if (++m_framesSinceRefresh >= REFRESH_FRAMES || m_query != m_refreshedQuery)
+  {
+    m_framesSinceRefresh = 0;
+    m_refreshedQuery = m_query;
+    m_nodes.clear();
+    m_rows.clear();
+    if (scene)
+      collect(scene, 0, false, m_nodes, m_rows);
+    std::vector<tree::Row> rows(m_rows.begin(), m_rows.end());
+    m_shown = tree::filter(rows, m_query);
+  }
+  auto const& rows = m_rows;
 
   // The selected node in view when it changes, wherever it was selected
   if (selected != m_lastSelected)
   {
     m_lastSelected = selected;
     for (size_t i = 0; i < m_shown.size(); i++)
-      if (m_nodes[m_shown[i]].get() == selected)
+      if (m_nodes[m_shown[i]] == selected)
         m_first = tree::scrollTo(m_first, i, ROWS);
   }
   m_first = std::min(m_first, m_shown.size() > ROWS ? m_shown.size() - ROWS : 0);
 
   auto const& w = ui::words();
-  m_title->setString(text::format(w.treeTitle, {std::to_string(m_shown.size()), std::to_string(m_nodes.size())}));
+  auto all = std::to_string(m_nodes.size()) + (m_nodes.size() >= MAX_ROWS ? "+" : "");
+  m_title->setString(text::format(w.treeTitle, {std::to_string(m_shown.size()), all}));
   m_search->setString(m_query.empty() && !m_typing ? w.searchHint
                                                    : text::format(w.search, {m_query + (m_typing ? "_" : "")}));
   m_search->setColor(m_typing ? WHITE : HIDDEN);
@@ -127,11 +146,11 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
     }
     label->setVisible(true);
     auto const& row = rows[m_shown[at]];
-    auto node = m_nodes[m_shown[at]].get();
+    auto node = m_nodes[m_shown[at]];
     std::string name = row.id.empty() ? row.className : row.id + " " + row.className;
     auto text = text::fit(std::string(std::min(row.depth, 12) * 2, ' ') + name, COLUMNS);
     label->setString(text);
-    ccColor3B color = !shownInTree(node) ? HIDDEN : WHITE;
+    ccColor3B color = row.hidden ? HIDDEN : WHITE;
     if (!m_query.empty() && tree::matches(row, m_query))
       color = MATCH;
     if (node == hovered)
@@ -145,7 +164,9 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
 void TreePanel::forget()
 {
   m_nodes.clear();
+  m_rows.clear();
   m_shown.clear();
+  m_framesSinceRefresh = 1000;
   m_lastSelected = nullptr;
 }
 
@@ -154,7 +175,7 @@ bool TreePanel::contains(CCPoint world)
   return isVisible() && boundingBox().containsPoint(getParent()->convertToNodeSpace(world));
 }
 
-CCNode* TreePanel::rowAt(CCPoint world)
+CCNode* TreePanel::rowAt(CCPoint world, CCNode* scene)
 {
   if (!contains(world))
     return nullptr;
@@ -166,7 +187,8 @@ CCNode* TreePanel::rowAt(CCPoint world)
   size_t at = m_first + static_cast<size_t>(row);
   if (static_cast<size_t>(row) >= ROWS || at >= m_shown.size())
     return nullptr;
-  return m_nodes[m_shown[at]].get();
+  auto node = m_nodes[m_shown[at]];
+  return inspect::contains(scene, node) ? node : nullptr;
 }
 
 bool TreePanel::searchAt(CCPoint world)
@@ -204,13 +226,10 @@ void TreePanel::erase()
   m_first = 0;
 }
 
-CCNode* TreePanel::firstMatch()
+CCNode* TreePanel::firstMatch(CCNode* scene)
 {
   for (auto index : m_shown)
-  {
-    auto node = m_nodes[index].get();
-    if (tree::matches({0, std::string(node->getID()), inspect::className(node)}, m_query))
-      return node;
-  }
+    if (tree::matches(m_rows[index], m_query) && inspect::contains(scene, m_nodes[index]))
+      return m_nodes[index];
   return nullptr;
 }

@@ -8,6 +8,7 @@
 #include <Geode/ui/SimpleAxisLayout.hpp>
 
 #include <algorithm>
+#include <cstring>
 #include <cmath>
 #include <typeinfo>
 
@@ -97,19 +98,47 @@ namespace
                                                 : previous.getMinY() - self.getMaxY();
   }
 
-  // Parent and siblings castable to the node's exact class before it, for getChildByType. Subclasses of the
-  // class count there too; siblings of another exact class aren't counted here, close enough for the code
-  int typeIndex(CCNode* node)
+  // The MSVC name of the object's own class, as its RTTI has it (what typeinfo_cast compares)
+  char const* rttiName(void const* object)
+  {
+    using namespace geode::cast;
+    auto vftable = *reinterpret_cast<VftableType const* const*>(object);
+    auto meta = static_cast<MetaPointerType const*>(static_cast<CompleteVftableType const*>(vftable));
+    auto base = reinterpret_cast<uintptr_t>(meta->m_completeLocator) - meta->m_completeLocator->m_locatorOffset;
+    return meta->m_completeLocator->m_typeDescriptor.into(base)->m_typeDescriptorName;
+  }
+
+  // typeinfo_cast with the class known only at run time: whether the object is of that class or a subclass
+  bool castable(void const* object, char const* name)
+  {
+    using namespace geode::cast;
+    auto vftable = *reinterpret_cast<VftableType const* const*>(object);
+    auto meta = static_cast<MetaPointerType const*>(static_cast<CompleteVftableType const*>(vftable));
+    auto base = reinterpret_cast<uintptr_t>(meta->m_completeLocator) - meta->m_completeLocator->m_locatorOffset;
+    auto classDesc = meta->m_completeLocator->m_classDescriptor.into(base);
+    for (int32_t i = 0; i < classDesc->m_numBaseClasses; ++i)
+    {
+      auto entry = classDesc->m_baseClassArray.into(base)->m_descriptorEntries[i].into(base);
+      if (std::strcmp(entry->m_typeDescriptor.into(base)->m_typeDescriptorName, name) == 0)
+        return true;
+    }
+    return false;
+  }
+
+  // Which one of the parent's children getChildByType<its class> gives the node as: subclasses count, like
+  // typeinfo_cast does. Or, with `any`, which child it is of all
+  int childIndex(CCNode* node, bool any)
   {
     auto parent = node->getParent();
     if (!parent)
       return 0;
+    auto name = rttiName(node);
     int index = 0;
     for (auto child : CCArrayExt<CCNode*>(parent->getChildren()))
     {
       if (child == node)
         break;
-      if (typeid(*child) == typeid(*node))
+      if (any || castable(child, name))
         index++;
     }
     return index;
@@ -151,6 +180,9 @@ void inspect::apply(CCNode* node, NodeState const& state)
   node->setPosition(state.position);
   node->setScaleX(state.scaleX);
   node->setScaleY(state.scaleY);
+  // A button's press animation scales it back to its base scale
+  if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node))
+    button->m_baseScale = state.scaleX;
   if (node->getAnchorPoint() != state.anchor)
     node->setAnchorPoint(state.anchor);
   if (node->getZOrder() != state.zOrder)
@@ -205,6 +237,18 @@ geom::Quad inspect::worldQuad(CCNode* node)
 {
   auto size = node->getContentSize();
   return geom::transform(toGeom(node->nodeToWorldTransform()), {0, 0, size.width, size.height});
+}
+
+bool inspect::contains(CCNode* root, CCNode const* node)
+{
+  if (!root || !node)
+    return false;
+  if (root == node)
+    return true;
+  for (auto child : CCArrayExt<CCNode*>(root->getChildren()))
+    if (contains(child, node))
+      return true;
+  return false;
 }
 
 bool inspect::isIn(CCNode* node, CCNode* root)
@@ -278,12 +322,8 @@ codegen::LayoutInfo inspect::layoutOf(CCNode* node)
     return info;
   info.name = className(layout);
 
-  if (typeinfo_cast<CopySizeLayout*>(layout))
-  {
-    // Copies sizes, doesn't move anything
-    info.kind = codegen::LayoutKind::None;
-  }
-  else if (typeinfo_cast<AnchorLayout*>(layout))
+  // A CopySizeLayout is an AnchorLayout too: it moves the children with AnchorLayoutOptions (a popup's main layer)
+  if (typeinfo_cast<AnchorLayout*>(layout))
   {
     info.kind = codegen::LayoutKind::Anchor;
     info.hasAnchorOptions = typeinfo_cast<AnchorLayoutOptions*>(node->getLayoutOptions()) != nullptr;
@@ -363,7 +403,9 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
     desc.parentId = std::string(parent->getID());
     desc.parentClass = className(parent);
   }
-  desc.typeIndex = typeIndex(node);
+  // A class from another mod, in a namespace or a template can't be named in the code: the child's index instead
+  desc.byIndex = desc.className.find_first_of(":`<> ") != std::string::npos;
+  desc.typeIndex = childIndex(node, desc.byIndex);
 
   auto state = stateOf(node);
   desc.position = {state.position.x, state.position.y};

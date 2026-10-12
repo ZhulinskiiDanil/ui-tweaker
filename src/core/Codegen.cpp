@@ -18,6 +18,19 @@ namespace
            node.frame.kind == codegen::FrameKind::Parent;
   }
 
+  // A C++ string literal of the text
+  std::string quoted(std::string const& text)
+  {
+    std::string out = "\"";
+    for (char c : text)
+    {
+      if (c == '"' || c == '\\')
+        out += '\\';
+      out += c;
+    }
+    return out + "\"";
+  }
+
   std::string describe(std::string const& id, std::string const& className)
   {
     if (id.empty())
@@ -27,6 +40,10 @@ namespace
 
   std::string scaleLines(codegen::NodeDesc const& node, std::string const& indent)
   {
+    // A button's press animation scales it back to its base scale
+    if (node.className == "CCMenuItemSpriteExtra" && node.scaleX == node.scaleY)
+      return indent + "node->setScale(" + expr::number(node.scaleX) + ");\n" + indent +
+             "static_cast<CCMenuItemSpriteExtra*>(node)->m_baseScale = " + expr::number(node.scaleX) + ";\n";
     if (node.scaleX == node.scaleY)
       return indent + "node->setScale(" + expr::number(node.scaleX) + ");\n";
     return indent + "node->setScaleX(" + expr::number(node.scaleX) + ");\n" + indent + "node->setScaleY(" +
@@ -65,7 +82,10 @@ namespace
     }
     else if (isAxis(node.layout.kind))
     {
-      // The layout decides the position; what it can be told is the gap and whether to scale the node
+      // The layout decides the position; what it can be told is the gap and whether to scale the node. The
+      // scale first: setLayoutOptions updates the layout right away
+      if (scaleWanted)
+        out << scaleLines(node, indent);
       if (node.layout.kind == codegen::LayoutKind::Axis)
       {
         std::string options;
@@ -73,8 +93,11 @@ namespace
           options += "->setPrevGap(" + expr::number(*node.layout.prevGap) + ")";
         if (node.scaleChanged)
           options += "->setAutoScale(false)";
+        // The node's own options kept (a line break, scale limits), only these set on them
         if (!options.empty())
-          out << indent << "node->setLayoutOptions(AxisLayoutOptions::create()" << options << ");\n";
+          out << indent << "auto options = typeinfo_cast<AxisLayoutOptions*>(node->getLayoutOptions());\n"
+              << indent << "node->setLayoutOptions((options ? options : AxisLayoutOptions::create())" << options
+              << ");\n";
       }
       else if (node.layout.prevGap)
       {
@@ -82,8 +105,6 @@ namespace
         out << indent << "// A gap before it, on top of the layout's own: node->getParent()->insertBefore(AxisGap::create("
             << expr::number(*node.layout.prevGap) << "), node);\n";
       }
-      if (scaleWanted)
-        out << scaleLines(node, indent);
       // The position itself, for a node taken out of the layout
       out << indent << "// Without the layout: node->setPosition({" << x << ", " << y << "});\n";
       // The anchor and the z-order below still count: the z-order is the order in the layout
@@ -119,11 +140,12 @@ namespace
     if (find.empty())
     {
       // Nothing to find it by: the lines are for wherever the node is made
-      out << "// No ID to find it by: these go where you make it, with `node` being it\n";
-      auto inner = body(node, "");
+      // In a block of its own, so two of them in one place don't declare parentSize twice
+      out << "// No ID to find it by: these go where you make it, with `node` being it\n{\n";
+      auto inner = body(node, "  ");
       if (inner.usesWinSize && declareWinSize)
-        out << "auto winSize = CCDirector::get()->getWinSize();\n";
-      out << inner.lines;
+        out << "  auto winSize = CCDirector::get()->getWinSize();\n";
+      out << inner.lines << "}\n";
       return out.str();
     }
 
@@ -184,11 +206,14 @@ std::string codegen::layoutWarning(NodeDesc const& node, words::Lang lang)
 std::string codegen::lookup(NodeDesc const& node)
 {
   if (!node.id.empty())
-    return "auto node = this->getChildByIDRecursive(\"" + node.id + "\")";
-  if (!node.parentId.empty())
-    return "auto parent = this->getChildByIDRecursive(\"" + node.parentId + "\"); auto node = parent ? parent->getChildByType<" +
-           node.className + ">(" + std::to_string(node.typeIndex) + ") : nullptr";
-  return "";
+    return "auto node = this->getChildByIDRecursive(" + quoted(node.id) + ")";
+  if (node.parentId.empty())
+    return "";
+  auto parent = "auto parent = this->getChildByIDRecursive(" + quoted(node.parentId) + "); auto node = parent ? ";
+  // A class the code can't name (another mod's, in a namespace): which child it is of all
+  if (node.byIndex)
+    return parent + "parent->getChildByIndex(" + std::to_string(node.typeIndex) + ") : nullptr";
+  return parent + "parent->getChildByType<" + node.className + ">(" + std::to_string(node.typeIndex) + ") : nullptr";
 }
 
 std::string codegen::generate(NodeDesc const& node)
