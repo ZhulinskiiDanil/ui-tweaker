@@ -157,6 +157,9 @@
   labels/sprites with handles, sizes a node changes by itself being written and put back, ProfilePage's hook
   (`loadPageFromUserInfo`), the hooks' preamble (Geode.hpp + namespace) and their priority after node-ids.
 
+- 18:56 own: `UI_TWEAKER_SELFTEST=tour`: seven scenes, whatever is under a 7x5 grid dragged, its code read back,
+  undone; with Alt picks too: 119 real nodes, 480 checks, all right.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
@@ -167,6 +170,7 @@
 | 17:33 (v0.4.0) | 12/12 | ok | PASS 91 (menu), 102 (+level), 102 (+editor); real input 7/7 | level, editor, typing |
 | 18:09 (v0.5.0) | 13/13 | ok | PASS 104 / 115 / 115; real input 8/8 | several selected, code view |
 | 18:35 (v0.6.0) | 14/14 | ok | PASS 113 / 124 / 124; real input 9/9 | handles, hooks |
+| 18:58 (v0.7.0) | 14/14 | ok | PASS 116 / 127 / 127, tour 480 (119 nodes, 7 scenes); real input 9/9 | help wrapped |
 
 ## Not done / known
 
