@@ -145,8 +145,9 @@ namespace
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now()}, merge);
-    log::debug("{}: position ({}, {}), scale {} x {}", inspect::name(node), number(after.position.x),
-               number(after.position.y), number(after.scaleX), number(after.scaleY));
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged"};
+    log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
+              number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
 
   // Forgets the nodes of a scene that's gone, so they aren't kept alive by the history
@@ -914,6 +915,9 @@ bool editor::undo()
       continue;
     inspect::apply(node, change->before);
     select(node);
+    log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
+              number(change->before.position.x), number(change->before.position.y), number(change->before.scaleX),
+              number(change->before.scaleY));
     return true;
   }
   return false;
@@ -930,6 +934,7 @@ bool editor::redo()
       continue;
     inspect::apply(node, change->after);
     select(node);
+    log::info("Redid a step of {}", inspect::name(node));
     return true;
   }
   return false;
@@ -975,11 +980,18 @@ std::string editor::codeFor(CCNode* node)
 
 std::vector<CCNode*> editor::editedNodes()
 {
+  // The nodes with steps not undone, in the order they were first edited. Not "differs from before": a layout
+  // that moves a node by itself would make an untouched node look edited
   std::vector<CCNode*> nodes;
+  auto& s = state();
   auto scene = runningScene();
-  for (auto const& [node, before] : state().originals)
-    if (inspect::isIn(node.get(), scene) && !(inspect::stateOf(node.get()) == before))
+  for (auto const& [node, before] : s.originals)
+  {
+    bool stepped = std::any_of(s.history.changes().begin(), s.history.changes().end(),
+                               [&](auto const& change) { return change.target == node; });
+    if (stepped && inspect::isIn(node.get(), scene))
       nodes.push_back(node.get());
+  }
   return nodes;
 }
 
