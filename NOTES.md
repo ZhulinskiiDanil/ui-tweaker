@@ -72,13 +72,39 @@
 - 16:30 backlog 3, the node tree (`T`) with search (`/`, typed without IME, Enter selects the first match), checked
   with real keys. Geode's code for `/` is its own `KEY_Slash` (0x1007), not VK_OEM_2.
 
+- 16:35 backlog 6, distances (Alt held), Figma-like; self test hovers a sibling of the selected node.
+  v0.2.0 released (pre-release).
+- 16:40 backlog 7, Improved Logger (soft dependency, header copied like mod-profiler): the selection and the
+  edited count pinned, a marker on copy. Its console window wasn't open on this machine, so the pins weren't seen
+  on screen; the calls are the same API mod-profiler and crash-doctor use.
+- 16:47 backlog 8, Russian/English: all words in `core/Words` (tested for completeness and placeholder counts),
+  TTF labels (Segoe UI) in Russian since GD's bitmap fonts have no Cyrillic, left-aligned; tree rows (IDs) stay
+  bitmap. Windows here is ru-RU, so Auto = Russian. README with a GIF made by real input (`tools/gif.sh`) and
+  screenshots in both languages (`UI_TWEAKER_LANG` forces the language for them).
+- 16:54 own: `Ctrl+arrows` move the anchor point keeping the node in place, `[` `]` the z-order; found and fixed
+  the code for nodes in axis layouts leaving out anchor/z-order.
+- 16:55 backlog 9 edge cases in the self test: a node removed while selected/hovered/in the history/in the tree,
+  and two scene changes (CCTransitionFade to CreatorLayer and back) with a selection. 68 checks pass.
+- 17:00 backlog 9 review by a separate agent (read-only): 1 critical, 7 medium, 6 low. All fixed except as noted
+  below; see the commit "Review fixes". The critical one: a tree row's node could be freed mid-frame and drawn.
+  Also important: the tree held every node of the scene, so an old scene was destroyed a frame late, inside the
+  overlay's update — with GD destructors that clear globals (PlayLayer's) that could break the next scene. The
+  tree holds nothing now and checks a row's node against the live scene before using it.
+- 17:07 real input 6/6 again. The real drag now targets the title: after the self test's scene changes, MiSide's
+  layout guard puts the Geode button back every frame, so its drag left no step (which is what the panel warns).
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- |
 | 16:08 | 5/5 | ok | PASS, 39 checks | box + tag + panel at the Geode button |
 | 16:32 (v0.2.0) | 9/9 | ok | PASS, 48 checks; real input 6/6 | tree search, other screens, box + tag |
+| 17:07 (v0.3.0) | 11/11 | ok | PASS, 68 checks; real input 6/6 | Russian panel, distances, GIF frames |
 
 ## Not done / known
+
+- Review items left as they are: right/middle/X button releases are always swallowed in the edit mode (the game only
+  uses left touches; another mod that saw a press before the edit mode could miss its release). Edited nodes of
+  the running scene stay retained while the edit mode is off (only other scenes' are let go when it's turned off).
 
 - (fixed) "Copy all (1)" after the self test: MiSide's layout guard, see 16:24.

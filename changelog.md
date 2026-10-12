@@ -3,6 +3,8 @@
 - Russian and English (the *Language* setting, Auto follows Windows): TTF labels in Russian, since GD's bitmap fonts have no Cyrillic. The generated code stays English
 - `Ctrl`+arrows move the anchor point (the node stays in place), `[` and `]` the z-order; both undo and are in the code
 - The code for a node in an axis layout has its anchor point and z-order too
+- Fixes from a code review: a hovered tree row's node could be freed mid-frame and drawn (a crash); the tree held every node of the scene; the wheel during a drag; CopySizeLayout children; getChildByType indices with subclasses; the scale before AxisLayoutOptions, keeping the node's own options; a button's base scale; text fields keep no focus in the edit mode; a mouse button as the toggle; IDs escaped
+- The self test also removes a selected node and changes scenes twice in the edit mode
 - With Improved Logger: the selection and the count of edited nodes pinned in its console, a marker when code is copied
 
 # v0.2.0
