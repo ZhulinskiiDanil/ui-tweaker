@@ -4,6 +4,7 @@
 
 - Start: **2026-10-12 15:35:17 +02:00** (the first `date` of the run)
 - Hard stop (8 h): **2026-10-12 23:35 +02:00**; stabilization from ~22:35
+- **End: 2026-10-12 ~20:40 +02:00** (you woke up at ~20:33: the last feature finished, checks, this report). 5 h 05 min
 
 ## Links
 
@@ -205,6 +206,14 @@
   for the other betas (Crash Doctor, Mod Profiler): their releases are pre-releases too.
 - 20:15 own: the other screens' names were colored text alone, lost over the vanilla menu's RobTop logo (green
   and yellow on orange); now on dark plates. `aspect` PASS 131, looked at.
+- 20:20 fifth review (separate agent, v0.8.0..HEAD: letters in wrap/fit, `snappedCenter`, the plates, the tools):
+  no defects; it also ran wrap/fit on broken UTF-8 (stray and cut bytes, 4-byte letters): no loops, no reads past.
+- 20:25 soak on the clean game (`tools/soak.sh`, the vanilla title now): 1472 → 1547 → 1566 → 1581 MB over 60
+  rounds, then a longer run: 1542 at the start, 1560 at round 20, 1525 at round 120 — flat, caches warming at the
+  start. Stopped at round ~130 when you woke up (it moves the real mouse).
+- 20:33 you woke up: stopped. v0.8.1 (Russian wrapping, the plates, clean-game media and checks) is on main and
+  checked, not released: v0.8.0 was 19:40, under the ~2 h between releases. To release:
+  bump `mod.json`/`CMakeLists.txt` to 0.8.1, tag `v0.8.1`, publish a pre-release; CI attaches the `.geode`.
 
 ## Checks
 
@@ -219,6 +228,7 @@
 | 18:58 (v0.7.0) | 14/14 | ok | PASS 116 / 127 / 127, tour 480 (119 nodes, 7 scenes); real input 9/9 | help wrapped |
 | 19:36 (v0.8.0) | 14/14 | ok | PASS 129 / 140 / 140, tour 493; real input 9/9; soak flat | README media |
 | 20:08 clean game | 14/14 | ok | PASS 131 / 142 / 142, tour 504, aspect 131, code 131; real input 9/9 | vanilla menu: box, tag, panel; GIF |
+| 20:35 final (main) | 14/14 | ok | aspect PASS 131 (with the plates); review: no defects; soak flat | plates looked at |
 
 ## Not done / known
 

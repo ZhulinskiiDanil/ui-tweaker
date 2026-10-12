@@ -19,7 +19,7 @@ input key esc; input key t; input key c
 start=$(memory)
 echo "memory at the start: $start MB"
 for i in $(seq 1 "$rounds"); do
-  input drag 171 252 230 200
+  input drag 284.5 270 230 200
   input wheel 1
   input key z ctrl; input key z ctrl
   input move 300 150

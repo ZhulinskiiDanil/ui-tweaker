@@ -1,4 +1,4 @@
-# v0.8.1
+# v0.8.1 (not released yet: on main)
 
 - Russian text in the panel is wrapped as wide as English: lines are counted in letters, not bytes
 - The self test's snapping check passes in a vanilla main menu too, where the play button's row is centered a point off the screen's middle
