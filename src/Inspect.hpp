@@ -44,6 +44,9 @@ namespace inspect
   // nothing else. Unless `deep`, a hit inside a button, a label or a 9-slice is that button, label or 9-slice
   std::vector<cocos2d::CCNode*> hitsAt(cocos2d::CCNode* root, cocos2d::CCPoint world, bool deep = false);
 
+  // The visible nodes with an ID that draw something, in the order they're drawn: what the aspect preview checks
+  std::vector<cocos2d::CCNode*> shownWithIds(cocos2d::CCNode* root);
+
   // The layout of the node's parent, as far as the code is concerned
   codegen::LayoutInfo layoutOf(cocos2d::CCNode* node);
 

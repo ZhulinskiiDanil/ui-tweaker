@@ -47,6 +47,9 @@ namespace editor
   void copySelected();
   void copyAll();
 
+  // A: the other screens' shapes over this one
+  void setAspectPreview(bool on);
+
   // For the self test: the mouse is here, not where the real one is, until the real one moves
   void pinMouse(std::optional<cocos2d::CCPoint> world);
   // What the edit mode does to a click before the game sees it: true if it keeps it from the game

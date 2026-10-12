@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # The stage 1 check: the game started with UI_TWEAKER_SELFTEST=1, the self test's result from Geode's log,
 # a screenshot of the game with the edit mode on, the game closed.
-#   tools/check.sh [screenshot.png] [seconds to wait]
+#   tools/check.sh [screenshot.png] [seconds to wait] [UI_TWEAKER_SELFTEST's value, 1 by default]
 # The mod has to be installed (geode build). Git Bash on Windows
 set -u
 
 shot="${1:-}"
 timeout="${2:-150}"
+mode="${3:-1}"
 here="$(cd "$(dirname "$0")" && pwd)"
 
 # The game of Geode CLI's current profile
@@ -27,7 +28,7 @@ wait_for() {
 
 stop
 before="$(newest "$logs")"
-UI_TWEAKER_SELFTEST=1 geode run --background >/dev/null 2>&1
+UI_TWEAKER_SELFTEST="$mode" geode run --background >/dev/null 2>&1
 if ! wait_for '[ "$(newest "$logs")" != "$before" ]' 60; then
   echo "FAIL: no new Geode log in 60 s"
   stop

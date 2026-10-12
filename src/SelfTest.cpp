@@ -312,6 +312,10 @@ namespace
       editor::pinMouse(CCPoint{center.x, center.y});
     }
 
+    // UI_TWEAKER_SELFTEST=aspect: the other screens' shapes on, for a screenshot of them
+    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "aspect")
+      editor::setAspectPreview(true);
+
     if (g_failed == 0)
       log::info("Self test PASS: {} checks", g_checks);
     else

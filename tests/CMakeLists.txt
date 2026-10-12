@@ -27,3 +27,6 @@ add_test(NAME snap COMMAND snap-tests)
 
 add_executable(explain-tests ExplainTests.cpp ../src/core/Explain.cpp)
 add_test(NAME explain COMMAND explain-tests)
+
+add_executable(aspect-tests AspectTests.cpp ../src/core/Aspect.cpp ../src/core/Expr.cpp)
+add_test(NAME aspect COMMAND aspect-tests)

@@ -235,6 +235,20 @@ std::vector<CCNode*> inspect::hitsAt(CCNode* root, CCPoint world, bool deep)
   return hits;
 }
 
+std::vector<CCNode*> inspect::shownWithIds(CCNode* root)
+{
+  std::vector<CCNode*> order;
+  if (root)
+    drawOrder(root, order);
+  std::erase_if(order, [&](CCNode* node)
+                {
+                  auto size = node->getContentSize();
+                  return node == root || node->getID().empty() || isContainer(node) || transparent(node) ||
+                         size.width <= 0 || size.height <= 0;
+                });
+  return order;
+}
+
 codegen::LayoutInfo inspect::layoutOf(CCNode* node)
 {
   codegen::LayoutInfo info;

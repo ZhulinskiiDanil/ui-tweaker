@@ -17,8 +17,8 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | | |
 | --- | --- |
 | Hover | A box around the topmost node under the mouse, its class (from RTTI), its ID and its parent |
-| Click | Selects it: an orange box, its anchor point, and the panel with its position, scale, anchor point, size, parent and z-order |
-| Drag | Moves it. A turned, scaled or flipped parent is taken into account: the node follows the mouse |
+| Click | Selects it: an orange box, its anchor point, and the panel with its position, scale, anchor point, size, parent and z-order, and why it may not move or show: its parent's layout, running actions, an invisible parent, opacity or scale 0, no content size, an ignored anchor point, a clipping parent, being off the screen |
+| Drag | Moves it. A turned, scaled or flipped parent is taken into account: the node follows the mouse. Its edges and center snap to the screen's, the parent's and the siblings' within 3 points, with the guides drawn (`Ctrl`: no snapping; a setting) |
 | Wheel | Scales it by 10% a notch, `Shift`: by 0.01 |
 | Arrows | Moves it by 1 in its parent, `Shift`: by 10 |
 | `Ctrl+Z`, `Ctrl+Y` | Undo, redo. A turn of the wheel or a run of arrow presses is one step |
@@ -27,6 +27,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |
 | `PgUp`, `PgDn` | The parent, the first child |
+| `A` | Other screens: the 16:10, 4:3 and 21:9 screens drawn over this one, the selected node where it would be on each, a red box around every node with an ID that wouldn't fit on one of them. The panel says it too |
 | `H` | Hides the panel. Its title bar drags it |
 | `Esc` | Unselects, then leaves the edit mode |
 

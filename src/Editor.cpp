@@ -2,6 +2,7 @@
 
 #include "Inspect.hpp"
 #include "Retained.hpp"
+#include "core/Aspect.hpp"
 #include "core/Codegen.hpp"
 #include "core/History.hpp"
 #include "core/Snap.hpp"
@@ -81,6 +82,8 @@ namespace
     std::vector<snap::Guide> guides;
     std::vector<snap::Guide> snapLines;
     std::optional<bool> snapOverride;
+    // A: the other screens' shapes over this one
+    bool aspectPreview = false;
     // Tab goes through what's under the mouse, deeper each time
     size_t cycle = 0;
     CCPoint cyclePoint;
@@ -285,6 +288,14 @@ namespace
       addButton("Redo", [] { editor::redo(); });
       addButton("Leave", [] { Loader::get()->queueInMainThread([] { editor::setActive(false); }); });
 
+      for (auto const& shape : aspect::shapes())
+      {
+        auto label = makeLabel(this);
+        label->setString(shape.name.c_str());
+        label->setAnchorPoint({0, 0});
+        m_shapeLabels.push_back(label);
+      }
+
       setBanner();
       scheduleUpdate();
       return true;
@@ -342,6 +353,7 @@ namespace
     CCLabelBMFont* m_body = nullptr;
     CCLabelBMFont* m_warning = nullptr;
     std::vector<Button> m_buttons;
+    std::vector<CCLabelBMFont*> m_shapeLabels;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
 
@@ -365,7 +377,7 @@ namespace
       m_bannerText->setString(
           fmt::format("UI Tweaker: edit mode ({} leaves)\nDrag: move   Wheel: scale (Shift: fine)   Arrows: 1 px "
                       "(Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo\nCtrl+C: copy code   Ctrl+Shift+C: copy all   "
-                      "Tab: next under the mouse   Alt+click: inside   PgUp: parent   H: panel",
+                      "Tab: next under the mouse   Alt+click: inside   PgUp: parent   A: other screens   H: panel",
                       key)
               .c_str());
       auto win = CCDirector::get()->getWinSize();
@@ -447,6 +459,9 @@ namespace
         }
         for (auto& reason : explain::reasons(facts))
           reasons.push_back(std::move(reason));
+        auto win = CCDirector::get()->getWinSize();
+        if (auto off = aspect::offScreenOn(inspect::worldQuad(node).bounds(), {win.width, win.height}); !off.empty())
+          reasons.push_back("Off the screen on " + off + " (A shows them)");
         for (auto const& reason : reasons)
           for (auto const& line : text::wrap("! " + reason, PANEL_COLUMNS))
             warning += line + "\n";
@@ -507,10 +522,51 @@ namespace
       movePanel(m_panelTopLeft);
     }
 
+    // The narrower and wider screens, centered on this one, the selected node where it would be on each, and a
+    // red box around every node with an ID that doesn't fit on one of them
+    void drawShapes(CCNode* selected)
+    {
+      auto win = CCDirector::get()->getWinSize();
+      static ccColor4F const colors[] = {
+          {1.f, 1.f, 1.f, 0.9f}, {0.4f, 1.f, 0.5f, 0.9f}, {1.f, 0.9f, 0.3f, 0.9f}, {0.4f, 0.8f, 1.f, 0.9f}};
+      ccColor4F const none = {0, 0, 0, 0};
+      auto const& shapes = aspect::shapes();
+      for (size_t i = 0; i < shapes.size(); i++)
+      {
+        float width = aspect::widthFor(shapes[i], win.height);
+        float left = (win.width - width) / 2;
+        auto color = colors[i % 4];
+        geom::Quad frame{{geom::Vec2{left, 0}, {left + width, 0}, {left + width, win.height}, {left, win.height}}};
+        drawQuad(frame, none, 0.5f, color);
+        auto label = m_shapeLabels[i];
+        label->setVisible(true);
+        label->setColor(ccc3(color.r * 255, color.g * 255, color.b * 255));
+        label->setPosition(convertToNodeSpace({std::max(left, 0.f) + 2, 12.f + 9.f * i}));
+        if (selected)
+        {
+          auto box = aspect::move(inspect::worldQuad(selected).bounds(), win.width, width);
+          geom::Quad ghost{{geom::Vec2{box.minX() + left, box.minY()}, {box.maxX() + left, box.minY()},
+                            {box.maxX() + left, box.maxY()}, {box.minX() + left, box.maxY()}}};
+          drawQuad(ghost, none, 0.4f, color);
+        }
+      }
+      for (auto node : inspect::shownWithIds(runningScene()))
+      {
+        auto quad = inspect::worldQuad(node);
+        // Backgrounds are made to be cut off
+        if (quad.bounds().width >= win.width * 0.9f)
+          continue;
+        if (!aspect::offScreenOn(quad.bounds(), {win.width, win.height}).empty())
+          drawQuad(quad, none, 0.4f, {1.f, 0.25f, 0.25f, 1.f});
+      }
+    }
+
   public:
     void redraw(CCNode* hover, CCNode* selected)
     {
       m_draw->clear();
+      for (auto label : m_shapeLabels)
+        label->setVisible(false);
       if (hover && hover != selected)
         drawQuad(inspect::worldQuad(hover), HOVER_FILL, 0.5f, HOVER);
       if (selected)
@@ -526,6 +582,8 @@ namespace
         auto to = line.vertical ? CCPoint{line.at, line.to} : CCPoint{line.to, line.at};
         m_draw->drawSegment(convertToNodeSpace(from), convertToNodeSpace(to), 0.4f, GUIDE);
       }
+      if (state().aspectPreview)
+        drawShapes(selected);
       showTag(hover ? hover : selected);
       showPanel(selected);
     }
@@ -632,6 +690,9 @@ namespace
             editor::select(child);
             break;
           }
+      break;
+    case KEY_A:
+      s.aspectPreview = !s.aspectPreview;
       break;
     case KEY_H:
       if (s.overlay)
@@ -961,6 +1022,11 @@ void editor::copyAll()
 }
 
 // ! --- Self test --- !
+
+void editor::setAspectPreview(bool on)
+{
+  state().aspectPreview = on;
+}
 
 void editor::pinMouse(std::optional<CCPoint> world)
 {
