@@ -1,3 +1,8 @@
+# v0.8.0
+
+- The layout warnings in the code are wrapped at a hundred columns, as code is
+- README: how it goes, in three steps
+
 # v0.7.0
 
 - `UI_TWEAKER_SELFTEST=tour`: seven scenes of the game, whatever is under a grid of points in each dragged, its code read back and undone (119 nodes with the parts of buttons too, all right)

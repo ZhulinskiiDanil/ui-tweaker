@@ -6,6 +6,8 @@
 
 namespace
 {
+  constexpr size_t COMMENT_COLUMNS = 100;
+
   bool isAxis(codegen::LayoutKind kind)
   {
     return kind == codegen::LayoutKind::Axis || kind == codegen::LayoutKind::SimpleAxis;
@@ -144,9 +146,11 @@ namespace
   {
     std::ostringstream out;
     out << "// " << describe(node.id, node.className) << " in " << describe(node.parentId, node.parentClass) << "\n";
+    // Wrapped as code is: a hundred columns or so
     auto warning = codegen::layoutWarning(node);
     if (!warning.empty())
-      out << "// " << warning << "\n";
+      for (auto const& line : text::wrap(warning, COMMENT_COLUMNS))
+        out << "// " << line << "\n";
 
     auto find = codegen::lookup(node);
     if (find.empty())

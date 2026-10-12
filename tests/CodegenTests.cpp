@@ -133,6 +133,16 @@ namespace
     auto code = generate(node);
     CHECK(has(layoutWarning(node), "main-menu has a RowLayout"));
     CHECK(has(code, "// main-menu has a RowLayout"));
+    // The warning wrapped as code is
+    for (size_t start = 0, end; start < code.size(); start = end + 1)
+    {
+      end = code.find(char(10), start);
+      if (end == std::string::npos)
+        end = code.size();
+      auto line = code.substr(start, end - start);
+      if (line.rfind("// main", 0) == 0 || line.rfind("// ", 0) == 0)
+        CHECK(line.size() <= 104);
+    }
     // The node's own options kept, the gap and the auto scale set on them
     CHECK(has(code, "auto options = typeinfo_cast<AxisLayoutOptions*>(node->getLayoutOptions());"));
     CHECK(has(code, "node->setLayoutOptions((options ? options : AxisLayoutOptions::create())->setPrevGap(12.f)"

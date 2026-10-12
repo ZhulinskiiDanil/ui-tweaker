@@ -14,6 +14,12 @@ A [Geode](https://geode-sdk.org) mod for Geometry Dash, for mod developers: move
 
 Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://github.com/ZhulinskiiDanil/ui-tweaker/releases) and put it into Geode's mods folder (or **Install from file** on Geode's mods page). Or, with [Zhulis Mods Manager](https://github.com/ZhulinskiiDanil/zhulis-mods-manager), turn on its **Include pre-releases** setting: the mod is a beta, its releases are pre-releases.
 
+## How it goes
+
+1. In your mod, add your button or popup anywhere, with an ID (`setID("my-button"_spr)`), and build once
+2. In the game, `F8`, drag it where it belongs, scale it with the wheel, type exact values with `Enter` if you like; `A` shows whether it still fits on a 4:3 or a 21:9 screen
+3. `Ctrl+Shift+C`: the code for everything you moved, as `$modify` hooks of the layers it's in, also in `export.cpp`. Paste the lines into your hook (or the whole hook), build: it's where you put it, on every screen
+
 ## Use
 
 `F8` (a setting) turns the edit mode on and off, in any scene. While it's on, the game gets no clicks and no keys but its own toggle:
