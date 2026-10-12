@@ -1,0 +1,34 @@
+{
+	"geode": "5.10.1",
+	"gd": {
+		"win": "2.2081"
+	},
+	"id": "zhulis.ui-tweaker",
+	"name": "UI Tweaker",
+	"version": "v0.1.0",
+	"developer": "Zhulis",
+	"description": "Move and scale any node of the game's interface with the mouse, then copy the C++ that puts it there",
+	"repository": "https://github.com/ZhulinskiiDanil/ui-tweaker",
+	"links": {
+		"source": "https://github.com/ZhulinskiiDanil/ui-tweaker",
+		"community": "https://discord.gg/duuG4RqJKh"
+	},
+	"issues": {
+		"info": "Report bugs on GitHub or in the Discord server",
+		"url": "https://github.com/ZhulinskiiDanil/ui-tweaker/issues"
+	},
+	"tags": [
+		"developer",
+		"interface",
+		"utility"
+	],
+	"settings": {
+		"toggle-key": {
+			"name": "Edit mode",
+			"description": "Turns the edit mode on and off. In it, the mouse picks, moves and scales the nodes of the screen instead of pressing them, and <cy>Ctrl+C</c> copies the C++ for the selected one",
+			"type": "keybind",
+			"default": "F8",
+			"category": "universal"
+		}
+	}
+}

@@ -1,0 +1,62 @@
+#include "Text.hpp"
+
+std::vector<std::string> text::wrap(std::string_view text, size_t columns)
+{
+  std::vector<std::string> lines;
+  if (columns == 0)
+    return lines;
+
+  size_t start = 0;
+  while (start <= text.size())
+  {
+    auto end = text.find('\n', start);
+    auto paragraph = text.substr(start, end == std::string_view::npos ? std::string_view::npos : end - start);
+
+    std::string line;
+    size_t at = 0;
+    while (at < paragraph.size())
+    {
+      auto space = paragraph.find(' ', at);
+      auto word = paragraph.substr(at, space == std::string_view::npos ? std::string_view::npos : space - at);
+      at = space == std::string_view::npos ? paragraph.size() : space + 1;
+
+      while (word.size() > columns)
+      {
+        // Too long for any line: cut
+        if (!line.empty())
+        {
+          lines.push_back(line);
+          line.clear();
+        }
+        lines.emplace_back(word.substr(0, columns));
+        word.remove_prefix(columns);
+      }
+      if (word.empty())
+        continue;
+      if (line.empty())
+        line = word;
+      else if (line.size() + 1 + word.size() <= columns)
+        line += " " + std::string(word);
+      else
+      {
+        lines.push_back(line);
+        line = word;
+      }
+    }
+    lines.push_back(line);
+
+    if (end == std::string_view::npos)
+      break;
+    start = end + 1;
+  }
+  return lines;
+}
+
+std::string text::fit(std::string_view text, size_t columns)
+{
+  if (text.size() <= columns)
+    return std::string(text);
+  if (columns <= 2)
+    return std::string(text.substr(0, columns));
+  return std::string(text.substr(0, columns - 2)) + "..";
+}
