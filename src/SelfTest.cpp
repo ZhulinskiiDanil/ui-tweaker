@@ -372,6 +372,60 @@ namespace
     check(editor::undo() && inspect::stateOf(node) == before, fmt::format("undo put the size of {} back", name));
   }
 
+  // A button in a menu in a menu: the outer one turned by 30, flipped and scaled, the inner one turned back by 10.
+  // The mouse has to pick the button, a drag has to move it as far on the screen, its code has to put it where
+  // it is, and undo has to put it back
+  void transforms()
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto outer = CCMenu::create();
+    outer->setID("selftest-outer"_spr);
+    outer->setPosition({win.width / 2, win.height / 2});
+    outer->setContentSize({120, 80});
+    outer->ignoreAnchorPointForPosition(false);
+    outer->setRotation(30);
+    outer->setScaleX(-1.5f);
+    outer->setScaleY(1.5f);
+    auto inner = CCMenu::create();
+    inner->setID("selftest-inner"_spr);
+    inner->setContentSize({60, 40});
+    inner->ignoreAnchorPointForPosition(false);
+    inner->setPosition({60, 40});
+    inner->setRotation(-10);
+    outer->addChild(inner);
+    auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    auto button = CCMenuItemSpriteExtra::create(sprite ? static_cast<CCNode*>(sprite) : CCSprite::create(), nullptr, nullptr);
+    button->setID("selftest-turned"_spr);
+    button->setPosition({30, 20});
+    inner->addChild(button);
+    CCDirector::get()->getRunningScene()->addChild(outer, 1000);
+
+    auto before = inspect::stateOf(button);
+    auto center = inspect::worldQuad(button).center();
+    CCPoint press{center.x, center.y};
+    auto hits = inspect::hitsAt(CCDirector::get()->getRunningScene(), press);
+    check(!hits.empty() && hits[0] == button, fmt::format("the mouse picks the button in the turned, flipped menus ({})",
+                                                          hits.empty() ? "nothing" : inspect::name(hits[0])));
+    auto worldBefore = worldPositionOf(button);
+    editor::setSnapping(false);
+    editor::grab(button, press);
+    editor::dragTo(press + ccp(10, -6));
+    editor::release();
+    editor::setSnapping(std::nullopt);
+    auto moved = worldPositionOf(button) - worldBefore;
+    check(close(moved.x, 10, 0.05f) && close(moved.y, -6, 0.05f),
+          fmt::format("the turned button moved by ({}, {}) on the screen, not (10, -6)", moved.x, moved.y));
+    auto code = editor::codeFor(button);
+    log::info("Self test: the code for a button in turned, flipped menus:\n{}", code);
+    auto problem = inspect::checkCode(button, code);
+    check(problem.empty(), fmt::format("the code for the turned button puts it where it is: {}", problem));
+    check(code.find("parentSize") != std::string::npos, "a turned parent's frame is its own box, not the screen");
+    auto facts = inspect::factsOf(button);
+    check(facts.parentTurned, "the panel says the parent is turned");
+    check(editor::undo() && inspect::stateOf(button) == before, "undo put the turned button back");
+    outer->removeFromParent();
+  }
+
   // Shift+click: two nodes dragged, nudged and scaled together; each is one step to undo
   void several(CCNode* first, CCNode* second)
   {
@@ -494,6 +548,7 @@ namespace
       snapping(shown[0]);
       anchorAndOrder(shown[0]);
       typing(shown[0]);
+      transforms();
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);
