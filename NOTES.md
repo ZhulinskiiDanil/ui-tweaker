@@ -199,7 +199,7 @@
 - 20:08 real input on the clean game: its points were the MiSide screen's (the Geode button at the bottom right,
   a title with handles). Now the vanilla main menu's: the Geode button (330.75, 45), the title (284.5, 270) for the
   drag, wheel, arrows, undo and typing, the play button's right handle (339.25, 170) for the resize. 9/9.
-- 20:18 the manager checked in the game (you had turned it on again at 19:48): its "Zhulis Mods" list has UI
+- 20:13 the manager checked in the game (you had turned it on again at 19:48): its "Zhulis Mods" list has UI
   Tweaker with its logo and description, installed v0.8.0; its releases cache has all 8 of them with the `.geode`,
   fetched without a token. The list says "No releases yet" while *Include pre-releases* is off (it is here), as
   for the other betas (Crash Doctor, Mod Profiler): their releases are pre-releases too.
