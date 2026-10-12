@@ -421,6 +421,9 @@ namespace
     // UI_TWEAKER_SELFTEST=aspect: the other screens' shapes on, for a screenshot of them
     if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "aspect")
       editor::setAspectPreview(true);
+    // =code: the selected node's code in the panel
+    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "code")
+      editor::setCodeView(true);
 
     // The distances as with Alt held, from the selected node to the one under the mouse: the overlay measures
     // them when it draws, so the result is a few frames away

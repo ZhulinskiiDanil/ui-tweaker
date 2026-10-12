@@ -66,6 +66,9 @@ namespace editor
   // T: the node tree
   void setTreeVisible(bool on);
 
+  // C: the selected node's code in the panel
+  void setCodeView(bool on);
+
   // A: the other screens' shapes over this one
   void setAspectPreview(bool on);
 

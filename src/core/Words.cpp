@@ -7,7 +7,7 @@ namespace
       .helpHint = "F1: all the keys",
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
       .help2 = "Enter: type values   Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
-               "inside   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   A: other screens   T: tree   H: panel",
+               "inside   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   A: other screens   C: code   T: tree   H: panel",
       .nothingSelected = "Nothing selected",
       .clickHint = "Click a node to select it, drag to move it",
       .position = "position {}, {}   (screen {}, {})",
@@ -66,7 +66,7 @@ namespace
       .help1 = "Тащить: сдвиг   Колесо: масштаб (Shift: точно)   Стрелки: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: "
                "отменить / вернуть",
       .help2 = "Enter: ввести числа   Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
-               "внутрь   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   A: другие экраны   T: дерево   H: панель",
+               "внутрь   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   A: другие экраны   C: код   T: дерево   H: панель",
       .nothingSelected = "Ничего не выбрано",
       .clickHint = "Щёлкните по ноде, чтобы выбрать, тащите, чтобы сдвинуть",
       .position = "позиция {}, {}   (на экране {}, {})",

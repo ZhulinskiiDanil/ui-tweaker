@@ -57,6 +57,9 @@ namespace
   constexpr float MARGIN = 4.f;
   constexpr float PANEL_WIDTH = 190.f;
   constexpr size_t PANEL_COLUMNS = 52;
+  constexpr float CODE_SCALE = 0.32f;
+  constexpr char NEWLINE = 10;
+  constexpr size_t CODE_COLUMNS = 66;
 
   ccColor4F const HOVER = {0.35f, 0.8f, 1.f, 1.f};
   // CCDrawNode blends premultiplied colors (GL_ONE, GL_ONE_MINUS_SRC_ALPHA): a fill's color is times its alpha
@@ -104,6 +107,8 @@ namespace
     std::optional<bool> snapOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
+    // C: the selected node's code in the panel
+    bool codeView = false;
     // Enter: values being typed for the selected node, and the one that couldn't be read
     std::optional<fields::Fields> typing;
 
@@ -384,6 +389,11 @@ namespace
       m_title = makeLabel(m_panel, GOLD);
       m_body = makeLabel(m_panel);
       m_warning = makeLabel(m_panel, {255, 200, 90});
+      // The code, bitmap in any language (it's ASCII), smaller: its lines are long
+      m_code = UiLabel::create(CODE_SCALE, true);
+      m_code->setAnchorPoint({0, 1});
+      m_code->setColor({150, 220, 160});
+      m_panel->addChild(m_code);
       addChild(m_panel);
       m_panelTopLeft = ccp(MARGIN, win.height);
 
@@ -485,6 +495,7 @@ namespace
     UiLabel* m_title = nullptr;
     UiLabel* m_body = nullptr;
     UiLabel* m_warning = nullptr;
+    UiLabel* m_code = nullptr;
     std::vector<Button> m_buttons;
     std::vector<UiLabel*> m_shapeLabels;
     std::vector<CCLayerColor*> m_measureTags;
@@ -624,7 +635,30 @@ namespace
         for (auto const& hintLine : text::wrap(hint, PANEL_COLUMNS))
           body += "\n" + hintLine;
       }
-      auto key = title + body + warning + std::to_string(edited) + (s.history.canUndo() ? "u" : "") +
+      // C: the code Ctrl+C would copy, as it is now
+      std::string code;
+      if (node && s.codeView)
+      {
+        auto text = editor::codeFor(node);
+        size_t start = 0;
+        while (start < text.size())
+        {
+          auto end = text.find(NEWLINE, start);
+          auto line = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+          start = end == std::string::npos ? text.size() : end + 1;
+          // Indented lines stay indented when they wrap
+          auto indent = line.substr(0, std::min(line.find_first_not_of(' '), line.size()));
+          bool first = true;
+          for (auto const& part : text::wrap(line.substr(indent.size()), CODE_COLUMNS - indent.size()))
+          {
+            code += indent + (first ? "" : "  ") + part + NEWLINE;
+            first = false;
+          }
+        }
+        if (!code.empty())
+          code.pop_back();
+      }
+      auto key = title + body + warning + code + std::to_string(edited) + (s.history.canUndo() ? "u" : "") +
                  (s.history.canRedo() ? "r" : "");
       if (key == m_panelKey)
         return;
@@ -637,6 +671,8 @@ namespace
         warning.pop_back();
       m_warning->setString(warning);
       m_warning->setVisible(!warning.empty());
+      m_code->setString(code);
+      m_code->setVisible(!code.empty());
       m_buttons[1].label->setString(text::format(ui::words().copyAll, {std::to_string(edited)}));
 
       // From the top down
@@ -650,6 +686,8 @@ namespace
       place(m_body);
       if (!warning.empty())
         place(m_warning);
+      if (!code.empty())
+        place(m_code);
       y -= 2;
       float x = MARGIN;
       float buttonHeight = 11;
@@ -924,10 +962,6 @@ namespace
       if (control)
         editor::redo();
       break;
-    case KEY_C:
-      if (control)
-        shift ? editor::copyAll() : editor::copySelected();
-      break;
     case KEY_Tab:
       editor::nextUnderMouse();
       break;
@@ -946,6 +980,13 @@ namespace
       break;
     case KEY_A:
       s.aspectPreview = !s.aspectPreview;
+      break;
+    case KEY_C:
+      // Ctrl+C copies; C alone shows the code in the panel
+      if (control)
+        shift ? editor::copyAll() : editor::copySelected();
+      else
+        s.codeView = !s.codeView;
       break;
     case KEY_Enter:
     case KEY_NumEnter:
@@ -1477,6 +1518,11 @@ void editor::setTreeVisible(bool on)
 {
   if (auto overlay = state().overlay)
     overlay->tree()->setVisible(on);
+}
+
+void editor::setCodeView(bool on)
+{
+  state().codeView = on;
 }
 
 void editor::setAspectPreview(bool on)
