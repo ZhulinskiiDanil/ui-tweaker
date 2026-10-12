@@ -35,6 +35,9 @@ The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would mak
 - **Layouts.** An `AnchorLayout` (and a `CopySizeLayout`, which is one) moves only children with `AnchorLayoutOptions`, to one of nine anchors on the parent's box plus an offset: the same 3x3 as the expressions in the parent's frame, so the code is that anchor and offset; a node that has options keeps its anchor. An `AxisLayout` puts every child in line; what can be told to it per node is the gap before it and whether to scale it, set on the node's own options after its scale. A `SimpleAxisLayout` has no per-node gap: an `AxisGap` node is one.
 - **Finding the node.** By its ID; without one, through its parent's ID and `getChildByType`, whose index counts what `typeinfo_cast` would (the MSVC RTTI of the node's class compared with each sibling's bases); a class the code can't name (another mod's, in a namespace) by `getChildByIndex`.
 - **Buttons.** `CCMenuItemSpriteExtra`'s press animation scales it back to `m_baseScale`, so the edit and the code set that too.
+- **Sizes and visibility.** A content size is written (with `updateLayout()` for a node with a layout of its own) only if a resize handle or typed values set it: a label's text or a growing layout changing it isn't an edit, and undo doesn't put such a size back. `V` writes `setVisible`.
+- **Hooks.** "Copy all" groups the edits by the layer whose hook they go in: the closest parent that's one of the layers in `core/Hooks.cpp` (17, with the function their interface is made in, from the bindings), else the top one under the scene. A known layer's section is a whole `$modify`, the code after the original, its priority after node-ids' (whose IDs it looks for), under Geode's header and namespace.
+- **Style.** The code is made Allman with 2 spaces; `codegen::toKAndR` turns it into K&R with 4 for the setting: a lone opening brace goes up to the line before unless that's a comment.
 - **Checking it.** `core/Expr.cpp` reads the generated expressions back (numbers, `winSize.width`, `+ - * /`, parentheses). The self test and `inspect::checkCode` evaluate the code's `setPosition` (or the anchor and offset through `AnchorLayout::getAnchoredPosition`) and compare with where the node is, to a hundredth; for a popup's button the self test also puts the generated options on it and updates the layout.
 
 ## The overlay
@@ -63,6 +66,11 @@ The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would mak
 | `core/Tree.cpp` | The tree's search |
 | `core/Fields.cpp` | Typed values |
 | `core/History.hpp` | Undo and redo with merging and a limit |
+| `core/Hooks.cpp` | The layers' hooks and wrapping code in them |
 | `core/Words.cpp`, `core/Text.cpp` | Every word in English and Russian; wrapping and filling in the panel's text |
 
-Everything in `core/` is Geode-free and tested in `tests/`, on Linux with GCC and on Windows with MSVC in CI.
+Everything in `core/` is Geode-free and tested in `tests/`, on Linux with GCC and on Windows with MSVC in CI. `tests/compile` goes further: a generator writes the code for a node of every kind (and hooks, in both styles), which is compiled against `FakeGeode.hpp` (Geode's names and signatures) and run on fake nodes, their positions, scales, anchors, z-orders, sizes, visibility and layout options compared.
+
+## Checking it in the game
+
+`UI_TWEAKER_SELFTEST` (see the README) runs the same calls the mouse and the keys make, in the main menu and, by its value, in a level, the level editor or seven scenes in turn; `tools/check.sh` runs it and takes a screenshot, `tools/real-input.sh` uses real input through SendInput, `tools/soak.sh` watches the memory over a while, `tools/gif.sh` made the README's GIF.
