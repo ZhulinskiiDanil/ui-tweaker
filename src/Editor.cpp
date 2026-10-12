@@ -437,9 +437,18 @@ namespace
                            node->isIgnoreAnchorPointForPosition() ? " (ignored)" : "", number(size.width),
                            number(size.height), info.zOrder,
                            text::fit(parent ? inspect::name(parent) : "none", 26));
-        auto layout = codegen::layoutWarning(desc);
-        if (!layout.empty())
-          for (auto const& line : text::wrap("! " + layout, PANEL_COLUMNS))
+        // The layout's warning says what the code does about it, the other reasons come after it
+        auto facts = inspect::factsOf(node);
+        std::vector<std::string> reasons;
+        if (auto layout = codegen::layoutWarning(desc); !layout.empty())
+        {
+          reasons.push_back(layout);
+          facts.layoutMovesIt = false;
+        }
+        for (auto& reason : explain::reasons(facts))
+          reasons.push_back(std::move(reason));
+        for (auto const& reason : reasons)
+          for (auto const& line : text::wrap("! " + reason, PANEL_COLUMNS))
             warning += line + "\n";
       }
       else

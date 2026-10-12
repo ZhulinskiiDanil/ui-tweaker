@@ -24,3 +24,6 @@ add_test(NAME text COMMAND text-tests)
 
 add_executable(snap-tests SnapTests.cpp ../src/core/Snap.cpp)
 add_test(NAME snap COMMAND snap-tests)
+
+add_executable(explain-tests ExplainTests.cpp ../src/core/Explain.cpp)
+add_test(NAME explain COMMAND explain-tests)

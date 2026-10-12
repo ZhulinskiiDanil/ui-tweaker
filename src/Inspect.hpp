@@ -3,6 +3,7 @@
 // Reading real nodes: what they are, where they are on the screen, which one is under the mouse, and the
 // plain description the code generator takes
 #include "core/Codegen.hpp"
+#include "core/Explain.hpp"
 #include "core/Geometry.hpp"
 
 #include <Geode/Geode.hpp>
@@ -45,6 +46,9 @@ namespace inspect
 
   // The layout of the node's parent, as far as the code is concerned
   codegen::LayoutInfo layoutOf(cocos2d::CCNode* node);
+
+  // What could make the node not move, not show or act oddly
+  explain::Facts factsOf(cocos2d::CCNode* node);
 
   // The node for the code generator. `original` is the state before the edits, to write only what changed
   codegen::NodeDesc describe(cocos2d::CCNode* node, NodeState const* original = nullptr);

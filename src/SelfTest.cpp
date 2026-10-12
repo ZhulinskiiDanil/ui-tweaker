@@ -185,6 +185,13 @@ namespace
     check(close(item.after.position.x, dragged.position.x + 11) && close(item.after.position.y, dragged.position.y),
           fmt::format("the arrows moved {} by 11 in its parent", name));
 
+    // Why it would act oddly: a hidden node has to say what hides it
+    auto facts = inspect::factsOf(node);
+    for (auto const& reason : explain::reasons(facts))
+      log::info("Self test: {}: {}", name, reason);
+    check(visibleInTree(node) == facts.hiddenBy.empty(),
+          fmt::format("{} is said to be hidden exactly when it is ({})", name, facts.hiddenBy));
+
     auto code = editor::codeFor(node);
     log::info("Self test: the code for {}:\n{}", name, code);
     auto problem = inspect::checkCode(node, code);

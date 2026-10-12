@@ -2,6 +2,7 @@
 
 #include "core/Expr.hpp"
 
+#include <Geode/binding/CCScrollLayerExt.hpp>
 #include <Geode/ui/NineSlice.hpp>
 #include <Geode/ui/SimpleAxisLayout.hpp>
 
@@ -267,6 +268,55 @@ codegen::LayoutInfo inspect::layoutOf(CCNode* node)
   else
     info.kind = codegen::LayoutKind::Other;
   return info;
+}
+
+explain::Facts inspect::factsOf(CCNode* node)
+{
+  explain::Facts facts;
+  auto parent = node->getParent();
+  facts.parent = parent ? name(parent) : "nothing";
+
+  auto layout = layoutOf(node);
+  if (layout.kind != codegen::LayoutKind::None)
+  {
+    facts.layoutName = layout.name;
+    facts.layoutMovesIt = layout.kind != codegen::LayoutKind::Anchor || layout.hasAnchorOptions;
+  }
+  for (auto up = node; up; up = up->getParent())
+    if (!up->isVisible())
+    {
+      facts.hiddenBy = up == node ? "the node itself" : name(up);
+      break;
+    }
+  facts.transparent = transparent(node);
+  auto size = node->getContentSize();
+  facts.zeroSize = size.width <= 0 && size.height <= 0;
+  facts.zeroScale = node->getScaleX() == 0 || node->getScaleY() == 0;
+  facts.ignoresAnchor = node->isIgnoreAnchorPointForPosition() && node->getAnchorPoint() != CCPoint{0, 0};
+  facts.runningActions = node->numberOfRunningActions();
+
+  auto bounds = worldQuad(node).bounds();
+  for (auto up = parent; up; up = up->getParent())
+    if (typeinfo_cast<CCClippingNode*>(up) || typeinfo_cast<CCScrollLayerExt*>(up))
+    {
+      auto box = worldQuad(up).bounds();
+      bool inside = bounds.minX() >= box.minX() - 0.5f && bounds.maxX() <= box.maxX() + 0.5f &&
+                    bounds.minY() >= box.minY() - 0.5f && bounds.maxY() <= box.maxY() + 0.5f;
+      if (!inside)
+        facts.clippedBy = name(up);
+      break;
+    }
+
+  if (parent)
+  {
+    auto toWorld = toGeom(parent->nodeToWorldTransform());
+    // Scaled evenly is fine, turned, flipped or skewed isn't
+    facts.parentTurned = std::fabs(toWorld.b) > 1e-4f || std::fabs(toWorld.c) > 1e-4f || toWorld.a < 0 || toWorld.d < 0;
+  }
+  auto win = CCDirector::get()->getWinSize();
+  facts.outsideScreen = !facts.zeroSize && (bounds.maxX() < 0 || bounds.minX() > win.width || bounds.maxY() < 0 ||
+                                            bounds.minY() > win.height);
+  return facts;
 }
 
 codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
