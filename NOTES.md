@@ -9,6 +9,9 @@
 
 - Repository: https://github.com/ZhulinskiiDanil/ui-tweaker (public since 20:01)
 - Releases (pre-releases, `.geode` attached by CI): https://github.com/ZhulinskiiDanil/ui-tweaker/releases
+- Zhulis Mods Manager: listed since 20:05 (`mods.json` 0b75722 and the built-in list 76272e9 in
+  https://github.com/ZhulinskiiDanil/zhulis-mods-manager), "Beta: ..." like Crash Doctor; its releases are
+  pre-releases, offered with the manager's *Include pre-releases* setting, as the other betas' are
 
 ## Blocked — needs you
 
@@ -190,7 +193,9 @@
   can't for players: it reads GitHub's releases without a token, as it must, and GitHub answers 404 for a private
   repository to anyone without access. Showing one to everyone would need a token shipped in the mod, a key made
   public. A token setting would work only for you and your collaborators. So the repository is public (anonymous
-  API: 200), and the mod is added to the manager like Crash Doctor.
+  API: 200), and the mod is added to the manager like Crash Doctor: pushed, the registry on raw.githubusercontent
+  has it, the releases API answers without a token with 8 releases and the `.geode`, the logo 200. The manager
+  built (`geode build` put it in the game's mods folder; it stays turned off there, as you left it).
 
 ## Checks
 
