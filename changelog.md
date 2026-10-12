@@ -1,13 +1,17 @@
-# v0.4.0
+# v0.5.0
 
-- `Enter` types exact values for the selected node: x, y and the scale, numbers or expressions like `w / 2 + 40` (`w`, `h`: the screen; `pw`, `ph`: the parent)
-- "Copy all" keeps the edits of the scenes left, each under its layer's name, and also writes them to `export.cpp` in the mod's save folder
-- A node with AnchorLayoutOptions keeps its anchor in the code, only the offset changes (it was the closest anchor, which could be another one than the mod developer chose)
 - `Shift`+click selects several nodes: dragged, nudged and scaled together, one step to undo, their code copied together
 - `C` shows the selected node's code in the panel, as it changes
 - The panel moves out of the way of the selected node
 - The tests compile and run the generated code against a fake of Geode's API (GCC and MSVC)
 - Fixes from a second review: exact values kept when Enter is pressed twice, one section per layer in "Copy all", removed nodes' code kept, scenes told apart reliably
+- The README in Russian, the architecture as the code is now
+
+# v0.4.0
+
+- `Enter` types exact values for the selected node: x, y and the scale, numbers or expressions like `w / 2 + 40` (`w`, `h`: the screen; `pw`, `ph`: the parent)
+- "Copy all" keeps the edits of the scenes left, each under its layer's name, and also writes them to `export.cpp` in the mod's save folder
+- A node with AnchorLayoutOptions keeps its anchor in the code, only the offset changes (it was the closest anchor, which could be another one than the mod developer chose)
 - The banner is one line at the top, `F1` shows every key
 - A level's objects (big batch nodes) aren't looked through for the hover: 0.4 ms in the editor with 3000 objects
 - The commented position for a node in an axis layout says where parentSize comes from
