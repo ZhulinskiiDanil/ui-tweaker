@@ -1,5 +1,7 @@
 # UI Tweaker
 
+[Русский](README.ru.md)
+
 A [Geode](https://geode-sdk.org) mod for Geometry Dash, for mod developers: move and scale any node of the game's interface with the mouse, right in the game, then copy the C++ that puts it there. Your buttons and popups in their places after one rebuild instead of five. Windows.
 
 <img src="logo.png" width="128" alt="logo">
