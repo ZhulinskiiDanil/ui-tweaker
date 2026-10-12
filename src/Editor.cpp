@@ -7,6 +7,7 @@
 #include "Ui.hpp"
 #include "core/Aspect.hpp"
 #include "core/Codegen.hpp"
+#include "core/Fields.hpp"
 #include "core/History.hpp"
 #include "core/Measure.hpp"
 #include "core/Snap.hpp"
@@ -37,6 +38,7 @@ namespace
     Nudge = 3,
     Reanchor = 4,
     Order = 5,
+    Typed = 6,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -102,6 +104,9 @@ namespace
     std::optional<bool> snapOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
+    // Enter: values being typed for the selected node, and the one that couldn't be read
+    std::optional<fields::Fields> typing;
+    std::string typingError;
     // Alt held: the distances from the selected node to the hovered one
     std::optional<bool> measureOverride;
     std::vector<measure::Segment> measured;
@@ -166,7 +171,7 @@ namespace
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now()}, merge);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -546,6 +551,22 @@ namespace
         body = ui::words().clickHint;
       }
       auto edited = editor::editedNodes().size();
+      if (node && s.typing)
+      {
+        auto const& w = ui::words();
+        static char const* const names[] = {"x", "y", nullptr};
+        std::string line;
+        for (size_t i = 0; i < s.typing->values().size(); i++)
+        {
+          auto name = names[i] ? std::string(names[i]) : w.scaleField;
+          bool current = i == s.typing->current();
+          line += name + (current ? " [" : " ") + s.typing->values()[i] + (current ? "_]" : "") + "   ";
+        }
+        body += "\n" + line;
+        auto hint = s.typingError.empty() ? w.typingHint : text::format(w.typingError, {s.typingError});
+        for (auto const& hintLine : text::wrap(hint, PANEL_COLUMNS))
+          body += "\n" + hintLine;
+      }
       auto key = title + body + warning + std::to_string(edited) + (s.history.canUndo() ? "u" : "") +
                  (s.history.canRedo() ? "r" : "");
       if (key == m_panelKey)
@@ -777,6 +798,13 @@ namespace
     bool control = hasModifier(data.modifiers, KeyboardModifier::Control);
     float step = shift ? 10.f : 1.f;
 
+    // Values being typed take the keys
+    if (s.typing)
+    {
+      editor::typingKey(data.key, shift);
+      return ListenerResult::Stop;
+    }
+
     // The tree's search takes the keys while it's focused
     auto tree = s.overlay ? s.overlay->tree() : nullptr;
     if (tree && tree->isVisible() && tree->typing())
@@ -861,6 +889,10 @@ namespace
       break;
     case KEY_A:
       s.aspectPreview = !s.aspectPreview;
+      break;
+    case KEY_Enter:
+    case KEY_NumEnter:
+      editor::startTyping();
       break;
     case KEY_F1:
       if (s.overlay)
@@ -1139,6 +1171,74 @@ void editor::stepZOrder(int delta)
   record(node, before, Order, NUDGE_MERGE);
 }
 
+void editor::startTyping()
+{
+  auto& s = state();
+  if (!s.selected || s.dragging)
+    return;
+  auto info = inspect::stateOf(s.selected.get());
+  s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX)});
+  s.typingError.clear();
+}
+
+bool editor::typing()
+{
+  return state().typing.has_value();
+}
+
+void editor::typingKey(int key, bool shift)
+{
+  auto& s = state();
+  if (!s.typing)
+    return;
+  if (!s.selected || key == KEY_Escape)
+  {
+    s.typing.reset();
+    return;
+  }
+  if (key == KEY_Tab)
+    shift ? s.typing->previous() : s.typing->next();
+  else if (key == KEY_Backspace)
+    s.typing->erase();
+  else if (key == KEY_Enter || key == KEY_NumEnter)
+  {
+    auto node = s.selected.get();
+    auto win = CCDirector::get()->getWinSize();
+    auto parent = node->getParent() ? node->getParent()->getContentSize() : win;
+    auto values = s.typing->evaluate([&](std::string_view name) -> std::optional<float>
+                                     {
+                                       if (name == "w")
+                                         return win.width;
+                                       if (name == "h")
+                                         return win.height;
+                                       if (name == "pw")
+                                         return parent.width;
+                                       if (name == "ph")
+                                         return parent.height;
+                                       return std::nullopt;
+                                     });
+    for (size_t i = 0; i < values.size(); i++)
+      if (!values[i])
+      {
+        s.typingError = s.typing->values()[i];
+        return;
+      }
+    auto before = inspect::stateOf(node);
+    auto after = before;
+    after.position = CCPoint(*values[0], *values[1]);
+    // A node scaled unevenly keeps its proportions
+    float ratio = before.scaleX != 0 ? before.scaleY / before.scaleX : 1;
+    after.scaleX = *values[2];
+    after.scaleY = *values[2] * ratio;
+    inspect::apply(node, after);
+    record(node, before, Typed, 0);
+    s.typing.reset();
+  }
+  else if (auto c = fields::typed(key, shift))
+    s.typing->type(*c);
+  s.typingError.clear();
+}
+
 bool editor::undo()
 {
   auto& s = state();
@@ -1182,6 +1282,7 @@ void editor::select(CCNode* node)
   if (s.selected == node)
     return;
   release();
+  s.typing.reset();
   s.selected = Retained<CCNode>(node);
   if (node)
     log::info("Selected {}", inspect::name(node));

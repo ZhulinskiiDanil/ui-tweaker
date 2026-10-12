@@ -268,6 +268,42 @@ namespace
     check(inspect::stateOf(node) == before, fmt::format("undo put back the anchor and the z-order of {}", name));
   }
 
+  // Enter, then x, y and the scale typed with the keys a user would press, expressions included
+  void typing(CCNode* node)
+  {
+    auto name = inspect::name(node);
+    auto before = inspect::stateOf(node);
+    auto win = CCDirector::get()->getWinSize();
+    editor::select(node);
+    editor::startTyping();
+    check(editor::typing(), "Enter starts typing values");
+    // w/2+40 Tab h-25 Tab 1.5 Enter
+    std::vector<std::pair<int, bool>> keys = {
+        {'W', false}, {0xBF, false}, {'2', false}, {0xBB, true}, {'4', false}, {'0', false}, {KEY_Tab, false},
+        {'H', false}, {0xBD, false}, {'2', false}, {'5', false}, {KEY_Tab, false},
+        {'1', false}, {0xBE, false}, {'5', false}, {KEY_Enter, false}};
+    for (auto [key, shift] : keys)
+      editor::typingKey(key, shift);
+    auto after = inspect::stateOf(node);
+    check(!editor::typing(), "Enter applied the values");
+    check(close(after.position.x, win.width / 2 + 40) && close(after.position.y, win.height - 25),
+          fmt::format("typed w/2+40, h-25 put {} at ({}, {})", name, after.position.x, after.position.y));
+    check(close(after.scaleX, 1.5f), fmt::format("typed 1.5 scaled {} to {}", name, after.scaleX));
+    auto problem = inspect::checkCode(node, editor::codeFor(node));
+    check(problem.empty(), fmt::format("the code for the typed values puts {} where it is: {}", name, problem));
+
+    // Something that can't be read stays to be fixed; Esc lets it go
+    editor::startTyping();
+    for (auto [key, shift] : std::vector<std::pair<int, bool>>{{'P', false}, {0xBD, false}, {KEY_Enter, false}})
+      editor::typingKey(key, shift);
+    check(editor::typing(), "a value that can't be read isn't applied");
+    editor::typingKey(KEY_Escape, false);
+    check(!editor::typing() && inspect::stateOf(node) == after, "Esc lets the values go");
+
+    check(editor::undo(), "the typed values are a step to undo");
+    check(inspect::stateOf(node) == before, fmt::format("undo put {} back after the typed values", name));
+  }
+
   void run(MenuLayer* layer)
   {
     log::info("Self test: start");
@@ -340,6 +376,7 @@ namespace
     {
       snapping(shown[0]);
       anchorAndOrder(shown[0]);
+      typing(shown[0]);
     }
 
     edgeCases();

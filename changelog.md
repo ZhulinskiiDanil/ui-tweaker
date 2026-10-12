@@ -1,3 +1,9 @@
+# v0.4.0
+
+- `Enter` types exact values for the selected node: x, y and the scale, numbers or expressions like `w / 2 + 40` (`w`, `h`: the screen; `pw`, `ph`: the parent)
+- The banner is one line at the top, `F1` shows every key
+- The self test also types values, goes into a level with `UI_TWEAKER_SELFTEST=play`, and measures the hover and the tree among 5000 more nodes
+
 # v0.3.0
 
 - Russian and English (the *Language* setting, Auto follows Windows): TTF labels in Russian, since GD's bitmap fonts have no Cyrillic. The generated code stays English

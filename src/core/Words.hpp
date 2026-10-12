@@ -63,6 +63,10 @@ namespace words
     std::string outsideScreen;
     // By the mouse: the node, then its parent
     std::string tag;
+    // Typing values: the scale's field, the keys, a value that can't be read ({})
+    std::string scaleField;
+    std::string typingHint;
+    std::string typingError;
   };
 
   Words const& get(Lang lang);

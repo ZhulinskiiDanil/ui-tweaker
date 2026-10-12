@@ -53,6 +53,12 @@ input key z ctrl; input key z ctrl; input key z ctrl; sleep 1.5
 undos=$(fresh | grep -c "Undid a step of ")
 [ "$undos" -ge 3 ] && { echo "ok: 3 real Ctrl+Z"; passed=$((passed + 1)); } || { echo "FAIL: $undos Ctrl+Z seen"; failed=$((failed + 1)); }
 fresh | grep "Undid a step of " | tail -1 | cut -c1-160
+# Values typed for the selected title: Enter, w/2 Tab h/2 Enter
+input key enter; input key w; input key slash; input key 2; input key tab; input key h; input key slash; input key 2
+sleep 0.3; shot typing.png; input key enter; sleep 1.5
+expect "Typed " "real keys typed the values w/2, h/2"
+fresh | grep "Typed " | tail -1 | cut -c1-160
+input key z ctrl
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

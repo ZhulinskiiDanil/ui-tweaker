@@ -40,3 +40,6 @@ add_test(NAME measure COMMAND measure-tests)
 
 add_executable(words-tests WordsTests.cpp ../src/core/Words.cpp ../src/core/Text.cpp)
 add_test(NAME words COMMAND words-tests)
+
+add_executable(fields-tests FieldsTests.cpp ../src/core/Fields.cpp ../src/core/Expr.cpp)
+add_test(NAME fields COMMAND fields-tests)

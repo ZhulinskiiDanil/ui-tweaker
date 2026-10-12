@@ -6,7 +6,7 @@ namespace
       .banner = "UI Tweaker: edit mode ({} leaves)",
       .helpHint = "F1: all the keys",
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
-      .help2 = "Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
+      .help2 = "Enter: type values   Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
                "inside   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   A: other screens   T: tree   H: panel",
       .nothingSelected = "Nothing selected",
       .clickHint = "Click a node to select it, drag to move it",
@@ -55,6 +55,9 @@ namespace
                       "screen's",
       .outsideScreen = "Off the screen",
       .tag = "{}\nin {}",
+      .scaleField = "scale",
+      .typingHint = "Tab: next   Enter: apply   Esc: cancel   w h: screen, pw ph: parent",
+      .typingError = "Can't read {}",
   };
 
   words::Words const RUSSIAN = {
@@ -62,7 +65,7 @@ namespace
       .helpHint = "F1: все клавиши",
       .help1 = "Тащить: сдвиг   Колесо: масштаб (Shift: точно)   Стрелки: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: "
                "отменить / вернуть",
-      .help2 = "Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
+      .help2 = "Enter: ввести числа   Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
                "внутрь   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   A: другие экраны   T: дерево   H: панель",
       .nothingSelected = "Ничего не выбрано",
       .clickHint = "Щёлкните по ноде, чтобы выбрать, тащите, чтобы сдвинуть",
@@ -108,6 +111,9 @@ namespace
       .parentTurned = "Родитель повёрнут, отражён или скошен: позиция идёт по осям родителя, а не экрана",
       .outsideScreen = "За краем экрана",
       .tag = "{}\nв {}",
+      .scaleField = "масштаб",
+      .typingHint = "Tab: дальше   Enter: применить   Esc: отмена   w h: экран, pw ph: родитель",
+      .typingError = "Не читается {}",
   };
 } // namespace
 

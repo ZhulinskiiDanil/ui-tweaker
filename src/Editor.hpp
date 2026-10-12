@@ -34,6 +34,11 @@ namespace editor
   void stepAnchor(int dx, int dy);
   // [ and ]: the z-order down or up by one
   void stepZOrder(int delta);
+  // Enter: the selected node's x, y and scale typed in, as numbers or expressions (w, h: the screen; pw, ph: the
+  // parent). The keys of it, from the edit mode's listener and the self test alike
+  void startTyping();
+  void typingKey(int key, bool shift);
+  bool typing();
   bool undo();
   bool redo();
   // Tab: the next press or hover takes the next node under the mouse, deeper each time

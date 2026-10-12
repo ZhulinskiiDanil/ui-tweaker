@@ -6,6 +6,7 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 
 - **Hover** a node: a box around it, its class, its ID and its parent
 - **Drag** it to move it, the **wheel** scales it (<cy>Shift</c>: by a hundredth), the **arrows** move it by 1 (<cy>Shift</c>: 10)
+- <cy>Enter</c>: type exact values, like <cy>w / 2 + 40</c>
 - <cy>Ctrl+Z</c> / <cy>Ctrl+Y</c>: undo and redo
 - <cy>Ctrl+C</c>: the C++ for the selected node, <cy>Ctrl+Shift+C</c>: for every node edited in the scene
 - <cy>Tab</c>: the next node under the mouse, <cy>Alt</c>+click: a part of a button, <cy>PgUp</c>: the parent
