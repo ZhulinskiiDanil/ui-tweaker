@@ -5,6 +5,7 @@
 #   tools/real-input.sh <screenshot folder>
 set -u
 shots="$1"
+mkdir -p "$shots"
 here="$(cd "$(dirname "$0")" && pwd)"
 exe="$(geode profile list | grep '^\*' | sed -E 's/.*path = (.*) \]$/\1/')"
 logs="$(cygpath -u "$(dirname "$exe")")/geode/logs"
@@ -24,10 +25,13 @@ grep -E "Self test (PASS|FAIL)" "$log" | cut -c1-120
 # Only what comes after the self test counts: it drags and scales the same button itself
 start=$(wc -l < "$log")
 fresh() { tail -n +"$((start + 1))" "$log"; }
-# The Geode button's middle, and the main menu's title: a node outside layouts (with the MiSide menu installed
-# its layout guard puts the bottom menu's buttons back every frame, so a drag of them leaves no step)
-gx=448.5; gy=20.5
-tx=171; ty=252
+# In a vanilla main menu: the Geode button's middle, and the title, a node outside layouts (a layout guard of
+# another mod could put a menu's buttons back every frame, and a drag of them would leave no step). Other mods
+# changing the main menu move these
+gx=330.75; gy=45
+tx=284.5; ty=270
+# The play button's middle and its right side's handle (109.5 wide): the title is a sprite, with no handles
+px=284.5; py=170; hx=339.25; hy=170
 sleep 2
 
 passed=0; failed=0
@@ -59,12 +63,13 @@ sleep 0.3; shot typing.png; input key enter; sleep 1.5
 expect "Typed " "real keys typed the values w/2, h/2"
 fresh | grep "Typed " | tail -1 | cut -c1-160
 input key z ctrl
-# The title's right side dragged by its handle: 220 wide at (59, 236), so the handle is at (279, 253.8)
-input drag 279 253.8 299 253.8; sleep 1.5
-expect "Resized " "a real drag of a handle resized the title"
+# The play button selected, its right side dragged by its handle
+input move "$px" "$py"; input down; input up; sleep 0.5
+input drag "$hx" "$hy" "$(python -c "print($hx + 20)")" "$hy"; sleep 1.5
+expect "Resized " "a real drag of a handle resized the play button"
 fresh | grep "Resized " | tail -1 | cut -c1-160
 input key z ctrl
-# Shift+click: the Geode button added to the selected title
+# Shift+click: the Geode button added to the selected play button
 input shiftclick "$gx" "$gy"; sleep 1.5
 expect "Selection: 2 nodes" "Shift+click selected a second node"
 shot several.png

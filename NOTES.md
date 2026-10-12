@@ -9,7 +9,7 @@
 
 - Repository: https://github.com/ZhulinskiiDanil/ui-tweaker (public since 20:01)
 - Releases (pre-releases, `.geode` attached by CI): https://github.com/ZhulinskiiDanil/ui-tweaker/releases
-- Zhulis Mods Manager: listed since 20:05 (`mods.json` 0b75722 and the built-in list 76272e9 in
+- Zhulis Mods Manager: listed since 20:03 (`mods.json` 0b75722 and the built-in list 76272e9 in
   https://github.com/ZhulinskiiDanil/zhulis-mods-manager), "Beta: ..." like Crash Doctor; its releases are
   pre-releases, offered with the manager's *Include pre-releases* setting, as the other betas' are
 
@@ -196,6 +196,9 @@
   API: 200), and the mod is added to the manager like Crash Doctor: pushed, the registry on raw.githubusercontent
   has it, the releases API answers without a token with 8 releases and the `.geode`, the logo 200. The manager
   built (`geode build` put it in the game's mods folder; it stays turned off there, as you left it).
+- 20:08 real input on the clean game: its points were the MiSide screen's (the Geode button at the bottom right,
+  a title with handles). Now the vanilla main menu's: the Geode button (330.75, 45), the title (284.5, 270) for the
+  drag, wheel, arrows, undo and typing, the play button's right handle (339.25, 170) for the resize. 9/9.
 
 ## Checks
 
@@ -209,6 +212,7 @@
 | 18:35 (v0.6.0) | 14/14 | ok | PASS 113 / 124 / 124; real input 9/9 | handles, hooks |
 | 18:58 (v0.7.0) | 14/14 | ok | PASS 116 / 127 / 127, tour 480 (119 nodes, 7 scenes); real input 9/9 | help wrapped |
 | 19:36 (v0.8.0) | 14/14 | ok | PASS 129 / 140 / 140, tour 493; real input 9/9; soak flat | README media |
+| 20:08 clean game | 14/14 | ok | PASS 131 / 142 / 142, tour 504, aspect 131, code 131; real input 9/9 | vanilla menu: box, tag, panel; GIF |
 
 ## Not done / known
 
