@@ -20,6 +20,22 @@
   `mods.json` + the built-in list in `src/registry/index.cpp`, description "Beta: ..."). I haven't committed it to
   the manager so it doesn't list a mod nobody can download.
 
+## What's done
+
+| | What | Checked by |
+| --- | --- | --- |
+| Stage 1 | F8 edit mode, clicks and keys kept from the game; hover box + class/ID/parent; drag, wheel, arrows (Shift: 10), Ctrl+Z/Y; panel (position, scale, anchor, size, parent, z-order); Ctrl+C code relative to the closest edge/center of the screen or parent, by ID; layout warnings and code through layout options; all math in Geode-free `core/` with tests | self test (menu/level/editor), real input, unit tests, compiled-code tests, screenshots |
+| Backlog 1 | Snapping + guides (screen, parent, siblings), Ctrl to skip | self test on/off |
+| Backlog 2 | Other screens (16:10, 4:3, 21:9), ghosts of the selected node, red boxes for nodes that don't fit, panel warning | screenshot |
+| Backlog 3 | Node tree with search by ID/class, click to select | real keys |
+| Backlog 4 | Why a node doesn't move/show: layout, actions, hidden parent, opacity/scale 0, no size, ignored anchor, clipping, turned parent, off screen | self test (hidden play button) |
+| Backlog 5 | Export of every edited node in one block, a comment per node; then per layer across scenes, as ready-made `$modify` hooks, also in `export.cpp` | self test, compiled hooks in the tests |
+| Backlog 6 | Distances with Alt (Figma-like) | self test |
+| Backlog 7 | Improved Logger (soft): selection and count pinned, marker on copy | builds/runs with it loaded |
+| Backlog 8 | Russian/English (TTF in Russian), settings, about.md, README + README.ru with a GIF and screenshots made by the run | screenshots |
+| Backlog 9 | Three code reviews by separate agents; removed nodes, scene changes, popups, nested menus, turned/flipped nodes in the self test and the tests | self test, tests |
+| Own | Typed values with expressions (x, y, scale, width, height); anchor point (Ctrl+arrows) and z-order ([ ]); Shift+click multi-select with group undo; resize handles; R to reset; code view (C); panel dodging; remembered views; the generated code compiled and run in the tests | self test, real input, tests |
+
 ## Decisions
 
 - **No hooks at all.** Geode 5 has input events (`MouseInputEvent`, `MouseMoveEvent`, `ScrollWheelEvent`,
@@ -152,3 +168,14 @@
   the running scene stay retained while the edit mode is off (only other scenes' are let go when it's turned off).
 
 - (fixed) "Copy all (1)" after the self test: MiSide's layout guard, see 16:24.
+
+## Proposals
+
+- Make the repository public and add the mod to Zhulis Mods Manager (see Blocked): everything else is ready.
+- Publish Improved Logger to the Geode Index first if UI Tweaker should go there (`geode build` warns about the
+  soft dependency on a mod that isn't on the Index), as mod-profiler's NOTES say too.
+- A "freeze the level while editing" option (pause the running scene's schedulers/actions but not the overlay's):
+  not done, since it changes the game's state and other mods (speedhacks) set the time scale too.
+- Persisting edits across scene reloads as a live preview (re-applying them by ID when a layer is made again while
+  the edit mode is on) would save a rebuild more, but it changes nodes the user didn't touch this time; left out.
+
