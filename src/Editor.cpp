@@ -148,6 +148,9 @@ namespace
       geom::Affine worldToNode;
     };
     std::optional<Resizing> resizing;
+    // The nodes whose size was set by a resize or typed values: other nodes' sizes are their own (a label's
+    // text, a layout growing) and aren't written or put back
+    std::vector<CCNode*> sized;
 
     // The code of every edited node, kept up to date while its scene runs: the scene's nodes can't be described
     // once it's gone. Keyed by node, compared only
@@ -230,6 +233,20 @@ namespace
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
   }
 
+  bool isSized(CCNode* node)
+  {
+    auto const& sized = state().sized;
+    return std::find(sized.begin(), sized.end(), node) != sized.end();
+  }
+
+  // The node for the code: its size only if it was set here
+  codegen::NodeDesc describeEdited(CCNode* node)
+  {
+    auto desc = inspect::describe(node, originalOf(node));
+    desc.sizeChanged = desc.sizeChanged && isSized(node);
+    return desc;
+  }
+
   // The node's code kept for when its scene is gone
   void snapshot(CCNode* node)
   {
@@ -237,7 +254,7 @@ namespace
     std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
     if (hasSteps(node))
     {
-      s.live.emplace_back(node, inspect::describe(node, originalOf(node)));
+      s.live.emplace_back(node, describeEdited(node));
       s.liveLayer = layerName(runningScene());
     }
   }
@@ -248,6 +265,9 @@ namespace
     auto after = inspect::stateOf(node);
     if (after == before)
       return;
+    if ((kind == Resize || kind == Typed) && after.size != before.size &&
+        std::find(s.sized.begin(), s.sized.end(), node) == s.sized.end())
+      s.sized.push_back(node);
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
@@ -459,11 +479,20 @@ namespace
     auto size = node->getContentSize();
     if (size.width <= 0 || size.height <= 0)
       return out;
+    // A label's size is its text's, a sprite's its texture's: a new size wouldn't stretch them
+    if (typeinfo_cast<CCLabelBMFont*>(node) || typeinfo_cast<CCLabelTTF*>(node) ||
+        (typeinfo_cast<CCSprite*>(node) && !typeinfo_cast<CCMenuItem*>(node)))
+      return out;
     auto toWorld = inspect::toGeom(node->nodeToWorldTransform());
+    // Handles closer together than this would cover the node's middle, where a press drags it
+    auto bounds = inspect::worldQuad(node).bounds();
+    bool sides = bounds.width >= HANDLE_SIZE * 8 && bounds.height >= HANDLE_SIZE * 8;
+    if (bounds.width < HANDLE_SIZE * 4 || bounds.height < HANDLE_SIZE * 4)
+      return out;
     for (int x = -1; x <= 1; x++)
       for (int y = -1; y <= 1; y++)
       {
-        if (x == 0 && y == 0)
+        if ((x == 0 && y == 0) || ((x == 0 || y == 0) && !sides))
           continue;
         auto at = toWorld.apply({(x + 1) / 2.f * size.width, (y + 1) / 2.f * size.height});
         out.emplace_back(CCPoint(x, y), CCPoint(at.x, at.y));
@@ -622,6 +651,15 @@ namespace
 
     // Dragged by its title: where it is is the user's, it doesn't move out of the way any more
     void panelMoved() { m_panelPlaced = true; }
+
+    // Right click on the title: the panel goes where it was and moves out of the way again
+    void panelUnplaced()
+    {
+      m_panelPlaced = false;
+      movePanel({MARGIN, CCDirector::get()->getWinSize().height});
+      setBanner();
+      savePrefs();
+    }
 
     // The panel over the selected node goes to the other side of the screen, unless it was put there by hand
     void dodge(CCNode* selected)
@@ -793,7 +831,7 @@ namespace
         auto parent = node->getParent();
         auto world = parent ? parent->convertToWorldSpace(info.position) : info.position;
         auto size = node->getContentSize();
-        auto desc = inspect::describe(node, originalOf(node));
+        auto desc = describeEdited(node);
         title = text::fit(inspect::name(node), PANEL_COLUMNS);
         if (!s.also.empty())
           title = text::fit(text::format(ui::words().selectedCount, {std::to_string(s.also.size() + 1)}) + ": " +
@@ -1078,7 +1116,11 @@ namespace
       auto tree = s.overlay ? s.overlay->tree() : nullptr;
       if (tree)
         tree->setTyping(tree->searchAt(mouse));
-      if (auto handle = editor::handleAt(mouse); handle && !(s.overlay && s.overlay->panelContains(mouse)))
+      bool shift = hasModifier(data.modifiers, KeyboardModifier::Shift);
+      auto handle = shift || (tree && tree->contains(mouse)) || (s.overlay && s.overlay->panelContains(mouse))
+                        ? std::nullopt
+                        : editor::handleAt(mouse);
+      if (handle)
         editor::startResize(*handle, mouse);
       else if (tree && tree->contains(mouse))
       {
@@ -1100,6 +1142,8 @@ namespace
         if (hasModifier(data.modifiers, KeyboardModifier::Shift))
         {
           auto hits = inspect::hitsAt(runningScene(), mouse, alt);
+          if (ccpDistance(mouse, s.cyclePoint) > 1)
+            s.cycle = 0;
           if (!hits.empty())
             editor::toggleSelect(hits[s.cycle % hits.size()]);
         }
@@ -1119,7 +1163,12 @@ namespace
       editor::release();
     }
     else if (data.button == Right && data.action == Press)
-      editor::select(nullptr);
+    {
+      if (s.overlay && s.overlay->titleContains(mouse))
+        s.overlay->panelUnplaced();
+      else
+        editor::select(nullptr);
+    }
     return ListenerResult::Stop;
   }
 
@@ -1272,13 +1321,18 @@ namespace
     if (s.selected && !inspect::isIn(s.selected.get(), runningScene()))
     {
       s.selected.reset();
+      if (!s.also.empty())
+      {
+        s.selected = s.also.front();
+        s.also.erase(s.also.begin());
+      }
       s.typing.reset();
       s.pressed = s.dragging = false;
     }
 
     auto mouse = mousePosition();
     // A release lost to the window losing focus (Geode drops the input queued meanwhile): the drag ends with it
-    if ((s.pressed || s.panelDragging) && !s.pinned && GetActiveWindow() == nullptr)
+    if ((s.pressed || s.panelDragging || s.resizing) && !s.pinned && GetActiveWindow() == nullptr)
     {
       s.leftDown = false;
       s.panelDragging = false;
@@ -1329,7 +1383,7 @@ void editor::setActive(bool on)
           auto& s = state();
           s.pinned.reset();
           // The game gets no moves of a drag it never saw start
-          return s.dragging || s.panelDragging ? ListenerResult::Stop : ListenerResult::Propagate;
+          return s.dragging || s.panelDragging || s.resizing ? ListenerResult::Stop : ListenerResult::Propagate;
         },
         PRIORITY);
     s.scroll = ScrollWheelEvent().listen(
@@ -1402,6 +1456,8 @@ CCNode* editor::pressAt(CCPoint world, bool deep)
 void editor::grab(CCNode* node, CCPoint world)
 {
   auto& s = state();
+  if (s.resizing)
+    release();
   // A node of a selection of several: they're all dragged, this one first (snapping goes by it)
   auto part = std::find(s.also.begin(), s.also.end(), node);
   if (part != s.also.end())
@@ -1503,7 +1559,10 @@ void editor::resizeTo(CCPoint world)
   // The mouse's move in the node's own space, before its scale and turn
   auto delta = s.resizing->worldToNode.applyLinear({world.x - s.resizing->press.x, world.y - s.resizing->press.y});
   auto result = geom::resize(s.resizing->transform, s.resizing->handle, delta);
-  auto after = s.resizing->start;
+  // Not past what a typed value may be either, whatever a tiny scale makes of the mouse's move
+  result.content.width = std::min(result.content.width, 1e6f);
+  result.content.height = std::min(result.content.height, 1e6f);
+  auto after = inspect::stateOf(node);
   after.position = CCPoint(result.position.x, result.position.y);
   after.size = CCSize(result.content.width, result.content.height);
   inspect::apply(node, after);
@@ -1539,7 +1598,7 @@ void editor::release()
 void editor::wheel(float notches, bool fine)
 {
   auto& s = state();
-  if (!s.selected || notches == 0 || s.dragging)
+  if (!s.selected || notches == 0 || s.dragging || s.resizing)
     return;
   auto node = s.selected.get();
   auto before = inspect::stateOf(node);
@@ -1564,14 +1623,14 @@ void editor::wheel(float notches, bool fine)
             after.scaleX = scaled(after.scaleX);
             after.scaleY = scaled(after.scaleY);
             // apply sets a button's base scale too, which its press animation goes back to
-            inspect::apply(each, after);
+            inspect::apply(each, after, false);
           });
 }
 
 void editor::nudge(float dx, float dy)
 {
   auto& s = state();
-  if (!s.selected || s.dragging)
+  if (!s.selected || s.dragging || s.resizing)
     return;
   editAll(Nudge, NUDGE_MERGE, [&](CCNode* each) { each->setPosition(each->getPosition() + ccp(dx, dy)); });
 }
@@ -1579,21 +1638,21 @@ void editor::nudge(float dx, float dy)
 void editor::reset()
 {
   auto& s = state();
-  if (!s.selected || s.pressed)
+  if (!s.selected || s.pressed || s.resizing)
     return;
   // Only nodes edited before have a state to go back to
   editAll(Reset, 0,
           [](CCNode* node)
           {
             if (auto original = originalOf(node))
-              inspect::apply(node, *original);
+              inspect::apply(node, *original, isSized(node));
           });
 }
 
 void editor::stepAnchor(int dx, int dy)
 {
   auto& s = state();
-  if (!s.selected || s.dragging)
+  if (!s.selected || s.dragging || s.resizing)
     return;
   auto node = s.selected.get();
   auto before = inspect::stateOf(node);
@@ -1618,7 +1677,7 @@ void editor::stepAnchor(int dx, int dy)
 void editor::stepZOrder(int delta)
 {
   auto& s = state();
-  if (!s.selected || s.dragging)
+  if (!s.selected || s.dragging || s.resizing)
     return;
   auto node = s.selected.get();
   auto before = inspect::stateOf(node);
@@ -1629,7 +1688,7 @@ void editor::stepZOrder(int delta)
 void editor::startTyping()
 {
   auto& s = state();
-  if (!s.selected || s.pressed || s.dragging)
+  if (!s.selected || s.pressed || s.dragging || s.resizing)
     return;
   auto info = inspect::stateOf(s.selected.get());
   s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX),
@@ -1727,7 +1786,7 @@ bool editor::undo()
         std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
         continue;
       }
-      inspect::apply(node, change.before);
+      inspect::apply(node, change.before, change.before.size != change.after.size);
       snapshot(node);
       undone.push_back(node);
       log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
@@ -1757,7 +1816,7 @@ bool editor::redo()
       auto node = change.target.get();
       if (!inspect::isIn(node, runningScene()))
         continue;
-      inspect::apply(node, change.after);
+      inspect::apply(node, change.after, change.before.size != change.after.size);
       snapshot(node);
       redone.push_back(node);
       log::info("Redid a step of {}", inspect::name(node));
@@ -1848,7 +1907,7 @@ std::string editor::codeFor(CCNode* node)
 {
   if (!node)
     return "";
-  return codegen::generate(inspect::describe(node, originalOf(node)));
+  return codegen::generate(describeEdited(node));
 }
 
 std::vector<CCNode*> editor::editedNodes()
@@ -1881,7 +1940,7 @@ namespace
     {
       if (!hasSteps(node))
         continue;
-      auto desc = inspect::isIn(node, runningScene()) ? inspect::describe(node, originalOf(node)) : kept;
+      auto desc = inspect::isIn(node, runningScene()) ? describeEdited(node) : kept;
       // By the layer whose hook the code goes in
       auto layer = desc.layer.empty() ? layerName(runningScene()) : desc.layer;
       auto group = std::find_if(groups.begin(), groups.end(), [&](auto const& g) { return g.first == layer; });
@@ -1903,10 +1962,10 @@ std::string editor::codeForAll()
   if (groups.empty())
     return "";
   // Each layer under its name, as the hook its code goes in: ready to paste for the layers mods hook most
-  std::string code;
-  for (size_t i = 0; i < groups.size(); i++)
-    code += (i ? "\n" : "") + std::string("// ! --- In ") + groups[i].first + " --- !\n\n" +
-            hooks::wrap(groups[i].first, codegen::generateAll(groups[i].second));
+  // Geode's header and namespace first, for a file of its own
+  std::string code = hooks::preamble();
+  for (auto const& [layer, descs] : groups)
+    code += "\n// ! --- In " + layer + " --- !\n\n" + hooks::wrap(layer, codegen::generateAll(descs));
   return code;
 }
 
@@ -1932,7 +1991,7 @@ void editor::copySelected()
   {
     std::vector<codegen::NodeDesc> descs;
     for (auto each : nodes)
-      descs.push_back(inspect::describe(each, originalOf(each)));
+      descs.push_back(describeEdited(each));
     auto code = codegen::generateAll(descs);
     clipboard::write(code);
     log::info("Code for {} selected nodes:\n{}", nodes.size(), code);

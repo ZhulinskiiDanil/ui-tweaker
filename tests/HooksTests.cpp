@@ -22,10 +22,18 @@ int main()
   auto pause = find("PauseLayer");
   CHECK(pause && pause->original == "PauseLayer::customSetup()" && !pause->returnsBool);
   CHECK(!find("SomeModsLayer"));
+  // ProfilePage makes its interface when a profile is loaded
+  auto profile = find("ProfilePage");
+  CHECK(profile && profile->signature == "void loadPageFromUserInfo(GJUserScore* score)" &&
+        profile->original == "ProfilePage::loadPageFromUserInfo(score)" && profile->name == "ProfilePage::loadPageFromUserInfo");
+  CHECK(has(preamble(), "#include <Geode/Geode.hpp>") && has(preamble(), "using namespace geode::prelude;"));
 
   auto code = wrap("MenuLayer", "auto winSize = CCDirector::get()->getWinSize();\n\nif (x)\n{\n  y();\n}\n");
   CHECK(has(code, "#include <Geode/modify/MenuLayer.hpp>"));
-  CHECK(has(code, "class $modify(MenuLayer)\n{\n  bool init()\n  {\n    if (!MenuLayer::init())\n      return false;\n"));
+  // After node-ids, whose IDs the code looks for
+  CHECK(has(code, "class $modify(MenuLayer)\n{\n  static void onModify(auto& self)\n  {\n"
+                  "    (void)self.setHookPriorityAfter(\"MenuLayer::init\", \"geode.node-ids\");\n  }\n"));
+  CHECK(has(code, "  bool init()\n  {\n    if (!MenuLayer::init())\n      return false;\n"));
   // The code indented into the function, empty lines left empty
   CHECK(has(code, "\n    auto winSize = CCDirector::get()->getWinSize();\n\n    if (x)\n    {\n      y();\n    }\n"));
   CHECK(has(code, "    return true;\n  }\n};\n"));

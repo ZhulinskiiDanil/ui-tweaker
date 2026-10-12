@@ -10,6 +10,8 @@ namespace
     char const* signature;
     char const* arguments;
     bool returnsBool;
+    // Where the interface is made: init, customSetup, or another function
+    char const* function = nullptr;
   };
 
   // Geode's bindings for GD 2.2081: the function each layer's interface is made in
@@ -28,7 +30,8 @@ namespace
       {"EditorUI", "bool init(LevelEditorLayer* editorLayer)", "editorLayer", true},
       {"GJShopLayer", "bool init(ShopType type)", "type", true},
       {"LevelSearchLayer", "bool init(int type)", "type", true},
-      {"ProfilePage", "bool init(int accountID, bool ownProfile)", "accountID, ownProfile", true},
+      // Its interface is made each time a profile is loaded, not in init
+      {"ProfilePage", "void loadPageFromUserInfo(GJUserScore* score)", "score", false, "loadPageFromUserInfo"},
       {"PauseLayer", "void customSetup()", "", false},
       {"EditorPauseLayer", "void customSetup()", "", false},
       {"OptionsLayer", "void customSetup()", "", false},
@@ -55,11 +58,17 @@ std::optional<hooks::Hook> hooks::find(std::string_view className)
 {
   for (auto const& known : KNOWN)
     if (className == known.className)
-      return Hook{known.className, known.signature,
-                  std::string(known.className) + "::" + (known.returnsBool ? "init(" : "customSetup(") +
-                      known.arguments + ")",
-                  known.returnsBool};
+    {
+      std::string function = known.function ? known.function : known.returnsBool ? "init" : "customSetup";
+      auto name = std::string(known.className) + "::" + function;
+      return Hook{known.className, known.signature, name + "(" + known.arguments + ")", known.returnsBool, name};
+    }
   return std::nullopt;
+}
+
+std::string hooks::preamble()
+{
+  return "#include <Geode/Geode.hpp>\n\nusing namespace geode::prelude;\n";
 }
 
 std::string hooks::wrap(std::string_view className, std::string const& code)
@@ -70,6 +79,9 @@ std::string hooks::wrap(std::string_view className, std::string const& code)
 
   std::string out = "#include <Geode/modify/" + hook->className + ".hpp>\n\n";
   out += "class $modify(" + hook->className + ")\n{\n";
+  // node-ids gives the IDs the code looks for: after it
+  out += "  static void onModify(auto& self)\n  {\n    (void)self.setHookPriorityAfter(\"" + hook->name +
+         "\", \"geode.node-ids\");\n  }\n\n";
   out += "  " + hook->signature + "\n  {\n";
   if (hook->returnsBool)
     out += "    if (!" + hook->original + ")\n      return false;\n\n";

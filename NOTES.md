@@ -150,6 +150,13 @@
 - 18:35 own: "Copy all" as ready-made `$modify` hooks for 17 layers mods hook (signatures from the bindings),
   grouped by the closest such parent; the tests compile three hooks against the fake API and call them.
 
+- 18:40 v0.6.0 released (pre-release). 18:45 own: `R` resets nodes; F1's key list wrapped by items, counting
+  characters (Cyrillic is 2 bytes).
+- 18:58 third review (separate agent, v0.5.0..v0.6.0): no crash paths; 6 important, all fixed: input during a
+  resize (and its own focus loss), handles taking clicks meant for the tree/Shift+click or covering small nodes,
+  labels/sprites with handles, sizes a node changes by itself being written and put back, ProfilePage's hook
+  (`loadPageFromUserInfo`), the hooks' preamble (Geode.hpp + namespace) and their priority after node-ids.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |

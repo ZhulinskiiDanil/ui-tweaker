@@ -353,6 +353,11 @@ namespace
       return;
     editor::startResize(*handle, handlePoint);
     editor::resizeTo(handlePoint + ccp(10, 0));
+    // Nothing else edits it meanwhile: the wheel would be undone by the next frame of the resize
+    auto steps = editor::historySize();
+    editor::wheel(1, false);
+    editor::nudge(1, 0);
+    check(editor::historySize() == steps, "the wheel and the arrows wait for the resize to end");
     editor::release();
     auto after = inspect::worldQuad(node);
     check(close(after.corners[0].x, quad.corners[0].x) && close(after.corners[3].y, quad.corners[3].y),
@@ -476,7 +481,15 @@ namespace
       snapping(shown[0]);
       anchorAndOrder(shown[0]);
       typing(shown[0]);
-      resizing(shown[0]);
+      // A colored box of its own: a node whose size is what it looks like, big enough for every handle
+      {
+        auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);
+        box->setID("selftest-box"_spr);
+        box->setPosition({100, 100});
+        CCDirector::get()->getRunningScene()->addChild(box, 1000);
+        resizing(box);
+        box->removeFromParent();
+      }
       if (shown.size() > 1)
         several(shown[0], shown[1]);
     }

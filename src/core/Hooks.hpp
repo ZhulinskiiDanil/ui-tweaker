@@ -17,6 +17,8 @@ namespace hooks
     std::string original;
     // init returns whether it worked; customSetup returns nothing
     bool returnsBool = true;
+    // The hook's name for setHookPriorityAfter: "MenuLayer::init"
+    std::string name;
   };
 
   std::optional<Hook> find(std::string_view className);
@@ -24,4 +26,7 @@ namespace hooks
   // The code as the body of the class's hook, after the original made the interface. Unknown classes get the code
   // with a comment saying where it goes
   std::string wrap(std::string_view className, std::string const& code);
+
+  // What the hooks need at the top of the file they're pasted in
+  std::string preamble();
 } // namespace hooks

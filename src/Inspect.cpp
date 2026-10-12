@@ -186,7 +186,7 @@ inspect::NodeState inspect::stateOf(CCNode* node)
           node->getContentSize()};
 }
 
-void inspect::apply(CCNode* node, NodeState const& state)
+void inspect::apply(CCNode* node, NodeState const& state, bool size)
 {
   node->setPosition(state.position);
   node->setScaleX(state.scaleX);
@@ -198,7 +198,7 @@ void inspect::apply(CCNode* node, NodeState const& state)
     node->setAnchorPoint(state.anchor);
   if (node->getZOrder() != state.zOrder)
     node->setZOrder(state.zOrder);
-  if (node->getContentSize() != state.size)
+  if (size && node->getContentSize() != state.size)
   {
     node->setContentSize(state.size);
     // A menu with a layout lays its children out in its new size
