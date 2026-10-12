@@ -51,7 +51,7 @@ function To-Screen([double]$x, [double]$y) {
 }
 function Move-Cursor([double]$x, [double]$y) { $p = To-Screen $x $y; [Input]::SetCursorPos($p[0], $p[1]) | Out-Null; Start-Sleep -Milliseconds 60 }
 
-$keys = @{ left = 0x25; up = 0x26; right = 0x27; down = 0x28; z = 0x5A; y = 0x59; c = 0x43; a = 0x41; h = 0x48; tab = 0x09; esc = 0x1B; f8 = 0x77; pgup = 0x21; ctrl = 0xA2; shift = 0xA0; alt = 0xA4 }
+$keys = @{ left = 0x25; up = 0x26; right = 0x27; down = 0x28; z = 0x5A; y = 0x59; c = 0x43; a = 0x41; h = 0x48; tab = 0x09; esc = 0x1B; f8 = 0x77; pgup = 0x21; enter = 0x0D; slash = 0xBF; minus = 0xBD; backspace = 0x08; ctrl = 0xA2; shift = 0xA0; alt = 0xA4 }
 
 switch ($action) {
   "move" { Move-Cursor ([double]$a) ([double]$b) }
@@ -63,10 +63,13 @@ switch ($action) {
   "key" {
     $mods = @(); if ($b) { $mods = $b.Split("+") }
     foreach ($m in $mods) { [Input]::Key($keys[$m], $false); Start-Sleep -Milliseconds 30 }
-    [Input]::Key($keys[$a], $false); Start-Sleep -Milliseconds 60; [Input]::Key($keys[$a], $true)
+    $code = $keys[$a]
+    if (-not $code) { $code = [int][char]$a.ToUpper() }
+    [Input]::Key($code, $false); Start-Sleep -Milliseconds 60; [Input]::Key($code, $true)
     foreach ($m in $mods) { Start-Sleep -Milliseconds 30; [Input]::Key($keys[$m], $true) }
     Start-Sleep -Milliseconds 100
   }
+  "type" { foreach ($ch in $a.ToCharArray()) { $code = [int][char]([string]$ch).ToUpper(); if ($ch -eq '-') { $code = 0xBD }; [Input]::Key($code, $false); Start-Sleep -Milliseconds 40; [Input]::Key($code, $true); Start-Sleep -Milliseconds 40 } }
   "drag" {
     Move-Cursor ([double]$a) ([double]$b); [Input]::Mouse(0x0002, 0); Start-Sleep -Milliseconds 100
     for ($i = 1; $i -le 10; $i++) { Move-Cursor ([double]$a + ([double]$c - [double]$a) * $i / 10) ([double]$b + ([double]$d - [double]$b) * $i / 10) }

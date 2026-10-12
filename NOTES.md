@@ -7,7 +7,18 @@
 
 ## Links
 
-- Repository: https://github.com/ZhulinskiiDanil/ui-tweaker
+- Repository: https://github.com/ZhulinskiiDanil/ui-tweaker — **private for now, see Blocked**
+- Releases (pre-releases, `.geode` attached by CI): https://github.com/ZhulinskiiDanil/ui-tweaker/releases
+
+## Blocked — needs you
+
+- **The repository is private, not public.** `gh repo create --public` was refused by Claude Code's auto-mode
+  classifier ("Create Public Surface"), so I didn't go around it: I created it private (CI and releases work the same).
+  To make it public: `gh repo edit ZhulinskiiDanil/ui-tweaker --visibility public --accept-visibility-change-consequences`
+- **Not in Zhulis Mods Manager yet.** The manager reads GitHub releases without a token, so a private repository's
+  releases can't be installed from it. The entry is ready to add once the repo is public (same as Crash Doctor's:
+  `mods.json` + the built-in list in `src/registry/index.cpp`, description "Beta: ..."). I haven't committed it to
+  the manager so it doesn't list a mod nobody can download.
 
 ## Decisions
 
@@ -47,13 +58,27 @@
   containers and couldn't be hovered; and their opacity wasn't checked (not a CCNodeRGBA). Fixed.
 - 16:08 **stage 1 check passed**: `Self test PASS: 39 checks`, the screenshot shows the box and the tag in place.
 
+- 16:10 v0.1.0 released (pre-release, `.geode` from CI attached). CI green: tests on Linux and Windows, the build.
+- 16:13 backlog 1, snapping and guides (Figma-like), checked in the self test both on and off.
+- 16:17 backlog 4, why a node doesn't move/show (layout, actions, hidden parent, opacity/scale 0, no size, ignored
+  anchor, clipping, turned parent, off screen), in the panel; the self test checks the hidden play button says so.
+- 16:20 backlog 2, other screens (`A`): 16:10, 4:3, 21:9 frames, the selected node's ghost on each, red boxes for
+  nodes with IDs that don't fit, a panel line naming the screens. Model: GD keeps 320 points of height and changes
+  the width; a node keeps its distance to the closest of left/middle/right (what the generated code does).
+- 16:24 **real input check** (`tools/real-input.sh`, SendInput): a drag, the wheel (up = bigger), Shift+Right
+  (+10), 3x Ctrl+Z, a click in the edit mode that doesn't open the Geode button's mods list, F8. All work. Found:
+  "Copy all (1)" came from MiSide's layout guard moving the bottom menu by half a point; "edited" now means "has
+  steps not undone".
+- 16:30 backlog 3, the node tree (`T`) with search (`/`, typed without IME, Enter selects the first match), checked
+  with real keys. Geode's code for `/` is its own `KEY_Slash` (0x1007), not VK_OEM_2.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- |
 | 16:08 | 5/5 | ok | PASS, 39 checks | box + tag + panel at the Geode button |
+| 16:32 (v0.2.0) | 9/9 | ok | PASS, 48 checks; real input 6/6 | tree search, other screens, box + tag |
 
 ## Not done / known
 
-- After the self test, "Copy all (1)": the MiSide menu's layout guard moves the bottom menu's buttons after the
-  undo, so the Geode button differs from its first state. To look into.
+- (fixed) "Copy all (1)" after the self test: MiSide's layout guard, see 16:24.

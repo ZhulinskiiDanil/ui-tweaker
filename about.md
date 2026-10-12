@@ -9,6 +9,9 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 - <cy>Ctrl+Z</c> / <cy>Ctrl+Y</c>: undo and redo
 - <cy>Ctrl+C</c>: the C++ for the selected node, <cy>Ctrl+Shift+C</c>: for every node edited in the scene
 - <cy>Tab</c>: the next node under the mouse, <cy>Alt</c>+click: a part of a button, <cy>PgUp</c>: the parent
+- <cy>T</c>: the node tree with a search, <cy>A</c>: how it looks on 16:10, 4:3 and 21:9 screens
+- A dragged node snaps to the screen's, its parent's and its siblings' edges and centers (<cy>Ctrl</c>: not)
+- The panel says why a node may not move or show: a layout, an animation, a hidden parent, no size...
 
 The code finds the node by its ID and puts it relative to the closest edge or the center of the screen or of its parent (`winSize.width / 2 + 40.f`, `winSize.height - 25.f`), so it stays in place on other screens. If the parent has a layout that would move the node back, the panel says so, and the code uses the layout's options where there are any.
 

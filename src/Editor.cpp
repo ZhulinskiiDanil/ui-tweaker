@@ -2,11 +2,13 @@
 
 #include "Inspect.hpp"
 #include "Retained.hpp"
+#include "TreePanel.hpp"
 #include "core/Aspect.hpp"
 #include "core/Codegen.hpp"
 #include "core/History.hpp"
 #include "core/Snap.hpp"
 #include "core/Text.hpp"
+#include "core/Tree.hpp"
 
 #include <Geode/ui/Notification.hpp>
 #include <Geode/ui/OverlayManager.hpp>
@@ -297,6 +299,13 @@ namespace
         m_shapeLabels.push_back(label);
       }
 
+      // At the right, under the banner, hidden until T
+      m_tree = TreePanel::create();
+      m_tree->setPosition({win.width - m_tree->getContentWidth() - MARGIN,
+                           win.height - 26 - m_tree->getContentHeight()});
+      m_tree->setVisible(false);
+      addChild(m_tree);
+
       setBanner();
       scheduleUpdate();
       return true;
@@ -343,6 +352,8 @@ namespace
 
     void togglePanel() { m_panel->setVisible(!m_panel->isVisible()); }
 
+    TreePanel* tree() const { return m_tree; }
+
   private:
     CCDrawNode* m_draw = nullptr;
     CCLayerColor* m_banner = nullptr;
@@ -355,6 +366,7 @@ namespace
     CCLabelBMFont* m_warning = nullptr;
     std::vector<Button> m_buttons;
     std::vector<CCLabelBMFont*> m_shapeLabels;
+    TreePanel* m_tree = nullptr;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
 
@@ -378,7 +390,7 @@ namespace
       m_bannerText->setString(
           fmt::format("UI Tweaker: edit mode ({} leaves)\nDrag: move   Wheel: scale (Shift: fine)   Arrows: 1 px "
                       "(Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo\nCtrl+C: copy code   Ctrl+Shift+C: copy all   "
-                      "Tab: next under the mouse   Alt+click: inside   PgUp: parent   A: other screens   H: panel",
+                      "Tab: next under the mouse   Alt+click: inside   PgUp: parent   A: other screens   T: tree   H: panel",
                       key)
               .c_str());
       auto win = CCDirector::get()->getWinSize();
@@ -597,6 +609,9 @@ namespace
     auto& s = state();
     if (s.dragging || s.panelDragging || (s.overlay && s.overlay->panelContains(mouse)))
       return nullptr;
+    // Over the tree, the row's node
+    if (s.overlay && s.overlay->tree()->contains(mouse))
+      return s.overlay->tree()->rowAt(mouse);
     auto hits = inspect::hitsAt(runningScene(), mouse);
     if (hits.empty())
       return nullptr;
@@ -616,7 +631,15 @@ namespace
     if (data.button == Left && data.action == Press)
     {
       s.leftDown = true;
-      if (auto button = s.overlay ? s.overlay->buttonAt(mouse) : nullptr)
+      auto tree = s.overlay ? s.overlay->tree() : nullptr;
+      if (tree)
+        tree->setTyping(tree->searchAt(mouse));
+      if (tree && tree->contains(mouse))
+      {
+        if (auto node = tree->rowAt(mouse))
+          editor::select(node);
+      }
+      else if (auto button = s.overlay ? s.overlay->buttonAt(mouse) : nullptr)
         button->action();
       else if (s.overlay && s.overlay->titleContains(mouse))
       {
@@ -650,8 +673,42 @@ namespace
     bool shift = hasModifier(data.modifiers, KeyboardModifier::Shift);
     bool control = hasModifier(data.modifiers, KeyboardModifier::Control);
     float step = shift ? 10.f : 1.f;
+
+    // The tree's search takes the keys while it's focused
+    auto tree = s.overlay ? s.overlay->tree() : nullptr;
+    if (tree && tree->isVisible() && tree->typing())
+    {
+      if (data.key == KEY_Escape)
+        tree->setTyping(false);
+      else if (data.key == KEY_Enter)
+      {
+        if (auto node = tree->firstMatch())
+          editor::select(node);
+        tree->setTyping(false);
+      }
+      else if (data.key == KEY_Backspace)
+        tree->erase();
+      else if (auto c = tree::typed(data.key, shift))
+        tree->type(*c);
+      return ListenerResult::Stop;
+    }
+
     switch (data.key)
     {
+    case KEY_T:
+      if (tree)
+      {
+        tree->setVisible(!tree->isVisible());
+        tree->setTyping(false);
+      }
+      break;
+    case KEY_Slash:
+      if (tree)
+      {
+        tree->setVisible(true);
+        tree->setTyping(true);
+      }
+      break;
     case KEY_Left:
       editor::nudge(-step, 0);
       break;
@@ -727,7 +784,12 @@ namespace
       movePanel(mouse - s.panelGrab);
     else if (s.pressed && !s.pinned)
       editor::dragTo(mouse);
-    redraw(hovered(mouse), s.selected.get());
+    auto hover = hovered(mouse);
+    if (m_tree->isVisible())
+      m_tree->refresh(runningScene(), s.selected.get(), hover);
+    else
+      m_tree->forget();
+    redraw(hover, s.selected.get());
   }
 } // namespace
 
@@ -761,6 +823,13 @@ void editor::setActive(bool on)
     s.scroll = ScrollWheelEvent().listen(
         [](double, double y)
         {
+          auto& s = state();
+          auto tree = s.overlay ? s.overlay->tree() : nullptr;
+          if (tree && tree->contains(getMousePos()))
+          {
+            tree->scroll(static_cast<float>(y));
+            return ListenerResult::Stop;
+          }
           bool fine = CCKeyboardDispatcher::get()->getShiftKeyPressed();
           editor::wheel(static_cast<float>(y), fine);
           return ListenerResult::Stop;
@@ -947,6 +1016,8 @@ void editor::select(CCNode* node)
     return;
   release();
   s.selected = Retained<CCNode>(node);
+  if (node)
+    log::info("Selected {}", inspect::name(node));
 }
 
 void editor::nextUnderMouse()

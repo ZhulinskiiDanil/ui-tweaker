@@ -48,6 +48,11 @@ input key z ctrl; input key z ctrl; input key z ctrl; sleep 1.5
 undos=$(fresh | grep -c "Undid a step of geode.loader/geode-button")
 [ "$undos" -ge 3 ] && { echo "ok: 3 real Ctrl+Z"; passed=$((passed + 1)); } || { echo "FAIL: $undos Ctrl+Z seen"; failed=$((failed + 1)); }
 fresh | grep "Undid a step of geode.loader/geode-button" | tail -1 | cut -c1-160
+# The tree: T, / and a search, Enter selects the first match
+input key esc; input key t; sleep 0.5; shot tree.png
+input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5
+expect "Selected geode.loader/geode-button" "the tree's search and Enter selected the Geode button"
+input key t
 # A click in the edit mode doesn't reach the game: the Geode button doesn't open the mods list
 input move "$gx" "$gy"; input down; input up; sleep 1.5; shot click-in-edit-mode.png
 input key esc; input key f8; sleep 1.5

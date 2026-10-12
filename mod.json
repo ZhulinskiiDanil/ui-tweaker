@@ -5,7 +5,7 @@
 	},
 	"id": "zhulis.ui-tweaker",
 	"name": "UI Tweaker",
-	"version": "v0.1.0",
+	"version": "v0.2.0",
 	"developer": "Zhulis",
 	"description": "Move and scale any node of the game's interface with the mouse, then copy the C++ that puts it there",
 	"repository": "https://github.com/ZhulinskiiDanil/ui-tweaker",

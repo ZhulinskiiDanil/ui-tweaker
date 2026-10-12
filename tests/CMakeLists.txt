@@ -30,3 +30,6 @@ add_test(NAME explain COMMAND explain-tests)
 
 add_executable(aspect-tests AspectTests.cpp ../src/core/Aspect.cpp ../src/core/Expr.cpp)
 add_test(NAME aspect COMMAND aspect-tests)
+
+add_executable(tree-tests TreeTests.cpp ../src/core/Tree.cpp)
+add_test(NAME tree COMMAND tree-tests)
