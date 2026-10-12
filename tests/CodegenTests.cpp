@@ -111,6 +111,13 @@ namespace
     CHECK(anchorName(0, 1) == "TopLeft");
     CHECK(anchorName(1, 0) == "BottomRight");
 
+    // An anchor the node has stays, even where another one is closer: only the offset changes
+    node.layout.anchorNow = geom::Vec2{1, 0};
+    code = generate(node);
+    CHECK(has(code, "setAnchor(Anchor::BottomRight)"));
+    CHECK(has(code, "setOffset({-10.f, 90.f})"));
+    node.layout.anchorNow.reset();
+
     // Without options the layout leaves the node alone
     node.layout.hasAnchorOptions = false;
     CHECK(layoutWarning(node).empty());
@@ -120,7 +127,7 @@ namespace
   void axisLayout()
   {
     auto node = onScreen({324.5f, 295});
-    node.layout = {LayoutKind::Axis, "RowLayout", false, 12.f};
+    node.layout = {LayoutKind::Axis, "RowLayout", false, std::nullopt, 12.f};
     node.scaleX = node.scaleY = 1.2f;
     node.scaleChanged = true;
     auto code = generate(node);
@@ -140,7 +147,7 @@ namespace
     CHECK(!has(code, "\n  node->setPosition"));
 
     // A SimpleAxisLayout has no AxisLayoutOptions: the gap is an AxisGap, as a comment
-    node.layout = {LayoutKind::SimpleAxis, "SimpleRowLayout", false, 8.f};
+    node.layout = {LayoutKind::SimpleAxis, "SimpleRowLayout", false, std::nullopt, 8.f};
     code = generate(node);
     CHECK(!has(code, "AxisLayoutOptions"));
     CHECK(has(code, "insertBefore(AxisGap::create(8.f), node)"));

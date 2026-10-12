@@ -326,7 +326,14 @@ codegen::LayoutInfo inspect::layoutOf(CCNode* node)
   if (typeinfo_cast<AnchorLayout*>(layout))
   {
     info.kind = codegen::LayoutKind::Anchor;
-    info.hasAnchorOptions = typeinfo_cast<AnchorLayoutOptions*>(node->getLayoutOptions()) != nullptr;
+    if (auto options = typeinfo_cast<AnchorLayoutOptions*>(node->getLayoutOptions()))
+    {
+      info.hasAnchorOptions = true;
+      // Where the anchor is on the parent's box: what getAnchoredPosition gives for no offset, over the size
+      auto size = parent->getContentSize();
+      auto at = AnchorLayout::getAnchoredPosition(parent, options->getAnchor(), {0, 0});
+      info.anchorNow = geom::Vec2{size.width > 0 ? at.x / size.width : 0.f, size.height > 0 ? at.y / size.height : 0.f};
+    }
   }
   else if (auto axis = typeinfo_cast<AxisLayout*>(layout))
   {

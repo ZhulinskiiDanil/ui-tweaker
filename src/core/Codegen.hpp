@@ -51,6 +51,9 @@ namespace codegen
     std::string name;
     // For an AnchorLayout: whether the node has AnchorLayoutOptions (without them it isn't moved)
     bool hasAnchorOptions = false;
+    // For an AnchorLayout: the anchor the node has now, as the k of each axis (0, 0.5, 1). The code keeps it, only
+    // the offset changes: the anchor is the mod developer's choice
+    std::optional<geom::Vec2> anchorNow;
     // For an axis layout: the gap between the node and the one before it along the axis, if there is one
     std::optional<float> prevGap;
   };

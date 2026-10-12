@@ -59,7 +59,7 @@ if (auto node = this->getChildByIDRecursive("geode.loader/geode-button"))
 
 - **Found by its ID** (Geode node IDs). Without one, through its parent's ID and `getChildByType`; without that either, the lines are for wherever you make the node
 - **Relative to the closest edge or the center**, on each axis: of the screen when the parent is screen-sized and not scaled or turned (a layer, a menu as made), of the parent's content box otherwise (`parentSize.width - 10.f`). On a wider or narrower screen the node stays by the same edge
-- **Layouts**: if the parent has one, the panel says what `updateLayout()` will do to the node. For an `AnchorLayout` the code is the anchor and the offset (`AnchorLayoutOptions`), for an `AxisLayout` (`RowLayout`, `ColumnLayout`) the gap before the node and `setAutoScale(false)` if it was scaled, for a `SimpleAxisLayout` an `AxisGap`; the position itself is then a comment
+- **Layouts**: if the parent has one, the panel says what `updateLayout()` will do to the node. For an `AnchorLayout` the code is the anchor and the offset (`AnchorLayoutOptions`; a node that has them keeps its anchor, only the offset changes), for an `AxisLayout` (`RowLayout`, `ColumnLayout`) the gap before the node and `setAutoScale(false)` if it was scaled, for a `SimpleAxisLayout` an `AxisGap`; the position itself is then a comment
 - Only what changed: the scale, the anchor point and the z-order are written if they differ from before the edits (the scale also when it isn't 1). The z-order is written for nodes in a layout too: there it's their order
 
 ## Self test

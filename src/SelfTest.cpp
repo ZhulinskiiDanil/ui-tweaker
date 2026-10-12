@@ -3,8 +3,11 @@
 #include "Editor.hpp"
 #include "Inspect.hpp"
 #include "Retained.hpp"
+#include "core/Expr.hpp"
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
+#include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/binding/CreatorLayer.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
 #include <Geode/binding/MenuLayer.hpp>
@@ -427,6 +430,62 @@ namespace
   // Steps run one after another, each followed by its number of frames for the game to go on
   constexpr int CROWD = 5000;
 
+  // A popup as a mod makes one: Geode's Popup, a button put in its menu with addChildAtPosition, which gives it
+  // AnchorLayoutOptions in the menu's AnchorLayout
+  class TestPopup : public Popup
+  {
+  public:
+    static TestPopup* create()
+    {
+      auto popup = new TestPopup();
+      if (popup->setup())
+      {
+        popup->autorelease();
+        return popup;
+      }
+      delete popup;
+      return nullptr;
+    }
+
+    void close() { onClose(nullptr); }
+
+  private:
+    bool setup()
+    {
+      if (!Popup::init(260.f, 160.f))
+        return false;
+      setTitle("UI Tweaker self test");
+      auto button = CCMenuItemSpriteExtra::create(ButtonSprite::create("Test"), this, nullptr);
+      button->setID("selftest-button"_spr);
+      m_buttonMenu->addChildAtPosition(button, Anchor::BottomRight, {-50, 25});
+      return true;
+    }
+  };
+
+  // The anchor and the offset of generated AnchorLayoutOptions, put on the node as the code would
+  bool applyAnchorCode(CCNode* node, std::string const& code)
+  {
+    auto offset = expr::callArguments(code, "setOffset");
+    auto anchor = expr::callArguments(code, "setAnchor");
+    if (offset.size() != 2 || anchor.size() != 1)
+      return false;
+    auto none = [](std::string_view) -> std::optional<float> { return std::nullopt; };
+    auto x = expr::evaluate(offset[0], none);
+    auto y = expr::evaluate(offset[1], none);
+    static std::pair<char const*, Anchor> const anchors[] = {
+        {"Center", Anchor::Center}, {"TopLeft", Anchor::TopLeft}, {"Top", Anchor::Top},
+        {"TopRight", Anchor::TopRight}, {"Right", Anchor::Right}, {"BottomRight", Anchor::BottomRight},
+        {"Bottom", Anchor::Bottom}, {"BottomLeft", Anchor::BottomLeft}, {"Left", Anchor::Left},
+    };
+    for (auto const& [name, value] : anchors)
+      if (x && y && anchor[0] == std::string("Anchor::") + name)
+      {
+        node->setLayoutOptions(AnchorLayoutOptions::create()->setAnchor(value)->setOffset({*x, *y}));
+        return true;
+      }
+    return false;
+  }
+
   double now()
   {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -505,7 +564,62 @@ namespace
     static Retained<CCNode> crowd;
     static double frameStart = 0;
     static std::vector<double> frameTimes;
+    static Retained<TestPopup> popup;
+    static Retained<CCNode> button;
+    static Retained<LayoutOptions> options;
+    static inspect::NodeState buttonBefore;
     g_steps = {
+        // A popup: its button dragged, the generated AnchorLayoutOptions put on it, the layout updated: it stays
+        // where it was dragged to
+        {240,
+         []
+         {
+           auto made = TestPopup::create();
+           made->show();
+           popup = Retained<TestPopup>(made);
+         }},
+        {2,
+         []
+         {
+           auto node = popup->getChildByIDRecursive("selftest-button"_spr);
+           check(node != nullptr, "the popup's button is there");
+           if (!node)
+             return;
+           button = Retained<CCNode>(node);
+           options = Retained<LayoutOptions>(node->getLayoutOptions());
+           buttonBefore = inspect::stateOf(node);
+           auto layout = inspect::layoutOf(node);
+           check(layout.kind == codegen::LayoutKind::Anchor && layout.hasAnchorOptions,
+                 fmt::format("the popup's button has AnchorLayoutOptions in an {}", layout.name));
+           auto center = inspect::worldQuad(node).center();
+           CCPoint from{center.x, center.y};
+           editor::setSnapping(false);
+           editor::grab(node, from);
+           editor::dragTo(from + ccp(-30, 15));
+           editor::release();
+           editor::setSnapping(std::nullopt);
+           auto dragged = node->getPosition();
+           auto code = editor::codeFor(node);
+           log::info("Self test: the code for the popup's button:\n{}", code);
+           check(code.find("AnchorLayoutOptions") != std::string::npos, "the popup's button's code is AnchorLayoutOptions");
+           auto problem = inspect::checkCode(node, code);
+           check(problem.empty(), fmt::format("its anchor and offset give where it is: {}", problem));
+           // As the code would do it: the options set, the menu's layout updated
+           check(applyAnchorCode(node, code), "the anchor and the offset can be put on it");
+           node->getParent()->updateLayout();
+           auto laidOut = node->getPosition();
+           check(close(laidOut.x, dragged.x) && close(laidOut.y, dragged.y),
+                 fmt::format("after updateLayout() it stays where it was dragged: ({}, {}) for ({}, {})", laidOut.x,
+                             laidOut.y, dragged.x, dragged.y));
+           // Back as it was: its own options, the drag undone
+           node->setLayoutOptions(options.get());
+           check(editor::undo(), "the drag in the popup is a step to undo");
+           check(inspect::stateOf(node) == buttonBefore, "undo put the popup's button back");
+           popup->close();
+           popup.reset();
+           button.reset();
+           options.reset();
+         }},
         // A crowded scene, like a level in the editor: 5000 sprites. What the hover and the tree cost then
         {1,
          []

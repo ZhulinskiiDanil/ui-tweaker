@@ -1,8 +1,9 @@
 # v0.4.0
 
 - `Enter` types exact values for the selected node: x, y and the scale, numbers or expressions like `w / 2 + 40` (`w`, `h`: the screen; `pw`, `ph`: the parent)
+- A node with AnchorLayoutOptions keeps its anchor in the code, only the offset changes (it was the closest anchor, which could be another one than the mod developer chose)
 - The banner is one line at the top, `F1` shows every key
-- The self test also types values, goes into a level with `UI_TWEAKER_SELFTEST=play`, and measures the hover and the tree among 5000 more nodes
+- The self test also edits a button in a Geode Popup and puts the generated AnchorLayoutOptions on it: after updateLayout() it stays where it was dragged; it also types values, goes into a level with `UI_TWEAKER_SELFTEST=play`, and measures the hover and the tree among 5000 more nodes
 
 # v0.3.0
 

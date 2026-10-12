@@ -160,6 +160,13 @@ namespace
 
 codegen::Position codegen::positionExpressions(NodeDesc const& node)
 {
+  // An anchor the node has already stays
+  if (anchored(node) && node.layout.anchorNow)
+  {
+    auto k = *node.layout.anchorNow;
+    return {{k.x, node.position.x - k.x * node.frame.extent.width},
+            {k.y, node.position.y - k.y * node.frame.extent.height}};
+  }
   if (node.frame.kind == FrameKind::Parent)
     return {expr::nearest(node.position.x, node.frame.extent.width),
             expr::nearest(node.position.y, node.frame.extent.height)};
