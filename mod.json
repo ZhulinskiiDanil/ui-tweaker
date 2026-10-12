@@ -47,6 +47,17 @@
 			"description": "With <cy>Improved Logger</c>: the selected node and the count of edited nodes pinned in its console, and a marker when code is copied. Every edit and the copied code are in the log either way",
 			"type": "bool",
 			"default": true
+		},
+		"language": {
+			"name": "Language",
+			"description": "The edit mode's language. Auto: Russian on a Russian Windows, English otherwise. The generated code is in English either way",
+			"type": "string",
+			"default": "Auto",
+			"one-of": [
+				"Auto",
+				"English",
+				"Russian"
+			]
 		}
 	}
 }

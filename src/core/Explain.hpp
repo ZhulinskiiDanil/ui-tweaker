@@ -1,6 +1,8 @@
 #pragma once
 
 // Why a node doesn't move, isn't seen or behaves oddly: plain facts about it in, sentences out
+#include "Words.hpp"
+
 #include <string>
 #include <vector>
 
@@ -28,5 +30,5 @@ namespace explain
     bool outsideScreen = false;
   };
 
-  std::vector<std::string> reasons(Facts const& facts);
+  std::vector<std::string> reasons(Facts const& facts, words::Lang lang = words::Lang::English);
 } // namespace explain

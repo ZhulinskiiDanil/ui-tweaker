@@ -1,3 +1,8 @@
+# v0.3.0
+
+- Russian and English (the *Language* setting, Auto follows Windows): TTF labels in Russian, since GD's bitmap fonts have no Cyrillic. The generated code stays English
+- With Improved Logger: the selection and the count of edited nodes pinned in its console, a marker when code is copied
+
 # v0.2.0
 
 - Snapping while dragging: the node's edges and center to the screen's, the parent's and the siblings', with guides; `Ctrl` or the setting turns it off

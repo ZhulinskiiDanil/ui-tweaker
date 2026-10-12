@@ -4,6 +4,7 @@
 // The mod fills in a NodeDesc from the real node; the tests fill it in by hand
 #include "Expr.hpp"
 #include "Geometry.hpp"
+#include "Words.hpp"
 
 #include <optional>
 #include <string>
@@ -91,7 +92,7 @@ namespace codegen
   std::string anchorName(float kx, float ky);
 
   // What the parent's layout does to the node's position, for the panel and the code. Empty if nothing
-  std::string layoutWarning(NodeDesc const& node);
+  std::string layoutWarning(NodeDesc const& node, words::Lang lang = words::Lang::English);
 
   // The condition of the `if` that gets the node: `auto node = this->getChildByIDRecursive("play-button")`, or
   // through its parent's ID and getChildByType. Empty if neither has an ID

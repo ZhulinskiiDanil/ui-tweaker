@@ -4,6 +4,8 @@
 // selects its node. Part of the edit mode's overlay
 #include "Retained.hpp"
 
+class UiLabel;
+
 #include <Geode/Geode.hpp>
 
 #include <string>
@@ -39,9 +41,9 @@ public:
 private:
   cocos2d::CCLayerColor* m_background = nullptr;
   cocos2d::CCLayerColor* m_searchBackground = nullptr;
-  cocos2d::CCLabelBMFont* m_title = nullptr;
-  cocos2d::CCLabelBMFont* m_search = nullptr;
-  std::vector<cocos2d::CCLabelBMFont*> m_labels;
+  UiLabel* m_title = nullptr;
+  UiLabel* m_search = nullptr;
+  std::vector<UiLabel*> m_labels;
 
   // The nodes of the last refresh, held until the next one: a node removed in between is still safe to select
   // (and the edit mode drops a selection that isn't in the scene)

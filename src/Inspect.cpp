@@ -1,5 +1,6 @@
 #include "Inspect.hpp"
 
+#include "Ui.hpp"
 #include "core/Expr.hpp"
 
 #include <Geode/binding/CCScrollLayerExt.hpp>
@@ -299,7 +300,7 @@ explain::Facts inspect::factsOf(CCNode* node)
   for (auto up = node; up; up = up->getParent())
     if (!up->isVisible())
     {
-      facts.hiddenBy = up == node ? "the node itself" : name(up);
+      facts.hiddenBy = up == node ? ui::words().itself : name(up);
       break;
     }
   facts.transparent = transparent(node);

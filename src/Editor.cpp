@@ -4,6 +4,7 @@
 #include "LoggerLink.hpp"
 #include "Retained.hpp"
 #include "TreePanel.hpp"
+#include "Ui.hpp"
 #include "core/Aspect.hpp"
 #include "core/Codegen.hpp"
 #include "core/History.hpp"
@@ -236,14 +237,13 @@ namespace
   struct Button
   {
     CCLayerColor* background = nullptr;
-    CCLabelBMFont* label = nullptr;
+    UiLabel* label = nullptr;
     std::function<void()> action;
   };
 
-  CCLabelBMFont* makeLabel(CCNode* parent, ccColor3B color = {255, 255, 255})
+  UiLabel* makeLabel(CCNode* parent, ccColor3B color = {255, 255, 255})
   {
-    auto label = CCLabelBMFont::create("", "chatFont.fnt");
-    label->setScale(FONT_SCALE);
+    auto label = UiLabel::create(FONT_SCALE);
     label->setAnchorPoint({0, 1});
     label->setColor(color);
     parent->addChild(label);
@@ -291,16 +291,17 @@ namespace
       addChild(m_panel);
       m_panelTopLeft = ccp(MARGIN, win.height - 22);
 
-      addButton("Copy", [] { editor::copySelected(); });
-      addButton("Copy all", [] { editor::copyAll(); });
-      addButton("Undo", [] { editor::undo(); });
-      addButton("Redo", [] { editor::redo(); });
-      addButton("Leave", [] { Loader::get()->queueInMainThread([] { editor::setActive(false); }); });
+      auto const& w = ui::words();
+      addButton(w.copy, [] { editor::copySelected(); });
+      addButton(text::format(w.copyAll, {"0"}), [] { editor::copyAll(); });
+      addButton(w.undo, [] { editor::undo(); });
+      addButton(w.redo, [] { editor::redo(); });
+      addButton(w.leave, [] { Loader::get()->queueInMainThread([] { editor::setActive(false); }); });
 
       for (auto const& shape : aspect::shapes())
       {
         auto label = makeLabel(this);
-        label->setString(shape.name.c_str());
+        label->setString(shape.name);
         label->setAnchorPoint({0, 0});
         m_shapeLabels.push_back(label);
       }
@@ -374,26 +375,26 @@ namespace
   private:
     CCDrawNode* m_draw = nullptr;
     CCLayerColor* m_banner = nullptr;
-    CCLabelBMFont* m_bannerText = nullptr;
+    UiLabel* m_bannerText = nullptr;
     CCLayerColor* m_tag = nullptr;
-    CCLabelBMFont* m_tagText = nullptr;
+    UiLabel* m_tagText = nullptr;
     CCLayerColor* m_panel = nullptr;
-    CCLabelBMFont* m_title = nullptr;
-    CCLabelBMFont* m_body = nullptr;
-    CCLabelBMFont* m_warning = nullptr;
+    UiLabel* m_title = nullptr;
+    UiLabel* m_body = nullptr;
+    UiLabel* m_warning = nullptr;
     std::vector<Button> m_buttons;
-    std::vector<CCLabelBMFont*> m_shapeLabels;
+    std::vector<UiLabel*> m_shapeLabels;
     std::vector<CCLayerColor*> m_measureTags;
     TreePanel* m_tree = nullptr;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
 
-    void addButton(char const* text, std::function<void()> action)
+    void addButton(std::string const& text, std::function<void()> action)
     {
       Button button;
       button.background = CCLayerColor::create({60, 70, 100, 230}, 10, 10);
-      button.label = CCLabelBMFont::create(text, "chatFont.fnt");
-      button.label->setScale(FONT_SCALE);
+      button.label = UiLabel::create(FONT_SCALE);
+      button.label->setString(text);
       button.label->setAnchorPoint({0.5f, 0.5f});
       button.background->addChild(button.label);
       button.action = std::move(action);
@@ -405,17 +406,14 @@ namespace
     {
       auto setting = std::dynamic_pointer_cast<KeybindSettingV3>(Mod::get()->getSetting("toggle-key"));
       std::string key = setting && !setting->getValue().empty() ? setting->getValue()[0].toString() : "F8";
-      m_bannerText->setString(
-          fmt::format("UI Tweaker: edit mode ({} leaves)\nDrag: move   Wheel: scale (Shift: fine)   Arrows: 1 px "
-                      "(Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo\nCtrl+C: copy code   Ctrl+Shift+C: copy all   "
-                      "Tab: next under the mouse   Alt: distances   Alt+click: inside   PgUp: parent   A: other screens   T: tree   H: panel",
-                      key)
-              .c_str());
+      auto const& w = ui::words();
+      m_bannerText->setString(text::format(w.banner, {key}) + "\n" + w.help1 + "\n" + w.help2);
       auto win = CCDirector::get()->getWinSize();
       auto size = m_bannerText->getScaledContentSize();
       m_banner->setContentSize(size + ccp(MARGIN * 2, MARGIN));
       m_bannerText->setPosition({MARGIN, size.height + MARGIN / 2});
       m_banner->setPosition({(win.width - m_banner->getContentWidth()) / 2, win.height - m_banner->getContentHeight()});
+      m_panelTopLeft = ccp(MARGIN, win.height - m_banner->getContentHeight() - 2);
     }
 
     void drawQuad(geom::Quad const& quad, ccColor4F fill, float border, ccColor4F color)
@@ -438,9 +436,8 @@ namespace
       }
       m_tag->setVisible(true);
       auto parent = node->getParent();
-      auto text = fmt::format("{}\nin {}", inspect::name(node), parent ? inspect::name(parent) : "nothing");
-      if (m_tagText->getString() != text)
-        m_tagText->setString(text.c_str());
+      auto text = text::format(ui::words().tag, {inspect::name(node), parent ? inspect::name(parent) : ui::words().none});
+      m_tagText->setString(text);
       auto size = m_tagText->getScaledContentSize();
       m_tag->setContentSize(size + ccp(MARGIN * 2, MARGIN));
       m_tagText->setPosition({MARGIN, size.height + MARGIN / 2});
@@ -469,38 +466,39 @@ namespace
         auto size = node->getContentSize();
         auto desc = inspect::describe(node, originalOf(node));
         title = text::fit(inspect::name(node), PANEL_COLUMNS);
-        body = fmt::format("position {}, {}   (screen {}, {})\n"
-                           "scale {}{}   rotation {}\n"
-                           "anchor {}, {}{}   size {} x {}\n"
-                           "z-order {}   parent {}",
-                           number(info.position.x), number(info.position.y), number(world.x), number(world.y),
-                           number(info.scaleX),
-                           info.scaleX == info.scaleY ? "" : fmt::format(" x {}", number(info.scaleY)),
-                           number(node->getRotation()), number(info.anchor.x), number(info.anchor.y),
-                           node->isIgnoreAnchorPointForPosition() ? " (ignored)" : "", number(size.width),
-                           number(size.height), info.zOrder,
-                           text::fit(parent ? inspect::name(parent) : "none", 26));
+        auto const& w = ui::words();
+        body = text::format(w.position, {number(info.position.x), number(info.position.y), number(world.x),
+                                         number(world.y)}) +
+               "\n" +
+               text::format(w.scale, {number(info.scaleX),
+                                      info.scaleX == info.scaleY ? "" : " x " + number(info.scaleY)}) +
+               "   " + text::format(w.rotation, {number(node->getRotation())}) + "\n" +
+               text::format(w.anchor, {number(info.anchor.x), number(info.anchor.y),
+                                       node->isIgnoreAnchorPointForPosition() ? w.ignored : ""}) +
+               "   " + text::format(w.size, {number(size.width), number(size.height)}) + "\n" +
+               text::format(w.zOrder, {std::to_string(info.zOrder),
+                                       text::fit(parent ? inspect::name(parent) : w.none, 26)});
         // The layout's warning says what the code does about it, the other reasons come after it
         auto facts = inspect::factsOf(node);
         std::vector<std::string> reasons;
-        if (auto layout = codegen::layoutWarning(desc); !layout.empty())
+        if (auto layout = codegen::layoutWarning(desc, ui::language()); !layout.empty())
         {
           reasons.push_back(layout);
           facts.layoutMovesIt = false;
         }
-        for (auto& reason : explain::reasons(facts))
+        for (auto& reason : explain::reasons(facts, ui::language()))
           reasons.push_back(std::move(reason));
         auto win = CCDirector::get()->getWinSize();
         if (auto off = aspect::offScreenOn(inspect::worldQuad(node).bounds(), {win.width, win.height}); !off.empty())
-          reasons.push_back("Off the screen on " + off + " (A shows them)");
+          reasons.push_back(text::format(ui::words().offScreen, {off}));
         for (auto const& reason : reasons)
           for (auto const& line : text::wrap("! " + reason, PANEL_COLUMNS))
             warning += line + "\n";
       }
       else
       {
-        title = "Nothing selected";
-        body = "Click a node to select it, drag to move it";
+        title = ui::words().nothingSelected;
+        body = ui::words().clickHint;
       }
       auto edited = editor::editedNodes().size();
       auto key = title + body + warning + std::to_string(edited) + (s.history.canUndo() ? "u" : "") +
@@ -510,17 +508,17 @@ namespace
       m_panelKey = key;
       logger_link::pin(node ? title + ": " + body.substr(0, body.find('\n')) : "nothing", edited);
 
-      m_title->setString(title.c_str());
-      m_body->setString(body.c_str());
+      m_title->setString(title);
+      m_body->setString(body);
       if (!warning.empty())
         warning.pop_back();
-      m_warning->setString(warning.c_str());
+      m_warning->setString(warning);
       m_warning->setVisible(!warning.empty());
-      m_buttons[1].label->setString(fmt::format("Copy all ({})", edited).c_str());
+      m_buttons[1].label->setString(text::format(ui::words().copyAll, {std::to_string(edited)}));
 
       // From the top down
       float y = -MARGIN / 2;
-      auto place = [&](CCLabelBMFont* label)
+      auto place = [&](UiLabel* label)
       {
         label->setPosition({MARGIN, y});
         y -= label->getScaledContentHeight() + 1;
@@ -611,10 +609,9 @@ namespace
         auto to = convertToNodeSpace({line.to.x, line.to.y});
         m_draw->drawSegment(from, to, 0.35f, MEASURE);
         auto tag = m_measureTags[i];
-        auto text = static_cast<CCLabelBMFont*>(tag->getChildByTag(1));
+        auto text = static_cast<UiLabel*>(tag->getChildByTag(1));
         auto value = number(line.length);
-        if (text->getString() != value)
-          text->setString(value.c_str());
+        text->setString(value);
         auto size = text->getScaledContentSize();
         tag->setContentSize(size + ccp(4, 1));
         text->setPosition(tag->getContentSize() / 2);
@@ -1130,14 +1127,14 @@ void editor::copySelected()
   auto node = selected();
   if (!node)
   {
-    Notification::create("Select a node first", NotificationIcon::Warning, 1.5f)->show();
+    Notification::create(ui::words().selectFirst, NotificationIcon::Warning, 1.5f)->show();
     return;
   }
   auto code = codeFor(node);
   clipboard::write(code);
   log::info("Code for {}:\n{}", inspect::name(node), code);
   logger_link::mark("copied the code for " + inspect::name(node));
-  Notification::create(fmt::format("Copied the code for {}", inspect::name(node)), NotificationIcon::Success, 1.5f)
+  Notification::create(text::format(ui::words().copiedFor, {inspect::name(node)}), NotificationIcon::Success, 1.5f)
       ->show();
 }
 
@@ -1146,14 +1143,15 @@ void editor::copyAll()
   auto nodes = editedNodes();
   if (nodes.empty())
   {
-    Notification::create("Nothing is edited in this scene", NotificationIcon::Warning, 1.5f)->show();
+    Notification::create(ui::words().nothingEdited, NotificationIcon::Warning, 1.5f)->show();
     return;
   }
   auto code = codeForAll();
   clipboard::write(code);
   log::info("Code for {} edited nodes:\n{}", nodes.size(), code);
   logger_link::mark(fmt::format("copied the code for {} nodes", nodes.size()));
-  Notification::create(fmt::format("Copied the code for {} nodes", nodes.size()), NotificationIcon::Success, 1.5f)
+  Notification::create(text::format(ui::words().copiedNodes, {std::to_string(nodes.size())}), NotificationIcon::Success,
+                       1.5f)
       ->show();
 }
 

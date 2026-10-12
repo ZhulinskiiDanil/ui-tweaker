@@ -60,3 +60,31 @@ std::string text::fit(std::string_view text, size_t columns)
     return std::string(text.substr(0, columns));
   return std::string(text.substr(0, columns - 2)) + "..";
 }
+
+std::string text::format(std::string_view pattern, std::initializer_list<std::string> values)
+{
+  std::string out;
+  auto value = values.begin();
+  size_t at = 0;
+  while (at < pattern.size())
+  {
+    auto hole = pattern.find("{}", at);
+    if (hole == std::string_view::npos || value == values.end())
+    {
+      out += pattern.substr(at);
+      break;
+    }
+    out += pattern.substr(at, hole - at);
+    out += *value++;
+    at = hole + 2;
+  }
+  return out;
+}
+
+size_t text::holes(std::string_view pattern)
+{
+  size_t count = 0;
+  for (auto at = pattern.find("{}"); at != std::string_view::npos; at = pattern.find("{}", at + 2))
+    count++;
+  return count;
+}

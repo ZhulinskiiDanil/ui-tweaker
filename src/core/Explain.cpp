@@ -1,33 +1,32 @@
 #include "Explain.hpp"
 
-std::vector<std::string> explain::reasons(Facts const& facts)
+#include "Text.hpp"
+
+std::vector<std::string> explain::reasons(Facts const& facts, words::Lang lang)
 {
+  auto const& w = words::get(lang);
   std::vector<std::string> out;
   if (!facts.layoutName.empty() && facts.layoutMovesIt)
-    out.push_back(facts.parent + " has a " + facts.layoutName +
-                  ": its updateLayout() sets this node's position, so a setPosition of yours lasts until it runs");
-  if (facts.runningActions > 0)
-    out.push_back(std::to_string(facts.runningActions) +
-                  (facts.runningActions == 1 ? " action is" : " actions are") +
-                  " running on it: an animation may set its position or scale every frame");
+    out.push_back(text::format(w.layoutMoves, {facts.parent, facts.layoutName}));
+  if (facts.runningActions == 1)
+    out.push_back(w.action);
+  else if (facts.runningActions > 1)
+    out.push_back(text::format(w.actions, {std::to_string(facts.runningActions)}));
   if (!facts.hiddenBy.empty())
-    out.push_back("Not drawn: " + facts.hiddenBy + " is invisible (setVisible(false))");
+    out.push_back(text::format(w.hidden, {facts.hiddenBy}));
   if (facts.transparent)
-    out.push_back("Not seen: its opacity is 0");
+    out.push_back(w.transparent);
   if (facts.zeroScale)
-    out.push_back("Not seen: its scale is 0");
+    out.push_back(w.zeroScale);
   if (facts.zeroSize)
-    out.push_back("Its content size is 0 x 0: it has no box of its own, its anchor point does nothing and a "
-                  "layout gives it no room. setContentSize, or look at its children");
+    out.push_back(w.zeroSize);
   if (facts.ignoresAnchor)
-    out.push_back("It ignores its anchor point for its position (a layer or a menu as made): the position is "
-                  "where its bottom left corner is");
+    out.push_back(w.ignoresAnchor);
   if (!facts.clippedBy.empty())
-    out.push_back("Outside " + facts.clippedBy + ", which cuts off what's outside its box");
+    out.push_back(text::format(w.clipped, {facts.clippedBy}));
   if (facts.parentTurned)
-    out.push_back("Its parent is turned, flipped or skewed: positions are along the parent's axes, not the "
-                  "screen's");
+    out.push_back(w.parentTurned);
   if (facts.outsideScreen)
-    out.push_back("Off the screen");
+    out.push_back(w.outsideScreen);
   return out;
 }

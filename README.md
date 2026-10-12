@@ -35,6 +35,8 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 
 A button, a label or a 9-slice is picked as a whole: a click on the play button's sprite selects the button.
 
+The edit mode speaks English and Russian (the *Language* setting; Auto follows Windows). GD's bitmap fonts have no Cyrillic, so in Russian its text is drawn with TTF labels, rendered again only when they change. The generated code is English either way.
+
 ## The code
 
 ```cpp

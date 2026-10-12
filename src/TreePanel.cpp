@@ -1,6 +1,7 @@
 #include "TreePanel.hpp"
 
 #include "Inspect.hpp"
+#include "Ui.hpp"
 #include "core/Text.hpp"
 #include "core/Tree.hpp"
 
@@ -44,10 +45,9 @@ namespace
       collect(child, depth + 1, nodes, rows);
   }
 
-  CCLabelBMFont* label(CCNode* parent)
+  UiLabel* label(CCNode* parent, bool ascii)
   {
-    auto text = CCLabelBMFont::create("", "chatFont.fnt");
-    text->setScale(FONT_SCALE);
+    auto text = UiLabel::create(FONT_SCALE, ascii);
     text->setAnchorPoint({0, 1});
     parent->addChild(text);
     return text;
@@ -78,14 +78,14 @@ bool TreePanel::init()
   m_searchBackground->setPosition({MARGIN, height - MARGIN - ROW * 2});
   addChild(m_searchBackground);
 
-  m_title = label(this);
+  m_title = label(this, false);
   m_title->setPosition({MARGIN, height - MARGIN});
   m_title->setColor({255, 210, 90});
-  m_search = label(this);
+  m_search = label(this, false);
   m_search->setPosition({MARGIN + 1, height - MARGIN - ROW});
   for (size_t i = 0; i < ROWS; i++)
   {
-    auto row = label(this);
+    auto row = label(this, true);
     row->setPosition({MARGIN, height - MARGIN - ROW * (i + 2)});
     m_labels.push_back(row);
   }
@@ -110,13 +110,10 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
   }
   m_first = std::min(m_first, m_shown.size() > ROWS ? m_shown.size() - ROWS : 0);
 
-  auto title = fmt::format("Nodes: {} of {}   T: close", m_shown.size(), m_nodes.size());
-  if (m_title->getString() != title)
-    m_title->setString(title.c_str());
-  auto search = m_query.empty() && !m_typing ? std::string("/ to search by ID or class")
-                                             : "search: " + m_query + (m_typing ? "_" : "");
-  if (m_search->getString() != search)
-    m_search->setString(search.c_str());
+  auto const& w = ui::words();
+  m_title->setString(text::format(w.treeTitle, {std::to_string(m_shown.size()), std::to_string(m_nodes.size())}));
+  m_search->setString(m_query.empty() && !m_typing ? w.searchHint
+                                                   : text::format(w.search, {m_query + (m_typing ? "_" : "")}));
   m_search->setColor(m_typing ? WHITE : HIDDEN);
 
   for (size_t i = 0; i < ROWS; i++)
@@ -133,8 +130,7 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
     auto node = m_nodes[m_shown[at]].get();
     std::string name = row.id.empty() ? row.className : row.id + " " + row.className;
     auto text = text::fit(std::string(std::min(row.depth, 12) * 2, ' ') + name, COLUMNS);
-    if (label->getString() != text)
-      label->setString(text.c_str());
+    label->setString(text);
     ccColor3B color = !shownInTree(node) ? HIDDEN : WHITE;
     if (!m_query.empty() && tree::matches(row, m_query))
       color = MATCH;

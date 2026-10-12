@@ -1,5 +1,7 @@
 #include "Codegen.hpp"
 
+#include "Text.hpp"
+
 #include <sstream>
 
 namespace
@@ -161,28 +163,22 @@ std::string codegen::anchorName(float kx, float ky)
   return vertical + horizontal;
 }
 
-std::string codegen::layoutWarning(NodeDesc const& node)
+std::string codegen::layoutWarning(NodeDesc const& node, words::Lang lang)
 {
+  auto const& w = words::get(lang);
   auto parent = node.parentId.empty() ? node.parentClass : node.parentId;
   switch (node.layout.kind)
   {
   case LayoutKind::None:
     return "";
   case LayoutKind::Anchor:
-    if (!anchored(node))
-      return "";
-    return parent + " has an AnchorLayout: updateLayout() puts the node at its anchor, so the code sets the "
-                    "anchor and the offset";
+    return anchored(node) ? text::format(w.anchorLayout, {parent}) : "";
   case LayoutKind::Axis:
-    return parent + " has a " + node.layout.name +
-           ": updateLayout() puts the node back in line, so the position is lost. The code sets its gap in the "
-           "layout instead";
+    return text::format(w.axisLayout, {parent, node.layout.name});
   case LayoutKind::SimpleAxis:
-    return parent + " has a " + node.layout.name +
-           ": updateLayout() puts the node back in line, so the position is lost. The code has the gap before it "
-           "as an AxisGap, and the position as a comment";
+    return text::format(w.simpleAxisLayout, {parent, node.layout.name});
   case LayoutKind::Other:
-    return parent + " has a " + node.layout.name + ": updateLayout() may move the node back";
+    return text::format(w.otherLayout, {parent, node.layout.name});
   }
   return "";
 }
