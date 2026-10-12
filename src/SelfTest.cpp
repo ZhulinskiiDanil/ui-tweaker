@@ -687,25 +687,29 @@ namespace
       for (int gy = 1; gy <= 5; gy++)
       {
         CCPoint point{win.width * gx / 8, win.height * gy / 6};
-        auto hits = inspect::hitsAt(scene, point);
-        if (hits.empty() || seen.contains(hits[0]) || !hits[0]->getParent())
-          continue;
-        auto node = hits[0];
-        seen.insert(node);
-        auto nodeName = inspect::name(node);
-        auto before = inspect::stateOf(node);
-        auto worldBefore = worldPositionOf(node);
-        editor::grab(node, point);
-        editor::dragTo(point + ccp(7, -5));
-        editor::release();
-        auto moved = worldPositionOf(node) - worldBefore;
-        check(close(moved.x, 7, 0.1f) && close(moved.y, -5, 0.1f),
-              fmt::format("{}: {} moved by ({}, {}), not (7, -5)", name, nodeName, moved.x, moved.y));
-        auto problem = inspect::checkCode(node, editor::codeFor(node));
-        check(problem.empty(), fmt::format("{}: the code for {} puts it where it is: {}", name, nodeName, problem));
-        editor::undo();
-        check(inspect::stateOf(node) == before, fmt::format("{}: undo put {} back", name, nodeName));
-        edited++;
+        // The whole thing under the point, and with Alt the part of it (a sprite in a button, its label)
+        for (bool deep : {false, true})
+        {
+          auto hits = inspect::hitsAt(scene, point, deep);
+          if (hits.empty() || seen.contains(hits[0]) || !hits[0]->getParent())
+            continue;
+          auto node = hits[0];
+          seen.insert(node);
+          auto nodeName = inspect::name(node);
+          auto before = inspect::stateOf(node);
+          auto worldBefore = worldPositionOf(node);
+          editor::grab(node, point);
+          editor::dragTo(point + ccp(7, -5));
+          editor::release();
+          auto moved = worldPositionOf(node) - worldBefore;
+          check(close(moved.x, 7, 0.1f) && close(moved.y, -5, 0.1f),
+                fmt::format("{}: {} moved by ({}, {}), not (7, -5)", name, nodeName, moved.x, moved.y));
+          auto problem = inspect::checkCode(node, editor::codeFor(node));
+          check(problem.empty(), fmt::format("{}: the code for {} puts it where it is: {}", name, nodeName, problem));
+          editor::undo();
+          check(inspect::stateOf(node) == before, fmt::format("{}: undo put {} back", name, nodeName));
+          edited++;
+        }
       }
     editor::setSnapping(std::nullopt);
     log::info("Self test tour: {}: {} nodes dragged, their code read back, undone", name, edited);
