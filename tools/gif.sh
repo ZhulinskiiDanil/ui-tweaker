@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The README's GIF: the game started with the self test (the edit mode on, English), a drag of the node at
-# (x, y) in GD's points to (x2, y2) with snapping, the wheel, Ctrl+Z; frames taken meanwhile.
+# The README's GIF: the game started with the self test (the edit mode on, English), the code view on, the node
+# at (x, y) in GD's points selected, resized by a handle, dragged to (x2, y2) with snapping, scaled, the three
+# undone; frames taken meanwhile.
 #   tools/gif.sh <work folder> <out.gif> x y x2 y2
 set -u
 work="$1"; out="$2"; x="$3"; y="$4"; x2="$5"; y2="$6"
@@ -20,19 +21,28 @@ log="$logs/$(ls -t "$logs" | head -1)"
 for _ in $(seq 1 150); do grep -q "Self test PASS\|Self test FAIL: [0-9]" "$log" && break; sleep 1; done
 sleep 1
 ps input.ps1 key esc
+# The code view on, the mouse away
+ps input.ps1 key c
 ps input.ps1 move 300 150
-ps frames.ps1 -out "$(cygpath -w "$work/frames")" -count 70 -every 60 &
+ps frames.ps1 -out "$(cygpath -w "$work/frames")" -count 110 -every 50 &
 frames=$!
 sleep 0.4
-# Hover, then a slow drag that passes the guides
+# Hover the title and select it: the panel moves out of its way
 for i in 0 1 2 3 4 5; do ps input.ps1 move "$(python -c "print(300 + ($x - 300) * $i / 5)")" "$(python -c "print(150 + ($y - 150) * $i / 5)")"; done
-sleep 0.5
-ps input.ps1 drag "$x" "$y" "$x2" "$y2"
-sleep 0.6
-ps input.ps1 wheel 2
-sleep 0.8
-ps input.ps1 key z ctrl
+ps input.ps1 down; ps input.ps1 up
 sleep 0.4
+# Its right side's handle dragged: wider (220 wide at (59, 236): the handle at (279, 253.8))
+ps input.ps1 drag 279 253.8 309 253.8
+sleep 0.3
+# Then the whole of it, past the guides
+ps input.ps1 drag "$x" "$y" "$x2" "$y2"
+sleep 0.4
+ps input.ps1 wheel 2
+sleep 0.6
+ps input.ps1 key z ctrl
+sleep 0.3
+ps input.ps1 key z ctrl
+sleep 0.3
 ps input.ps1 key z ctrl
 wait $frames
 stop
