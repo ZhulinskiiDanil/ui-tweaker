@@ -2,14 +2,16 @@
 // would be in a hook of a layer (`this` being the layer), and one with the code of all of them at once
 #include "Samples.hpp"
 
+#include "../../src/core/Hooks.hpp"
+
 #include <cstdio>
 #include <fstream>
 
 int main(int argc, char** argv)
 {
-  if (argc < 2)
+  if (argc < 3)
   {
-    std::fprintf(stderr, "usage: generate-samples <out.inc>\n");
+    std::fprintf(stderr, "usage: generate-samples <samples.inc> <hooks.inc>\n");
     return 1;
   }
   std::ofstream out(argv[1]);
@@ -31,5 +33,12 @@ int main(int argc, char** argv)
         << "));\n    checkSample(" << i << ");\n  }\n";
   out << "  {\n    AllSamples layer;\n    buildScene(layer);\n    layer.run(nodeOf(NO_ID));\n";
   out << "    for (int i = 0; i < " << all.size() << "; i++)\n      checkSample(i);\n  }\n}\n";
+
+  // "Copy all" as hooks, at the top level as they're pasted: two nodes in MenuLayer's init, one in PauseLayer's
+  // customSetup, one in LevelSelectLayer's init(int)
+  std::ofstream hooksOut(argv[2]);
+  hooksOut << hooks::wrap("MenuLayer", codegen::generateAll({all[0], all[1]})) << "\n";
+  hooksOut << hooks::wrap("PauseLayer", codegen::generateAll({all[2]})) << "\n";
+  hooksOut << hooks::wrap("LevelSelectLayer", codegen::generateAll({all[4]})) << "\n";
   return 0;
 }

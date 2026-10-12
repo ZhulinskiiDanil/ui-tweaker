@@ -68,7 +68,8 @@ namespace
     auto x = expr::format(position.x, width);
     auto y = expr::format(position.y, height);
     bool usesExtent = position.x.k != 0 || position.y.k != 0;
-    bool scaleWanted = node.scaleChanged || node.scaleX != 1 || node.scaleY != 1;
+    // A scale an axis layout gave the node is the layout's: written only if it was changed
+    bool scaleWanted = node.scaleChanged || ((node.scaleX != 1 || node.scaleY != 1) && !isAxis(node.layout.kind));
 
     if (anchored(node))
     {

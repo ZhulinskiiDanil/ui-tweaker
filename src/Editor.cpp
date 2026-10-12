@@ -9,6 +9,7 @@
 #include "core/Codegen.hpp"
 #include "core/Fields.hpp"
 #include "core/History.hpp"
+#include "core/Hooks.hpp"
 #include "core/Measure.hpp"
 #include "core/Snap.hpp"
 #include "core/Text.hpp"
@@ -295,7 +296,7 @@ namespace
                     if (!which(entry.first))
                       return false;
                     if (hasSteps(entry.first))
-                      addTo(groupOf(s.liveLayer), entry.second);
+                      addTo(groupOf(entry.second.layer.empty() ? s.liveLayer : entry.second.layer), entry.second);
                     return true;
                   });
   }
@@ -1828,16 +1829,21 @@ namespace
   {
     auto& s = state();
     auto groups = s.earlier;
-    auto layer = layerName(runningScene());
-    auto group = std::find_if(groups.begin(), groups.end(), [&](auto const& g) { return g.first == layer; });
-    if (group == groups.end())
+    for (auto const& [node, kept] : s.live)
     {
-      groups.emplace_back(layer, std::vector<codegen::NodeDesc>{});
-      group = groups.end() - 1;
+      if (!hasSteps(node))
+        continue;
+      auto desc = inspect::isIn(node, runningScene()) ? inspect::describe(node, originalOf(node)) : kept;
+      // By the layer whose hook the code goes in
+      auto layer = desc.layer.empty() ? layerName(runningScene()) : desc.layer;
+      auto group = std::find_if(groups.begin(), groups.end(), [&](auto const& g) { return g.first == layer; });
+      if (group == groups.end())
+      {
+        groups.emplace_back(layer, std::vector<codegen::NodeDesc>{});
+        group = groups.end() - 1;
+      }
+      addTo(group->second, desc);
     }
-    for (auto const& [node, desc] : s.live)
-      if (hasSteps(node))
-        addTo(group->second, inspect::isIn(node, runningScene()) ? inspect::describe(node, originalOf(node)) : desc);
     std::erase_if(groups, [](auto const& g) { return g.second.empty(); });
     return groups;
   }
@@ -1848,14 +1854,11 @@ std::string editor::codeForAll()
   auto groups = allEdits();
   if (groups.empty())
     return "";
-  if (groups.size() == 1)
-    return codegen::generateAll(groups[0].second);
-
-  // Each layer under its name
+  // Each layer under its name, as the hook its code goes in: ready to paste for the layers mods hook most
   std::string code;
   for (size_t i = 0; i < groups.size(); i++)
     code += (i ? "\n" : "") + std::string("// ! --- In ") + groups[i].first + " --- !\n\n" +
-            codegen::generateAll(groups[i].second);
+            hooks::wrap(groups[i].first, codegen::generateAll(groups[i].second));
   return code;
 }
 

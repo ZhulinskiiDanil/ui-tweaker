@@ -198,3 +198,24 @@ public:
   }
   CCSize getWinSize() const { return {569, 320}; }
 };
+
+// $modify as a plain subclass, enough for the generated hooks to compile and be called through the base
+#define $modify(base) Hooked_##base : public base
+
+class MenuLayer : public CCNode
+{
+public:
+  virtual bool init() { return true; }
+};
+
+class LevelSelectLayer : public CCNode
+{
+public:
+  virtual bool init(int) { return true; }
+};
+
+class PauseLayer : public CCNode
+{
+public:
+  virtual void customSetup() {}
+};

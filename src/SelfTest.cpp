@@ -912,6 +912,11 @@ namespace
                  "the main menu's edit is kept after the scene changed");
            check(all.find("// ! --- In CreatorLayer --- !") != std::string::npos,
                  "the creator layer's edit is kept after the scene changed");
+           // Each section is the hook its code goes in, ready to paste
+           check(all.find("class $modify(MenuLayer)") != std::string::npos &&
+                     all.find("if (!MenuLayer::init())") != std::string::npos &&
+                     all.find("class $modify(CreatorLayer)") != std::string::npos,
+                 "the code for all is MenuLayer's and CreatorLayer's hooks");
            check(editor::editedCount() == 2, fmt::format("{} edits kept from the scenes left", editor::editedCount()));
            // Back in the main menu, the Geode button edited again: one section for the main menu, its newer code
            if (auto again = CCDirector::get()->getRunningScene()->getChildByIDRecursive("geode.loader/geode-button"))

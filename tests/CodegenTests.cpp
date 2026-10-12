@@ -160,6 +160,12 @@ namespace
     CHECK(has(generate(node), "node->setZOrder(3);"));
     node.zOrderChanged = false;
 
+    // A scale the layout gave it, not changed: not written
+    auto laidOut = onScreen({324.5f, 295});
+    laidOut.layout = {LayoutKind::SimpleAxis, "SimpleRowLayout", false, std::nullopt, std::nullopt};
+    laidOut.scaleX = laidOut.scaleY = 0.23f;
+    CHECK(!has(generate(laidOut), "setScale"));
+
     node.layout = {LayoutKind::Other, "GridLayout", false, std::nullopt};
     CHECK(has(layoutWarning(node), "GridLayout"));
     CHECK(has(generate(node), "node->setPosition"));

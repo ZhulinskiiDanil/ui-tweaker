@@ -2,6 +2,7 @@
 
 #include "Ui.hpp"
 #include "core/Expr.hpp"
+#include "core/Hooks.hpp"
 
 #include <Geode/binding/CCScrollLayerExt.hpp>
 #include <Geode/ui/NineSlice.hpp>
@@ -439,6 +440,23 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   // A class from another mod, in a namespace or a template can't be named in the code: the child's index instead
   desc.byIndex = desc.className.find_first_of(":`<> ") != std::string::npos;
   desc.typeIndex = childIndex(node, desc.byIndex);
+
+  // The hook the code goes in: the closest parent that's a layer with a known hook, else the top one under the
+  // scene (a popup, a layer of a mod)
+  CCNode* top = nullptr;
+  for (auto up = node->getParent(); up; up = up->getParent())
+  {
+    auto name = className(up);
+    if (hooks::find(name))
+    {
+      desc.layer = name;
+      break;
+    }
+    if (up->getParent() && typeinfo_cast<CCScene*>(up->getParent()))
+      top = up;
+  }
+  if (desc.layer.empty() && top)
+    desc.layer = className(top);
 
   auto state = stateOf(node);
   desc.position = {state.position.x, state.position.y};

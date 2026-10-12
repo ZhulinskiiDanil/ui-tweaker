@@ -1,5 +1,7 @@
 # v0.6.0
 
+- "Copy all" is ready-made hooks: grouped by the layer whose hook the code goes in (`MenuLayer`, `PlayLayer`, `EditorUI`, `PauseLayer` and 13 more), each a `$modify` with the right `init` or `customSetup`; compiled in the tests
+- A scale an axis layout gave a node isn't written unless it was changed
 - Resize handles on the selected node's box, as in Figma: its content size, the opposite side staying in place
 - The tree, the code view, the other screens, the help and a panel put somewhere by hand are as they were left, also after a restart
 - The content size can be typed too (`Enter`, the fourth and fifth fields): a menu with a layout lays its children out in it; the code has `setContentSize` and `updateLayout()`

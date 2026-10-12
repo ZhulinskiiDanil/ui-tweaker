@@ -159,8 +159,35 @@ void checkSample(int index)
 
 #include "samples.inc"
 
+#include "hooks.inc"
+
+// The hooks called as the game would, through the base class
+void runHooks()
+{
+  {
+    Hooked_MenuLayer layer;
+    buildScene(layer);
+    CHECK(static_cast<MenuLayer&>(layer).init());
+    checkSample(0);
+    checkSample(1);
+  }
+  {
+    Hooked_PauseLayer layer;
+    buildScene(layer);
+    static_cast<PauseLayer&>(layer).customSetup();
+    checkSample(2);
+  }
+  {
+    Hooked_LevelSelectLayer layer;
+    buildScene(layer);
+    CHECK(static_cast<LevelSelectLayer&>(layer).init(3));
+    checkSample(4);
+  }
+}
+
 int main()
 {
   runSamples();
+  runHooks();
   return finish("compiled code");
 }
