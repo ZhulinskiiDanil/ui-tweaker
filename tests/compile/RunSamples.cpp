@@ -96,7 +96,9 @@ CCNode* nodeOf(int index)
 
 void checkSample(int index)
 {
-  auto const& desc = samples()[index];
+  // A copy: samples() makes a new vector, a reference into it would dangle
+  auto const all = samples();
+  auto const& desc = all[index];
   auto node = g_nodes[index];
   auto layout = desc.layout.kind;
   std::printf("sample %d: (%.2f, %.2f) scale %.2f x %.2f\n", index, node->position.x, node->position.y, node->scaleX,
