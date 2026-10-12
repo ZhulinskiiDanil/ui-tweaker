@@ -21,3 +21,6 @@ add_test(NAME history COMMAND history-tests)
 
 add_executable(text-tests TextTests.cpp ../src/core/Text.cpp)
 add_test(NAME text COMMAND text-tests)
+
+add_executable(snap-tests SnapTests.cpp ../src/core/Snap.cpp)
+add_test(NAME snap COMMAND snap-tests)

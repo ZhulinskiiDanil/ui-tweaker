@@ -4,6 +4,7 @@
 #include "Retained.hpp"
 #include "core/Codegen.hpp"
 #include "core/History.hpp"
+#include "core/Snap.hpp"
 #include "core/Text.hpp"
 
 #include <Geode/ui/Notification.hpp>
@@ -34,6 +35,8 @@ namespace
   // Steps of one kind on one node this close together are one step to undo
   constexpr double WHEEL_MERGE = 0.6;
   constexpr double NUDGE_MERGE = 1.0;
+  // How close an edge or a center gets before it snaps, in points
+  constexpr float SNAP_DISTANCE = 3.f;
 
   constexpr float FONT_SCALE = 0.42f;
   constexpr float MARGIN = 4.f;
@@ -45,6 +48,7 @@ namespace
   ccColor4F const HOVER_FILL = {0.35f * 0.07f, 0.8f * 0.07f, 0.07f, 0.07f};
   ccColor4F const SELECTED = {1.f, 0.6f, 0.15f, 1.f};
   ccColor4F const SELECTED_FILL = {0.1f, 0.06f, 0.015f, 0.1f};
+  ccColor4F const GUIDE = {1.f, 0.3f, 0.75f, 1.f};
   ccColor3B const GOLD = {255, 210, 90};
   ccColor3B const GREY = {170, 170, 185};
 
@@ -73,6 +77,10 @@ namespace
     CCPoint panelGrab;
 
     std::optional<CCPoint> pinned;
+    // What a drag snaps to, gathered when it starts, and the lines it's on now
+    std::vector<snap::Guide> guides;
+    std::vector<snap::Guide> snapLines;
+    std::optional<bool> snapOverride;
     // Tab goes through what's under the mouse, deeper each time
     size_t cycle = 0;
     CCPoint cyclePoint;
@@ -187,6 +195,28 @@ namespace
       if (bind.key == data.key && bind.modifiers == data.modifiers)
         return true;
     return false;
+  }
+
+  // The screen's edges and center, the parent's, and the siblings': what a drag of the node snaps to
+  std::vector<snap::Guide> guidesFor(CCNode* node)
+  {
+    std::vector<snap::Guide> guides;
+    auto win = CCDirector::get()->getWinSize();
+    snap::addBox(guides, {0, 0, win.width, win.height});
+    auto parent = node->getParent();
+    if (!parent)
+      return guides;
+    auto size = parent->getContentSize();
+    if (size.width > 0 && size.height > 0 && parent != runningScene())
+      snap::addBox(guides, inspect::worldQuad(parent).bounds());
+    for (auto sibling : CCArrayExt<CCNode*>(parent->getChildren()))
+    {
+      auto box = sibling->getContentSize();
+      if (sibling == node || !sibling->isVisible() || box.width <= 0 || box.height <= 0)
+        continue;
+      snap::addBox(guides, inspect::worldQuad(sibling).bounds());
+    }
+    return guides;
   }
 
   // ! --- Overlay --- !
@@ -481,6 +511,12 @@ namespace
         if (auto parent = selected->getParent())
           m_draw->drawDot(convertToNodeSpace(parent->convertToWorldSpace(selected->getPosition())), 1.6f, SELECTED);
       }
+      for (auto const& line : state().snapLines)
+      {
+        auto from = line.vertical ? CCPoint{line.at, line.from} : CCPoint{line.from, line.at};
+        auto to = line.vertical ? CCPoint{line.at, line.to} : CCPoint{line.to, line.at};
+        m_draw->drawSegment(convertToNodeSpace(from), convertToNodeSpace(to), 0.4f, GUIDE);
+      }
       showTag(hover ? hover : selected);
       showPanel(selected);
     }
@@ -714,6 +750,7 @@ void editor::grab(CCNode* node, CCPoint world)
     s.pressPoint = world;
     s.dragStart = inspect::stateOf(node);
     s.parentToWorld = inspect::toGeom(node->getParent()->nodeToWorldTransform());
+    s.guides = guidesFor(node);
   }
 }
 
@@ -727,12 +764,32 @@ void editor::dragTo(CCPoint world)
     return;
   s.dragging = true;
   auto local = geom::localDelta(s.parentToWorld, {delta.x, delta.y});
-  s.selected->setPosition(s.dragStart.position + ccp(local.x, local.y));
+  auto position = s.dragStart.position + ccp(local.x, local.y);
+  s.selected->setPosition(position);
+
+  // Ctrl held: no snapping, as in Figma
+  s.snapLines.clear();
+  bool snapping = s.snapOverride.value_or(Mod::get()->getSettingValue<bool>("snap"));
+  if (!snapping || (!s.snapOverride && CCKeyboardDispatcher::get()->getControlKeyPressed()))
+    return;
+  auto bounds = inspect::worldQuad(s.selected.get()).bounds();
+  auto result = snap::snap(bounds, s.guides, SNAP_DISTANCE);
+  if (result.correction.x == 0 && result.correction.y == 0)
+    return;
+  auto fix = geom::localDelta(s.parentToWorld, result.correction);
+  s.selected->setPosition(position + ccp(fix.x, fix.y));
+  s.snapLines = std::move(result.lines);
+}
+
+void editor::setSnapping(std::optional<bool> on)
+{
+  state().snapOverride = on;
 }
 
 void editor::release()
 {
   auto& s = state();
+  s.snapLines.clear();
   if (s.dragging && s.selected)
     record(s.selected.get(), s.dragStart, Drag, 0);
   s.pressed = false;

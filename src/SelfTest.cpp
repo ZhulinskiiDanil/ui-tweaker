@@ -191,10 +191,46 @@ namespace
     check(problem.empty(), fmt::format("the code for {} puts it where it is: {}", name, problem));
   }
 
+  // A drag that ends with the node's center a point off the screen's middle ends right on it; without snapping
+  // it doesn't. One step to undo either way
+  void snapping(CCNode* node)
+  {
+    auto name = inspect::name(node);
+    auto before = inspect::stateOf(node);
+    auto win = CCDirector::get()->getWinSize();
+    for (bool on : {true, false})
+    {
+      editor::setSnapping(on);
+      auto bounds = inspect::worldQuad(node).bounds();
+      CCPoint from{bounds.midX(), bounds.midY()};
+      // Halfway up the screen too, so it snaps on both axes
+      CCPoint to{win.width / 2 + 1, win.height / 2 - 1};
+      editor::pinMouse(from);
+      editor::grab(node, from);
+      for (int step = 1; step <= 4; step++)
+        editor::dragTo(from + (to - from) * (step / 4.f));
+      editor::release();
+      auto after = inspect::worldQuad(node).bounds();
+      if (on)
+        check(close(after.midX(), win.width / 2) && close(after.midY(), win.height / 2),
+              fmt::format("{} snapped to the middle of the screen: its center at ({}, {})", name, after.midX(),
+                          after.midY()));
+      else
+        check(close(after.midX(), win.width / 2 + 1, 0.05f) && close(after.midY(), win.height / 2 - 1, 0.05f),
+              fmt::format("{} didn't snap with snapping off: its center at ({}, {})", name, after.midX(),
+                          after.midY()));
+      check(editor::undo(), "the snapped drag is one step to undo");
+      check(inspect::stateOf(node) == before, fmt::format("undo put {} back after the snapped drag", name));
+    }
+    editor::setSnapping(std::nullopt);
+  }
+
   void run(MenuLayer* layer)
   {
     log::info("Self test: start");
     editor::setActive(true);
+    // The plain drags are checked to the point: no snapping in them
+    editor::setSnapping(false);
     check(editor::active(), "the edit mode is on");
     check(editor::swallowsClick(), "a click in the edit mode is kept from the game");
 
@@ -253,11 +289,14 @@ namespace
       check(inspect::stateOf(item.node.get()) == item.before,
             fmt::format("undo after redo put {} back", inspect::name(item.node.get())));
 
-    // For the screenshot: the first visible one selected, the mouse over the next visible one
     std::vector<CCNode*> shown;
     for (auto& item : cases)
       if (visibleInTree(item.node.get()))
         shown.push_back(item.node.get());
+    if (!shown.empty())
+      snapping(shown[0]);
+
+    // For the screenshot: the first visible one selected, the mouse over the next visible one
     if (!shown.empty())
       editor::select(shown[0]);
     if (shown.size() > 1)

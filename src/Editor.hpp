@@ -22,6 +22,8 @@ namespace editor
   void grab(cocos2d::CCNode* node, cocos2d::CCPoint world);
   // Drags the pressed node to follow the point
   void dragTo(cocos2d::CCPoint world);
+  // Snapping on or off whatever the setting and Ctrl say; nullopt: as they say
+  void setSnapping(std::optional<bool> on);
   // Ends the drag, one step in the history if the node moved
   void release();
   // Scales the selected node: up for positive notches. `fine` is a hundredth a notch

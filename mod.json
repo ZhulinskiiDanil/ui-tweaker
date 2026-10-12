@@ -29,6 +29,12 @@
 			"type": "keybind",
 			"default": "F8",
 			"category": "universal"
+		},
+		"snap": {
+			"name": "Snapping",
+			"description": "A dragged node snaps its edges and its center to the screen's, its parent's and its siblings' within 3 points, with the guides drawn. Hold <cy>Ctrl</c> to drag without it",
+			"type": "bool",
+			"default": true
 		}
 	}
 }
