@@ -149,6 +149,9 @@ public:
   void setScaleY(float value) { scaleY = value; }
   void setAnchorPoint(CCPoint const& value) { anchor = value; }
   void setZOrder(int value) { zOrder = value; }
+  void setContentSize(CCSize const& value) { size = value; }
+  void updateLayout() { layoutUpdates++; }
+  int layoutUpdates = 0;
   LayoutOptions* getLayoutOptions() { return options; }
   void setLayoutOptions(LayoutOptions* value, bool = true)
   {

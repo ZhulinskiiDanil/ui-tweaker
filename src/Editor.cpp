@@ -747,11 +747,11 @@ namespace
       if (node && s.typing)
       {
         auto const& w = ui::words();
-        static char const* const names[] = {"x", "y", nullptr};
+        std::string const names[] = {"x", "y", w.scaleField, w.widthField, w.heightField};
         std::string line;
         for (size_t i = 0; i < s.typing->values().size(); i++)
         {
-          auto name = names[i] ? std::string(names[i]) : w.scaleField;
+          auto name = i < 5 ? names[i] : std::string();
           bool current = i == s.typing->current();
           line += name + (current ? " [" : " ") + s.typing->values()[i] + (current ? "_]" : "") + "   ";
         }
@@ -1451,11 +1451,12 @@ void editor::startTyping()
   if (!s.selected || s.pressed || s.dragging)
     return;
   auto info = inspect::stateOf(s.selected.get());
-  s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX)});
+  s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX),
+                             number(info.size.width), number(info.size.height)});
   // What the fields start as, and the exact values behind them: a field left as it was keeps its exact value,
   // not the rounded one it shows
   s.typingStart = s.typing->values();
-  s.typingExact = {info.position.x, info.position.y, info.scaleX};
+  s.typingExact = {info.position.x, info.position.y, info.scaleX, info.size.width, info.size.height};
   s.typingError.clear();
 }
 
@@ -1501,7 +1502,7 @@ void editor::typingKey(int key, bool shift)
         values[i] = s.typingExact[i];
       // A number too big to be one, or a scale the node would vanish at and the wheel couldn't bring back
       bool bad = !values[i] || !std::isfinite(*values[i]) || std::fabs(*values[i]) > 1e6f ||
-                 (i == 2 && std::fabs(*values[2]) < 0.01f);
+                 (i == 2 && std::fabs(*values[2]) < 0.01f) || (i >= 3 && *values[i] < 0);
       if (bad)
       {
         s.typingError = s.typing->values()[i];
@@ -1515,6 +1516,7 @@ void editor::typingKey(int key, bool shift)
     float ratio = before.scaleX != 0 ? before.scaleY / before.scaleX : 1;
     after.scaleX = *values[2];
     after.scaleY = *values[2] * ratio;
+    after.size = CCSize(*values[3], *values[4]);
     inspect::apply(node, after);
     record(node, before, Typed, 0);
     s.typing.reset();

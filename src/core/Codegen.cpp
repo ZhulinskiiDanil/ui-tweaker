@@ -128,6 +128,13 @@ namespace
           << "});\n";
     if (node.zOrderChanged)
       out << indent << "node->setZOrder(" << node.zOrder << ");\n";
+    if (node.sizeChanged)
+    {
+      out << indent << "node->setContentSize({" << expr::number(node.size.width) << ", " << expr::number(node.size.height)
+          << "});\n";
+      if (node.hasLayout)
+        out << indent << "node->updateLayout();\n";
+    }
     result.lines = out.str();
     return result;
   }

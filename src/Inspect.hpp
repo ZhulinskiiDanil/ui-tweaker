@@ -21,6 +21,7 @@ namespace inspect
     float scaleY = 1;
     cocos2d::CCPoint anchor;
     int zOrder = 0;
+    cocos2d::CCSize size;
 
     bool operator==(NodeState const& other) const;
   };

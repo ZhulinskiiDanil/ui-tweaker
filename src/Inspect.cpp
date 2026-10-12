@@ -176,12 +176,13 @@ bool inspect::NodeState::operator==(NodeState const& other) const
 {
   return position.x == other.position.x && position.y == other.position.y && scaleX == other.scaleX &&
          scaleY == other.scaleY && anchor.x == other.anchor.x && anchor.y == other.anchor.y &&
-         zOrder == other.zOrder;
+         zOrder == other.zOrder && size.width == other.size.width && size.height == other.size.height;
 }
 
 inspect::NodeState inspect::stateOf(CCNode* node)
 {
-  return {node->getPosition(), node->getScaleX(), node->getScaleY(), node->getAnchorPoint(), node->getZOrder()};
+  return {node->getPosition(), node->getScaleX(), node->getScaleY(), node->getAnchorPoint(), node->getZOrder(),
+          node->getContentSize()};
 }
 
 void inspect::apply(CCNode* node, NodeState const& state)
@@ -196,6 +197,13 @@ void inspect::apply(CCNode* node, NodeState const& state)
     node->setAnchorPoint(state.anchor);
   if (node->getZOrder() != state.zOrder)
     node->setZOrder(state.zOrder);
+  if (node->getContentSize() != state.size)
+  {
+    node->setContentSize(state.size);
+    // A menu with a layout lays its children out in its new size
+    if (node->getLayout())
+      node->updateLayout();
+  }
 }
 
 std::string inspect::className(CCObject const* object)
@@ -438,6 +446,8 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   desc.scaleY = state.scaleY;
   desc.anchor = {state.anchor.x, state.anchor.y};
   desc.zOrder = state.zOrder;
+  desc.size = {state.size.width, state.size.height};
+  desc.hasLayout = node->getLayout() != nullptr;
 
   desc.layout = layoutOf(node);
   desc.frame = frameOf(node, desc.layout);
@@ -447,6 +457,7 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
     desc.scaleChanged = original->scaleX != state.scaleX || original->scaleY != state.scaleY;
     desc.anchorChanged = original->anchor != state.anchor;
     desc.zOrderChanged = original->zOrder != state.zOrder;
+    desc.sizeChanged = original->size != state.size;
   }
   return desc;
 }

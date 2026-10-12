@@ -74,6 +74,11 @@ inline std::vector<codegen::NodeDesc> samples()
   add("", "CCSprite", "", {33.25f, 12.5f}, screen);
   // 10: an ID with a quote and a backslash in it
   add("say \"hi\" \\o/", "CCSprite", "p10", {5, 5}, screen);
+  // 11: a menu made bigger, with a layout of its own
+  auto eleven = add("s11", "CCNode", "p11", {100, 160}, screen);
+  eleven->size = {240, 40};
+  eleven->sizeChanged = true;
+  eleven->hasLayout = true;
   return all;
 }
 

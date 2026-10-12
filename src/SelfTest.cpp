@@ -315,6 +315,19 @@ namespace
 
     check(editor::undo(), "the typed values are a step to undo");
     check(inspect::stateOf(node) == before, fmt::format("undo put {} back after the typed values", name));
+
+    // The content size, the fourth and fifth fields: 120 x 40
+    editor::startTyping();
+    for (auto [key, shift] : std::vector<std::pair<int, bool>>{{KEY_Tab, false}, {KEY_Tab, false}, {KEY_Tab, false},
+                                                               {'1', false}, {'2', false}, {'0', false}, {KEY_Tab, false},
+                                                               {'4', false}, {'0', false}, {KEY_Enter, false}})
+      editor::typingKey(key, shift);
+    auto size = node->getContentSize();
+    check(close(size.width, 120) && close(size.height, 40),
+          fmt::format("typed 120 x 40 made {} {} x {}", name, size.width, size.height));
+    check(editor::codeFor(node).find("node->setContentSize({120.f, 40.f});") != std::string::npos,
+          "the code sets the content size");
+    check(editor::undo() && inspect::stateOf(node) == before, "undo put the content size back");
   }
 
   // Shift+click: two nodes dragged, nudged and scaled together; each is one step to undo

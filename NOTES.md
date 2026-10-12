@@ -120,6 +120,13 @@
   headers) and run on fake nodes, positions/scales/anchors/z/layout options compared. Found a dangling reference
   in the test itself that only MSVC showed (CI is GCC + MSVC).
 
+- 18:04 own: `Shift`+click selects several nodes (group steps in the history, one Ctrl+Z); real input 8/8.
+- 18:09 v0.5.0 released (pre-release).
+- 18:17 own: the content size in the typed values; `setContentSize` (+ `updateLayout()` for a node with a layout)
+  in the code, compiled and run in the tests. One check run found the game frozen while Geode loaded the mods,
+  before UI Tweaker (40 lines of log, no crash log); the next three starts were fine. Not this mod's (it hadn't
+  loaded yet), noted in case it comes back.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |

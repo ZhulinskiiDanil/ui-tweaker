@@ -75,6 +75,9 @@ namespace codegen
     float scaleY = 1;
     geom::Vec2 anchor;
     int zOrder = 0;
+    geom::Size size;
+    // The node lays out its own children: a new size needs updateLayout()
+    bool hasLayout = false;
 
     Frame frame;
     LayoutInfo layout;
@@ -83,6 +86,7 @@ namespace codegen
     bool scaleChanged = false;
     bool anchorChanged = false;
     bool zOrderChanged = false;
+    bool sizeChanged = false;
   };
 
   struct Position

@@ -17,7 +17,7 @@ namespace
             &w.offScreen, &w.selectFirst, &w.nothingEdited, &w.copiedFor, &w.copiedNodes, &w.treeTitle,
             &w.searchHint, &w.search, &w.anchorLayout, &w.axisLayout, &w.simpleAxisLayout, &w.otherLayout,
             &w.layoutMoves, &w.action, &w.actions, &w.hidden, &w.itself, &w.transparent, &w.zeroScale, &w.zeroSize,
-            &w.ignoresAnchor, &w.clipped, &w.parentTurned, &w.outsideScreen, &w.tag, &w.scaleField, &w.typingHint,
+            &w.ignoresAnchor, &w.clipped, &w.parentTurned, &w.outsideScreen, &w.tag, &w.scaleField, &w.widthField, &w.heightField, &w.typingHint,
             &w.typingError, &w.selectedCount};
   }
 } // namespace

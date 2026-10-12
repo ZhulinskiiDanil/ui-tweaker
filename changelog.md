@@ -1,3 +1,7 @@
+# v0.6.0
+
+- The content size can be typed too (`Enter`, the fourth and fifth fields): a menu with a layout lays its children out in it; the code has `setContentSize` and `updateLayout()`
+
 # v0.5.0
 
 - `Shift`+click selects several nodes: dragged, nudged and scaled together, one step to undo, their code copied together

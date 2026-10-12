@@ -25,7 +25,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | Drag | Moves it. A turned, scaled or flipped parent is taken into account: the node follows the mouse. Its edges and center snap to the screen's, the parent's and the siblings' within 3 points, with the guides drawn (`Ctrl`: no snapping; a setting) |
 | Wheel | Scales it by 10% a notch, `Shift`: by 0.01 |
 | Arrows | Moves it by 1 in its parent, `Shift`: by 10 |
-| `Enter` | Types exact values: x, y and the scale, `Tab` to the next, `Enter` to apply (one step to undo), `Esc` to cancel. Numbers or expressions: `w / 2 + 40`, `h - 25` (`w`, `h`: the screen; `pw`, `ph`: the parent) |
+| `Enter` | Types exact values: x, y, the scale, the width and the height (the content size; a node with a layout of its own lays its children out in it), `Tab` to the next, `Enter` to apply (one step to undo), `Esc` to cancel. Numbers or expressions: `w / 2 + 40`, `h - 25` (`w`, `h`: the screen; `pw`, `ph`: the parent) |
 | `Ctrl`+arrows | Moves its anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen (the position changes with it) |
 | `[`, `]` | The z-order down, up (in an axis layout that's the order) |
 | `Ctrl+Z`, `Ctrl+Y` | Undo, redo. A turn of the wheel or a run of arrow presses is one step |
@@ -64,7 +64,7 @@ if (auto node = this->getChildByIDRecursive("geode.loader/geode-button"))
 - **Found by its ID** (Geode node IDs). Without one, through its parent's ID and `getChildByType`; without that either, the lines are for wherever you make the node
 - **Relative to the closest edge or the center**, on each axis: of the screen when the parent is screen-sized and not scaled or turned (a layer, a menu as made), of the parent's content box otherwise (`parentSize.width - 10.f`). On a wider or narrower screen the node stays by the same edge
 - **Layouts**: if the parent has one, the panel says what `updateLayout()` will do to the node. For an `AnchorLayout` the code is the anchor and the offset (`AnchorLayoutOptions`; a node that has them keeps its anchor, only the offset changes), for an `AxisLayout` (`RowLayout`, `ColumnLayout`) the gap before the node and `setAutoScale(false)` if it was scaled, for a `SimpleAxisLayout` an `AxisGap`; the position itself is then a comment
-- Only what changed: the scale, the anchor point and the z-order are written if they differ from before the edits (the scale also when it isn't 1). The z-order is written for nodes in a layout too: there it's their order
+- Only what changed: the scale, the anchor point, the z-order and the content size (with `updateLayout()` for a node with a layout) are written if they differ from before the edits (the scale also when it isn't 1). The z-order is written for nodes in a layout too: there it's their order
 
 ## Self test
 

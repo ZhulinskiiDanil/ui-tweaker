@@ -65,6 +65,8 @@ namespace words
     std::string tag;
     // Typing values: the scale's field, the keys, a value that can't be read ({})
     std::string scaleField;
+    std::string widthField;
+    std::string heightField;
     std::string typingHint;
     std::string typingError;
     // How many nodes are selected, with Shift+click
