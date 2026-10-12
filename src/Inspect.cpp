@@ -59,11 +59,20 @@ namespace
     return children;
   }
 
+  // A batch node with this many children holds a level's objects or particles, not interface: not looked into
+  constexpr unsigned BIG_BATCH = 100;
+
   // Every visible node in the order it's drawn
   void drawOrder(CCNode* node, std::vector<CCNode*>& out)
   {
     if (!node->isVisible())
       return;
+    if (typeinfo_cast<CCSpriteBatchNode*>(node) && !typeinfo_cast<CCLabelBMFont*>(node) &&
+        node->getChildrenCount() > BIG_BATCH)
+    {
+      out.push_back(node);
+      return;
+    }
     auto children = sortedChildren(node);
     size_t i = 0;
     for (; i < children.size() && children[i]->getZOrder() < 0; i++)

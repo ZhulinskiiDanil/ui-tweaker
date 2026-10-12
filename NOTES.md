@@ -93,6 +93,19 @@
 - 17:07 real input 6/6 again. The real drag now targets the title: after the self test's scene changes, MiSide's
   layout guard puts the Geode button back every frame, so its drag left no step (which is what the panel warns).
 
+- 17:13 v0.3.0 released (pre-release), after the stage 1 check on it.
+- 17:14 own: the self test in a crowd (5000 more sprites: hover 2.4 ms, tree < 1 ms a frame) and in a level
+  (`UI_TWEAKER_SELFTEST=play`: the percentage label, through another mod's node over it).
+- 17:16 own: the banner was 3 lines over the top of the screen, where a level's percentage is: 1 line, F1 for all.
+- 17:21 own: `Enter` types exact values (x, y, scale; expressions `w/2+40`, `h-25`, `pw`, `ph`), self test and real
+  keys.
+- 17:24 own: a Geode Popup in the self test, the generated AnchorLayoutOptions put on its button and the layout
+  updated: it stays. That found the code switching the button's anchor (BottomRight to Center): a node's own anchor
+  is kept now.
+- 17:27 own: "Copy all" keeps the edits of the scenes left (by layer) and writes `export.cpp` to the save folder.
+- 17:30 own: the level editor in the self test (`UI_TWEAKER_SELFTEST=editor`): build-button in a RowLayout edited,
+  the hover 0.43 ms with 3000 objects since big batch nodes aren't looked into.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
@@ -100,6 +113,7 @@
 | 16:08 | 5/5 | ok | PASS, 39 checks | box + tag + panel at the Geode button |
 | 16:32 (v0.2.0) | 9/9 | ok | PASS, 48 checks; real input 6/6 | tree search, other screens, box + tag |
 | 17:07 (v0.3.0) | 11/11 | ok | PASS, 68 checks; real input 6/6 | Russian panel, distances, GIF frames |
+| 17:33 (v0.4.0) | 12/12 | ok | PASS 91 (menu), 102 (+level), 102 (+editor); real input 7/7 | level, editor, typing |
 
 ## Not done / known
 

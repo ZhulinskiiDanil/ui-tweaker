@@ -106,7 +106,11 @@ namespace
             << expr::number(*node.layout.prevGap) << "), node);\n";
       }
       // The position itself, for a node taken out of the layout
-      out << indent << "// Without the layout: node->setPosition({" << x << ", " << y << "});\n";
+      if (usesExtent && !screen)
+        out << indent << "// Without the layout: auto parentSize = node->getParent()->getContentSize();\n"
+            << indent << "// node->setPosition({" << x << ", " << y << "});\n";
+      else
+        out << indent << "// Without the layout: node->setPosition({" << x << ", " << y << "});\n";
       // The anchor and the z-order below still count: the z-order is the order in the layout
     }
     else

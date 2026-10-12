@@ -4,7 +4,9 @@
 - "Copy all" keeps the edits of the scenes left, each under its layer's name, and also writes them to `export.cpp` in the mod's save folder
 - A node with AnchorLayoutOptions keeps its anchor in the code, only the offset changes (it was the closest anchor, which could be another one than the mod developer chose)
 - The banner is one line at the top, `F1` shows every key
-- The self test also edits a button in a Geode Popup and puts the generated AnchorLayoutOptions on it: after updateLayout() it stays where it was dragged; it also types values, goes into a level with `UI_TWEAKER_SELFTEST=play`, and measures the hover and the tree among 5000 more nodes
+- A level's objects (big batch nodes) aren't looked through for the hover: 0.4 ms in the editor with 3000 objects
+- The commented position for a node in an axis layout says where parentSize comes from
+- The self test also edits a button in a Geode Popup and puts the generated AnchorLayoutOptions on it: after updateLayout() it stays where it was dragged; it also types values, goes into a level with `UI_TWEAKER_SELFTEST=play` and into the level editor with `editor`, and measures the hover and the tree among 5000 more nodes
 
 # v0.3.0
 

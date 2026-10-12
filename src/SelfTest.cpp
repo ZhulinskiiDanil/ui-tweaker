@@ -9,7 +9,10 @@
 #include <Geode/ui/Popup.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/binding/CreatorLayer.hpp>
+#include <Geode/binding/EditorUI.hpp>
+#include <Geode/binding/GJGameLevel.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
+#include <Geode/binding/LevelEditorLayer.hpp>
 #include <Geode/binding/MenuLayer.hpp>
 #include <Geode/binding/PlayLayer.hpp>
 
@@ -555,6 +558,66 @@ namespace
                        }});
   }
 
+  // The level editor with a new level and 3000 objects: a button of its interface edited, and what the hover
+  // costs there
+  void openEditor()
+  {
+    g_steps.push_back({180,
+                       []
+                       {
+                         CCDirector::get()->replaceScene(LevelEditorLayer::scene(GJGameLevel::create(), false));
+                       }});
+    g_steps.push_back({30,
+                       []
+                       {
+                         auto scene = CCDirector::get()->getRunningScene();
+                         auto editor = scene ? scene->getChildByType<LevelEditorLayer>(0) : nullptr;
+                         check(editor != nullptr, "the level editor is open");
+                         if (!editor)
+                           return;
+                         for (int i = 0; i < 3000; i++)
+                           editor->createObject(1, {static_cast<float>(i % 60) * 30 + 15, static_cast<float>(i / 60) * 30 + 105}, true);
+                         auto win = CCDirector::get()->getWinSize();
+                         auto start = now();
+                         for (int i = 0; i < 10; i++)
+                           inspect::hitsAt(scene, {win.width / 2, win.height / 2});
+                         auto millis = (now() - start) * 100;
+                         log::info("Self test: the hover in the editor with 3000 objects: {:.2f} ms", millis);
+                         check(millis < 10, fmt::format("the hover in the editor takes {:.2f} ms", millis));
+
+                         // A button of the editor's interface, with an ID, the mouse can get to
+                         CCNode* button = nullptr;
+                         std::vector<CCNode*> queue{editor->m_editorUI};
+                         for (size_t i = 0; i < queue.size() && !button; i++)
+                         {
+                           auto node = queue[i];
+                           if (typeinfo_cast<CCMenuItemSpriteExtra*>(node) && !node->getID().empty() &&
+                               visibleInTree(node) && reachable(node))
+                             button = node;
+                           for (auto child : CCArrayExt<CCNode*>(node->getChildren()))
+                             queue.push_back(child);
+                         }
+                         check(button != nullptr, "a button of the editor's interface is there");
+                         if (!button)
+                           return;
+                         Case item{Retained<CCNode>(button), {}, {}};
+                         edit(item);
+                         while (editor::undo())
+                         {
+                         }
+                         check(inspect::stateOf(button) == item.before, "undo put the editor's button back");
+                         editor::select(button);
+                         editor::pinMouse(std::nullopt);
+                         editor::setMeasuring(std::nullopt);
+                       }});
+    g_steps.push_back({1,
+                       []
+                       {
+                         g_frames = 0;
+                         finish(false);
+                       }});
+  }
+
   // A node removed while it's selected, hovered, in the history and in the tree; then the scene replaced while
   // a node is selected, an edit in the new scene, and back to the main menu
   void edgeCases()
@@ -753,6 +816,11 @@ namespace
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "play")
            {
              playLevel();
+             return;
+           }
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "editor")
+           {
+             openEditor();
              return;
            }
            auto measurable = prepareScreenshot();
