@@ -106,6 +106,13 @@ namespace
     bool aspectPreview = false;
     // Enter: values being typed for the selected node, and the one that couldn't be read
     std::optional<fields::Fields> typing;
+
+    // The code of every edited node, kept up to date while its scene runs: the scene's nodes can't be described
+    // once it's gone. Keyed by node, compared only
+    std::vector<std::pair<CCNode*, codegen::NodeDesc>> live;
+    std::string liveLayer;
+    // Edits of scenes left, by the layer they were in, for "Copy all"
+    std::vector<std::pair<std::string, std::vector<codegen::NodeDesc>>> earlier;
     std::string typingError;
     // Alt held: the distances from the selected node to the hovered one
     std::optional<bool> measureOverride;
@@ -162,6 +169,35 @@ namespace
     return nullptr;
   }
 
+  // The scene's main layer: "MenuLayer"
+  std::string layerName(CCScene* scene)
+  {
+    if (!scene)
+      return "";
+    for (auto child : CCArrayExt<CCNode*>(scene->getChildren()))
+      if (typeinfo_cast<CCLayer*>(child))
+        return inspect::className(child);
+    return inspect::className(scene);
+  }
+
+  bool hasSteps(CCNode* node)
+  {
+    auto const& changes = state().history.changes();
+    return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
+  }
+
+  // The node's code kept for when its scene is gone
+  void snapshot(CCNode* node)
+  {
+    auto& s = state();
+    std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
+    if (hasSteps(node))
+    {
+      s.live.emplace_back(node, inspect::describe(node, originalOf(node)));
+      s.liveLayer = layerName(runningScene());
+    }
+  }
+
   void record(CCNode* node, NodeState const& before, Kind kind, double merge)
   {
     auto& s = state();
@@ -171,6 +207,7 @@ namespace
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now()}, merge);
+    snapshot(node);
     static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
@@ -184,6 +221,26 @@ namespace
     if (scene == s.scene)
       return;
     s.scene = scene;
+    // The edits of the scene left, kept by its layer: a node edited again there replaces its older code
+    if (!s.live.empty())
+    {
+      auto group = std::find_if(s.earlier.begin(), s.earlier.end(), [&](auto const& g) { return g.first == s.liveLayer; });
+      if (group == s.earlier.end())
+      {
+        s.earlier.emplace_back(s.liveLayer, std::vector<codegen::NodeDesc>{});
+        group = s.earlier.end() - 1;
+      }
+      for (auto const& [node, desc] : s.live)
+      {
+        // Undone since, or skipped by undo as removed
+        if (!hasSteps(node))
+          continue;
+        std::erase_if(group->second, [&](auto const& old)
+                      { return !desc.id.empty() && old.id == desc.id && old.parentId == desc.parentId; });
+        group->second.push_back(desc);
+      }
+      s.live.clear();
+    }
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
@@ -550,7 +607,7 @@ namespace
         title = ui::words().nothingSelected;
         body = ui::words().clickHint;
       }
-      auto edited = editor::editedNodes().size();
+      auto edited = editor::editedCount();
       if (node && s.typing)
       {
         auto const& w = ui::words();
@@ -1246,10 +1303,14 @@ bool editor::undo()
   while (auto change = s.history.undo())
   {
     auto node = change->target.get();
-    // Removed since: nothing to put back
+    // Removed since: nothing to put back, and no code to keep for it
     if (!inspect::isIn(node, runningScene()))
+    {
+      std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
       continue;
+    }
     inspect::apply(node, change->before);
+    snapshot(node);
     select(node);
     log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
               number(change->before.position.x), number(change->before.position.y), number(change->before.scaleX),
@@ -1269,6 +1330,7 @@ bool editor::redo()
     if (!inspect::isIn(node, runningScene()))
       continue;
     inspect::apply(node, change->after);
+    snapshot(node);
     select(node);
     log::info("Redid a step of {}", inspect::name(node));
     return true;
@@ -1336,10 +1398,28 @@ std::vector<CCNode*> editor::editedNodes()
 
 std::string editor::codeForAll()
 {
+  auto& s = state();
   std::vector<codegen::NodeDesc> nodes;
   for (auto node : editedNodes())
     nodes.push_back(inspect::describe(node, originalOf(node)));
-  return codegen::generateAll(nodes);
+  if (s.earlier.empty())
+    return codegen::generateAll(nodes);
+
+  // Scenes left first, each under its layer's name, then this one
+  std::string code;
+  for (auto const& [layer, descs] : s.earlier)
+    code += "// ! --- In " + layer + " --- !\n\n" + codegen::generateAll(descs) + "\n";
+  if (!nodes.empty())
+    code += "// ! --- In " + layerName(runningScene()) + " --- !\n\n" + codegen::generateAll(nodes);
+  return code;
+}
+
+size_t editor::editedCount()
+{
+  size_t count = editedNodes().size();
+  for (auto const& [layer, descs] : state().earlier)
+    count += descs.size();
+  return count;
 }
 
 void editor::copySelected()
@@ -1360,18 +1440,21 @@ void editor::copySelected()
 
 void editor::copyAll()
 {
-  auto nodes = editedNodes();
-  if (nodes.empty())
+  auto count = editedCount();
+  if (count == 0)
   {
     Notification::create(ui::words().nothingEdited, NotificationIcon::Warning, 1.5f)->show();
     return;
   }
   auto code = codeForAll();
   clipboard::write(code);
-  log::info("Code for {} edited nodes:\n{}", nodes.size(), code);
-  logger_link::mark(fmt::format("copied the code for {} nodes", nodes.size()));
-  Notification::create(text::format(ui::words().copiedNodes, {std::to_string(nodes.size())}), NotificationIcon::Success,
-                       1.5f)
+  // Also a file, for a long session's worth of edits
+  auto path = Mod::get()->getSaveDir() / "export.cpp";
+  auto written = file::writeString(path, code);
+  log::info("Code for {} edited nodes{}:\n{}", count,
+            written ? fmt::format(" (also in {})", path) : std::string(), code);
+  logger_link::mark(fmt::format("copied the code for {} nodes", count));
+  Notification::create(text::format(ui::words().copiedNodes, {std::to_string(count)}), NotificationIcon::Success, 1.5f)
       ->show();
 }
 

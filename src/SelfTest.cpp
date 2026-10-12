@@ -699,6 +699,17 @@ namespace
            editor::pinMouse(middle);
            log::info("Self test: a node removed while selected: no crash");
            auto button = CCDirector::get()->getRunningScene()->getChildByIDRecursive("geode.loader/geode-button");
+           // An edit to be kept when the scene goes
+           if (button)
+           {
+             auto center = inspect::worldQuad(button).center();
+             editor::setSnapping(false);
+             editor::grab(button, {center.x, center.y});
+             editor::dragTo(CCPoint{center.x, center.y} + ccp(-6, 4));
+             editor::release();
+             editor::setSnapping(std::nullopt);
+           }
+           check(editor::editedCount() == 1, "the Geode button is edited before the scene changes");
            editor::select(button);
            auto scene = CreatorLayer::scene();
            CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
@@ -730,6 +741,15 @@ namespace
          {
            check(editor::active(), "the edit mode is on after two scene changes");
            check(editor::historySize() == 0, "the history forgot the creator layer's nodes");
+           // The edits of both scenes left are kept for "Copy all", by layer
+           auto all = editor::codeForAll();
+           log::info("Self test: the code for all, after two scene changes:\n{}", all);
+           check(all.find("// ! --- In MenuLayer --- !") != std::string::npos &&
+                     all.find("geode.loader/geode-button") != std::string::npos,
+                 "the main menu's edit is kept after the scene changed");
+           check(all.find("// ! --- In CreatorLayer --- !") != std::string::npos,
+                 "the creator layer's edit is kept after the scene changed");
+           check(editor::editedCount() == 2, fmt::format("{} edits kept from the scenes left", editor::editedCount()));
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "play")
            {
              playLevel();

@@ -53,6 +53,8 @@ namespace editor
   // The code for every node edited in the running scene
   std::string codeForAll();
   std::vector<cocos2d::CCNode*> editedNodes();
+  // The edited nodes here and in the scenes left, which "Copy all" has
+  size_t editedCount();
   void copySelected();
   void copyAll();
 
