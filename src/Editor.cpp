@@ -474,6 +474,33 @@ namespace
 
     CCPoint panelTopLeft() const { return m_panelTopLeft; }
 
+    // Dragged by its title: where it is is the user's, it doesn't move out of the way any more
+    void panelMoved() { m_panelPlaced = true; }
+
+    // The panel over the selected node goes to the other side of the screen, unless it was put there by hand
+    void dodge(CCNode* selected)
+    {
+      if (m_panelPlaced || !selected || !m_panel->isVisible())
+        return;
+      auto box = m_panel->boundingBox();
+      auto bounds = inspect::worldQuad(selected).bounds();
+      auto low = convertToNodeSpace({bounds.minX(), bounds.minY()});
+      auto high = convertToNodeSpace({bounds.maxX(), bounds.maxY()});
+      CCRect node(low.x, low.y, high.x - low.x, high.y - low.y);
+      if (!box.intersectsRect(node))
+        return;
+      auto win = CCDirector::get()->getWinSize();
+      bool left = m_panelTopLeft.x < win.width / 2;
+      // The tree is at the right: then the panel goes down instead
+      CCPoint target = left && m_tree->isVisible()
+                           ? CCPoint{m_panelTopLeft.x, box.size.height + MARGIN}
+                           : CCPoint{left ? win.width - box.size.width - MARGIN : MARGIN, m_panelTopLeft.y};
+      // A node as big as the screen is under it anywhere: then it stays, rather than jump every frame
+      CCRect there(target.x, target.y - box.size.height, box.size.width, box.size.height);
+      if (!there.intersectsRect(node))
+        movePanel(target);
+    }
+
     void togglePanel() { m_panel->setVisible(!m_panel->isVisible()); }
 
     void toggleHelp()
@@ -500,6 +527,7 @@ namespace
     std::vector<UiLabel*> m_shapeLabels;
     std::vector<CCLayerColor*> m_measureTags;
     TreePanel* m_tree = nullptr;
+    bool m_panelPlaced = false;
     bool m_help = false;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
@@ -863,6 +891,7 @@ namespace
       else if (s.overlay && s.overlay->titleContains(mouse))
       {
         s.panelDragging = true;
+        s.overlay->panelMoved();
         s.panelGrab = mouse - s.overlay->panelTopLeft();
       }
       else if (!s.overlay || !s.overlay->panelContains(mouse))
@@ -1041,6 +1070,9 @@ namespace
     else
       m_tree->forget();
     redraw(hover.get(), s.selected.get());
+    // Not over the node being looked at, unless it's being dragged (the panel jumping under the mouse would be worse)
+    if (!s.dragging)
+      dodge(s.selected.get());
   }
 } // namespace
 
