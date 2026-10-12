@@ -177,3 +177,21 @@ geom::Vec2 geom::positionForAnchor(NodeTransform const& node, Vec2 anchor)
   };
   return node.position + offset(node.anchor) - offset(anchor);
 }
+
+geom::Resized geom::resize(NodeTransform const& node, Vec2 handle, Vec2 delta)
+{
+  Size size{std::max(0.f, node.content.width + handle.x * delta.x),
+            std::max(0.f, node.content.height + handle.y * delta.y)};
+  // The point that stays: on the side opposite the handle, in the old box and in the new one
+  auto fixed = [](float side, float length) { return side > 0 ? 0.f : side < 0 ? length : 0.f; };
+  Vec2 before{fixed(handle.x, node.content.width), fixed(handle.y, node.content.height)};
+  Vec2 after{fixed(handle.x, size.width), fixed(handle.y, size.height)};
+
+  // The translation is the position plus what the anchor and the size make: the position that puts the new
+  // box's point where the old box's was
+  auto resized = node;
+  resized.content = size;
+  auto was = nodeToParent(node).apply(before);
+  auto now = nodeToParent(resized).apply(after);
+  return {node.position + (was - now), size};
+}

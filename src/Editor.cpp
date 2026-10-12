@@ -39,6 +39,7 @@ namespace
     Reanchor = 4,
     Order = 5,
     Typed = 6,
+    Resize = 7,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -133,6 +134,17 @@ namespace
     bool codeView = false;
     // Enter: values being typed for the selected node, and the one that couldn't be read
     std::optional<fields::Fields> typing;
+
+    // A resize handle being dragged: which one, from where, the node's state and its world-to-node turn then
+    struct Resizing
+    {
+      geom::Vec2 handle;
+      CCPoint press;
+      NodeState start;
+      geom::NodeTransform transform;
+      geom::Affine worldToNode;
+    };
+    std::optional<Resizing> resizing;
 
     // The code of every edited node, kept up to date while its scene runs: the scene's nodes can't be described
     // once it's gone. Keyed by node, compared only
@@ -237,7 +249,7 @@ namespace
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -424,6 +436,30 @@ namespace
         record(node, before, kind, 0, group);
     }
     s.lastGroup = {group, kind, now(), nodes};
+  }
+
+  constexpr float HANDLE_SIZE = 1.6f;
+
+  // The resize handles of a node on the screen: corners and the middles of the sides, as -1, 0, 1 on each axis.
+  // None for a node without a size, or with several selected
+  std::vector<std::pair<CCPoint, CCPoint>> handles(CCNode* node)
+  {
+    std::vector<std::pair<CCPoint, CCPoint>> out;
+    if (!node || !state().also.empty())
+      return out;
+    auto size = node->getContentSize();
+    if (size.width <= 0 || size.height <= 0)
+      return out;
+    auto toWorld = inspect::toGeom(node->nodeToWorldTransform());
+    for (int x = -1; x <= 1; x++)
+      for (int y = -1; y <= 1; y++)
+      {
+        if (x == 0 && y == 0)
+          continue;
+        auto at = toWorld.apply({(x + 1) / 2.f * size.width, (y + 1) / 2.f * size.height});
+        out.emplace_back(CCPoint(x, y), CCPoint(at.x, at.y));
+      }
+    return out;
   }
 
   // ! --- Overlay --- !
@@ -945,6 +981,13 @@ namespace
         // The anchor point: where the position is
         if (auto parent = selected->getParent())
           m_draw->drawDot(convertToNodeSpace(parent->convertToWorldSpace(selected->getPosition())), 1.6f, SELECTED);
+        for (auto const& [handle, at] : handles(selected))
+        {
+          auto point = convertToNodeSpace(at);
+          CCPoint square[4] = {point + ccp(-HANDLE_SIZE, -HANDLE_SIZE), point + ccp(HANDLE_SIZE, -HANDLE_SIZE), point + ccp(HANDLE_SIZE, HANDLE_SIZE),
+                               point + ccp(-HANDLE_SIZE, HANDLE_SIZE)};
+          m_draw->drawPolygon(square, 4, {1, 1, 1, 1}, 0.4f, SELECTED);
+        }
       }
       for (auto const& line : state().snapLines)
       {
@@ -1003,7 +1046,9 @@ namespace
       auto tree = s.overlay ? s.overlay->tree() : nullptr;
       if (tree)
         tree->setTyping(tree->searchAt(mouse));
-      if (tree && tree->contains(mouse))
+      if (auto handle = editor::handleAt(mouse); handle && !(s.overlay && s.overlay->panelContains(mouse)))
+        editor::startResize(*handle, mouse);
+      else if (tree && tree->contains(mouse))
       {
         if (auto node = tree->rowAt(mouse, runningScene()))
           editor::select(node);
@@ -1206,6 +1251,8 @@ namespace
     }
     if (s.panelDragging)
       movePanel(mouse - s.panelGrab);
+    else if (s.resizing && !s.pinned)
+      editor::resizeTo(mouse);
     else if (s.pressed && !s.pinned)
       editor::dragTo(mouse);
     auto hover = hovered(mouse);
@@ -1381,6 +1428,52 @@ void editor::dragTo(CCPoint world)
   s.snapLines = std::move(result.lines);
 }
 
+std::optional<CCPoint> editor::handleAt(CCPoint world)
+{
+  auto& s = state();
+  if (!s.selected)
+    return std::nullopt;
+  // The closest handle within a few points
+  std::optional<CCPoint> best;
+  float closest = HANDLE_SIZE * 2.5f;
+  for (auto const& [handle, at] : handles(s.selected.get()))
+  {
+    float distance = ccpDistance(world, at);
+    if (distance <= closest)
+    {
+      closest = distance;
+      best = handle;
+    }
+  }
+  return best;
+}
+
+void editor::startResize(CCPoint handle, CCPoint world)
+{
+  auto& s = state();
+  if (!s.selected)
+    return;
+  release();
+  auto node = s.selected.get();
+  s.resizing = State::Resizing{{handle.x, handle.y}, world, inspect::stateOf(node), inspect::transformOf(node),
+                               inspect::toGeom(node->nodeToWorldTransform()).inverse()};
+}
+
+void editor::resizeTo(CCPoint world)
+{
+  auto& s = state();
+  if (!s.resizing || !s.selected)
+    return;
+  auto node = s.selected.get();
+  // The mouse's move in the node's own space, before its scale and turn
+  auto delta = s.resizing->worldToNode.applyLinear({world.x - s.resizing->press.x, world.y - s.resizing->press.y});
+  auto result = geom::resize(s.resizing->transform, s.resizing->handle, delta);
+  auto after = s.resizing->start;
+  after.position = CCPoint(result.position.x, result.position.y);
+  after.size = CCSize(result.content.width, result.content.height);
+  inspect::apply(node, after);
+}
+
 void editor::setSnapping(std::optional<bool> on)
 {
   state().snapOverride = on;
@@ -1390,6 +1483,12 @@ void editor::release()
 {
   auto& s = state();
   s.snapLines.clear();
+  if (s.resizing)
+  {
+    if (s.selected)
+      record(s.selected.get(), s.resizing->start, Resize, 0);
+    s.resizing.reset();
+  }
   if (s.dragging && s.selected)
   {
     int group = s.grabs.size() > 1 ? ++s.groups : 0;

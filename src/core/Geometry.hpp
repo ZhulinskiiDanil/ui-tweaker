@@ -103,4 +103,15 @@ namespace geom
 
   // The position that keeps the node where it is on the screen after its anchor point changes to `anchor`
   Vec2 positionForAnchor(NodeTransform const& node, Vec2 anchor);
+
+  struct Resized
+  {
+    Vec2 position;
+    Size content;
+  };
+
+  // A resize handle dragged: `handle` is which side, -1 (left, bottom), 0 (that axis isn't resized) or 1 (right,
+  // top) on each axis; `delta` is how far, in the node's own space (before its scale). The opposite side stays
+  // where it is in the parent, whatever the anchor point, scale or rotation; the size doesn't go below 0
+  Resized resize(NodeTransform const& node, Vec2 handle, Vec2 delta);
 } // namespace geom

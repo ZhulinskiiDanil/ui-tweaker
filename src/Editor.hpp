@@ -24,6 +24,11 @@ namespace editor
   void dragTo(cocos2d::CCPoint world);
   // Snapping on or off whatever the setting and Ctrl say; nullopt: as they say
   void setSnapping(std::optional<bool> on);
+  // The resize handle of the selected node at a point on the screen: -1, 0 or 1 on each axis
+  std::optional<cocos2d::CCPoint> handleAt(cocos2d::CCPoint world);
+  // A handle pressed at the point: its side follows the mouse, the opposite side stays
+  void startResize(cocos2d::CCPoint handle, cocos2d::CCPoint world);
+  void resizeTo(cocos2d::CCPoint world);
   // Ends the drag, one step in the history if the node moved
   void release();
   // Scales the selected node: up for positive notches. `fine` is a hundredth a notch

@@ -330,6 +330,31 @@ namespace
     check(editor::undo() && inspect::stateOf(node) == before, "undo put the content size back");
   }
 
+  // The right side's handle dragged 10 to the right on the screen: wider, the left side where it was
+  void resizing(CCNode* node)
+  {
+    auto name = inspect::name(node);
+    auto before = inspect::stateOf(node);
+    auto quad = inspect::worldQuad(node);
+    editor::select(node);
+    auto size = node->getContentSize();
+    auto handlePoint = node->convertToWorldSpace({size.width, size.height / 2});
+    auto handle = editor::handleAt(handlePoint);
+    check(handle && handle->x == 1 && handle->y == 0, fmt::format("the right side's handle of {} is under the mouse", name));
+    if (!handle)
+      return;
+    editor::startResize(*handle, handlePoint);
+    editor::resizeTo(handlePoint + ccp(10, 0));
+    editor::release();
+    auto after = inspect::worldQuad(node);
+    check(close(after.corners[0].x, quad.corners[0].x) && close(after.corners[3].y, quad.corners[3].y),
+          fmt::format("the left side of {} stayed", name));
+    check(close(after.corners[1].x, quad.corners[1].x + 10, 0.05f),
+          fmt::format("the right side of {} went 10 to the right ({})", name, after.corners[1].x - quad.corners[1].x));
+    check(editor::codeFor(node).find("setContentSize") != std::string::npos, "the code sets the new size");
+    check(editor::undo() && inspect::stateOf(node) == before, fmt::format("undo put the size of {} back", name));
+  }
+
   // Shift+click: two nodes dragged, nudged and scaled together; each is one step to undo
   void several(CCNode* first, CCNode* second)
   {
@@ -443,6 +468,7 @@ namespace
       snapping(shown[0]);
       anchorAndOrder(shown[0]);
       typing(shown[0]);
+      resizing(shown[0]);
       if (shown.size() > 1)
         several(shown[0], shown[1]);
     }

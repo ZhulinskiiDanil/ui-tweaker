@@ -144,6 +144,42 @@ namespace
     CHECK(near(toWorld.apply(child.position), before + Vec2{7, -4}));
   }
 
+  void resizing()
+  {
+    // The right edge dragged 10 to the right: 10 wider, the left edge where it was
+    auto node = box({100, 100}, {0.5f, 0.5f}, {40, 20});
+    auto result = resize(node, {1, 0}, {10, 0});
+    CHECK(::near(result.content.width, 50) && ::near(result.content.height, 20));
+    auto resized = node;
+    resized.position = result.position;
+    resized.content = result.content;
+    CHECK(near(quadOf(resized).corners[0], quadOf(node).corners[0]));
+    CHECK(::near(quadOf(resized).corners[1].x, quadOf(node).corners[1].x + 10));
+
+    // The bottom left corner dragged out, whatever the transform: the top right corner stays
+    for (bool ignore : {false, true})
+    {
+      auto turned = box({33, -7}, {0.2f, 0.9f}, {40, 20});
+      turned.scaleX = 1.3f;
+      turned.scaleY = -0.6f;
+      turned.rotationX = turned.rotationY = 27;
+      turned.ignoreAnchor = ignore;
+      auto out = resize(turned, {-1, -1}, {-6, -4});
+      CHECK(::near(out.content.width, 46) && ::near(out.content.height, 24));
+      auto moved = turned;
+      moved.position = out.position;
+      moved.content = out.content;
+      CHECK(near(quadOf(moved).corners[2], quadOf(turned).corners[2]));
+    }
+
+    // Never below 0
+    auto small = resize(node, {1, 1}, {-100, -100});
+    CHECK(::near(small.content.width, 0) && ::near(small.content.height, 0));
+    // An edge handle leaves the other axis alone
+    auto edge = resize(node, {0, 1}, {50, 5});
+    CHECK(::near(edge.content.width, 40) && ::near(edge.content.height, 25));
+  }
+
   void anchors()
   {
     auto node = box({100, 100}, {0.5f, 0.5f}, {40, 20});
@@ -180,5 +216,6 @@ int main()
   inverseAndConcat();
   deltas();
   anchors();
+  resizing();
   return finish("geometry");
 }

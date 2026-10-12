@@ -6,6 +6,7 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 
 - **Hover** a node: a box around it, its class, its ID and its parent
 - **Drag** it to move it, snapping to the screen's, its parent's and its siblings' edges and centers (<cy>Ctrl</c>: not). The **wheel** scales it (<cy>Shift</c>: by a hundredth), the **arrows** move it by 1 (<cy>Shift</c>: 10)
+- The **handles** on the selected node's box resize it
 - <cy>Enter</c>: type exact values: x, y, the scale, the width and the height, numbers or expressions like <cy>w / 2 + 40</c>
 - <cy>Ctrl</c>+arrows: the anchor point, the node staying in place; <cy>[</c> <cy>]</c>: the z-order
 - <cy>Shift</c>+click: several nodes at once

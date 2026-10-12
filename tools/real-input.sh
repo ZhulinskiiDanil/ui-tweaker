@@ -59,6 +59,11 @@ sleep 0.3; shot typing.png; input key enter; sleep 1.5
 expect "Typed " "real keys typed the values w/2, h/2"
 fresh | grep "Typed " | tail -1 | cut -c1-160
 input key z ctrl
+# The title's right side dragged by its handle: 220 wide at (59, 236), so the handle is at (279, 253.8)
+input drag 279 253.8 299 253.8; sleep 1.5
+expect "Resized " "a real drag of a handle resized the title"
+fresh | grep "Resized " | tail -1 | cut -c1-160
+input key z ctrl
 # Shift+click: the Geode button added to the selected title
 input shiftclick "$gx" "$gy"; sleep 1.5
 expect "Selection: 2 nodes" "Shift+click selected a second node"
