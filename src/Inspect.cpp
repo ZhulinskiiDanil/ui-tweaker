@@ -338,10 +338,19 @@ codegen::LayoutInfo inspect::layoutOf(CCNode* node)
     if (auto options = typeinfo_cast<AnchorLayoutOptions*>(node->getLayoutOptions()))
     {
       info.hasAnchorOptions = true;
-      // Where the anchor is on the parent's box: what getAnchoredPosition gives for no offset, over the size
-      auto size = parent->getContentSize();
-      auto at = AnchorLayout::getAnchoredPosition(parent, options->getAnchor(), {0, 0});
-      info.anchorNow = geom::Vec2{size.width > 0 ? at.x / size.width : 0.f, size.height > 0 ? at.y / size.height : 0.f};
+      // Where the anchor is on the parent's box, as a share of it on each axis
+      switch (options->getAnchor())
+      {
+      case Anchor::Center: info.anchorNow = geom::Vec2{0.5f, 0.5f}; break;
+      case Anchor::TopLeft: info.anchorNow = geom::Vec2{0, 1}; break;
+      case Anchor::Top: info.anchorNow = geom::Vec2{0.5f, 1}; break;
+      case Anchor::TopRight: info.anchorNow = geom::Vec2{1, 1}; break;
+      case Anchor::Right: info.anchorNow = geom::Vec2{1, 0.5f}; break;
+      case Anchor::BottomRight: info.anchorNow = geom::Vec2{1, 0}; break;
+      case Anchor::Bottom: info.anchorNow = geom::Vec2{0.5f, 0}; break;
+      case Anchor::BottomLeft: info.anchorNow = geom::Vec2{0, 0}; break;
+      case Anchor::Left: info.anchorNow = geom::Vec2{0, 0.5f}; break;
+      }
     }
   }
   else if (auto axis = typeinfo_cast<AxisLayout*>(layout))

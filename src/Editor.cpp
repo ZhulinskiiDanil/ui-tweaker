@@ -83,7 +83,10 @@ namespace
     // Every edited node's state before its first edit, for the code of all of them
     std::vector<std::pair<Retained<CCNode>, NodeState>> originals;
     // The scene the history is about: a new one forgets the old one's nodes
-    CCScene* scene = nullptr;
+    // The scene the history is about, by the number the edit mode gave it (a new scene can be allocated where an
+    // old one was)
+    int scene = 0;
+    int scenes = 0;
 
     bool pressed = false;
     bool dragging = false;
@@ -119,6 +122,8 @@ namespace
     // Edits of scenes left, by the layer they were in, for "Copy all"
     std::vector<std::pair<std::string, std::vector<codegen::NodeDesc>>> earlier;
     std::string typingError;
+    std::vector<std::string> typingStart;
+    std::vector<float> typingExact;
     // Alt held: the distances from the selected node to the hovered one
     std::optional<bool> measureOverride;
     std::vector<measure::Segment> measured;
@@ -218,40 +223,70 @@ namespace
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
 
+  // A number for the scene, kept on it while it lives
+  int sceneTag(CCScene* scene)
+  {
+    if (!scene)
+      return 0;
+    if (auto tag = typeinfo_cast<CCInteger*>(scene->getUserObject("scene"_spr)))
+      return tag->getValue();
+    int tag = ++state().scenes;
+    scene->setUserObject("scene"_spr, CCInteger::create(tag));
+    return tag;
+  }
+
+  // The descriptions of nodes into a group, a node with an ID replacing its older code there
+  void addTo(std::vector<codegen::NodeDesc>& group, codegen::NodeDesc const& desc)
+  {
+    std::erase_if(group, [&](auto const& old) { return !desc.id.empty() && old.id == desc.id && old.parentId == desc.parentId; });
+    group.push_back(desc);
+  }
+
+  std::vector<codegen::NodeDesc>& groupOf(std::string const& layer)
+  {
+    auto& s = state();
+    auto group = std::find_if(s.earlier.begin(), s.earlier.end(), [&](auto const& g) { return g.first == layer; });
+    if (group != s.earlier.end())
+      return group->second;
+    s.earlier.emplace_back(layer, std::vector<codegen::NodeDesc>{});
+    return s.earlier.back().second;
+  }
+
+  // Edited nodes' code moved from what's being worked on to what's kept for "Copy all": the nodes the history is
+  // about to let go of (which it still holds, so they can be looked at). Undone ones are left out
+  template <class Which>
+  void fileAway(Which which)
+  {
+    auto& s = state();
+    std::erase_if(s.live,
+                  [&](auto const& entry)
+                  {
+                    if (!which(entry.first))
+                      return false;
+                    if (hasSteps(entry.first))
+                      addTo(groupOf(s.liveLayer), entry.second);
+                    return true;
+                  });
+  }
+
   // Forgets the nodes of a scene that's gone, so they aren't kept alive by the history
   void forgetOtherScenes()
   {
     auto& s = state();
     auto scene = runningScene();
-    if (scene == s.scene)
+    auto tag = sceneTag(scene);
+    if (tag == s.scene)
       return;
-    s.scene = scene;
-    // The edits of the scene left, kept by its layer: a node edited again there replaces its older code
-    if (!s.live.empty())
-    {
-      auto group = std::find_if(s.earlier.begin(), s.earlier.end(), [&](auto const& g) { return g.first == s.liveLayer; });
-      if (group == s.earlier.end())
-      {
-        s.earlier.emplace_back(s.liveLayer, std::vector<codegen::NodeDesc>{});
-        group = s.earlier.end() - 1;
-      }
-      for (auto const& [node, desc] : s.live)
-      {
-        // Undone since, or skipped by undo as removed
-        if (!hasSteps(node))
-          continue;
-        std::erase_if(group->second, [&](auto const& old)
-                      { return !desc.id.empty() && old.id == desc.id && old.parentId == desc.parentId; });
-        group->second.push_back(desc);
-      }
-      s.live.clear();
-    }
+    s.scene = tag;
+    // The edits of the scene left, kept by its layer
+    fileAway([](CCNode*) { return true; });
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
     if (s.selected && gone(s.selected))
     {
       s.selected.reset();
+      s.typing.reset();
       s.pressed = s.dragging = false;
     }
     s.hover.reset();
@@ -935,7 +970,7 @@ namespace
     {
       if (data.key == KEY_Escape)
         tree->setTyping(false);
-      else if (data.key == KEY_Enter)
+      else if (data.key == KEY_Enter || data.key == KEY_NumEnter)
       {
         if (auto node = tree->firstMatch(runningScene()))
           editor::select(node);
@@ -1049,6 +1084,7 @@ namespace
     if (s.selected && !inspect::isIn(s.selected.get(), runningScene()))
     {
       s.selected.reset();
+      s.typing.reset();
       s.pressed = s.dragging = false;
     }
 
@@ -1142,8 +1178,10 @@ void editor::setActive(bool on)
       s.overlay = nullptr;
     }
     s.hover.reset();
-    // A scene change while it's off would leave its nodes held until it's on again
+    // A scene change while it's off would leave its nodes held until it's on again. Their code is kept
     auto scene = runningScene();
+    fileAway([scene](CCNode* node) { return hasSteps(node) && !inspect::isIn(node, scene); });
+    s.typing.reset();
     s.history.forget([scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); });
     std::erase_if(s.originals, [scene](auto const& entry) { return !inspect::isIn(entry.first.get(), scene); });
     logger_link::clear();
@@ -1304,10 +1342,14 @@ void editor::stepZOrder(int delta)
 void editor::startTyping()
 {
   auto& s = state();
-  if (!s.selected || s.dragging)
+  if (!s.selected || s.pressed || s.dragging)
     return;
   auto info = inspect::stateOf(s.selected.get());
   s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX)});
+  // What the fields start as, and the exact values behind them: a field left as it was keeps its exact value,
+  // not the rounded one it shows
+  s.typingStart = s.typing->values();
+  s.typingExact = {info.position.x, info.position.y, info.scaleX};
   s.typingError.clear();
 }
 
@@ -1348,11 +1390,18 @@ void editor::typingKey(int key, bool shift)
                                        return std::nullopt;
                                      });
     for (size_t i = 0; i < values.size(); i++)
-      if (!values[i])
+    {
+      if (i < s.typingStart.size() && s.typing->values()[i] == s.typingStart[i])
+        values[i] = s.typingExact[i];
+      // A number too big to be one, or a scale the node would vanish at and the wheel couldn't bring back
+      bool bad = !values[i] || !std::isfinite(*values[i]) || std::fabs(*values[i]) > 1e6f ||
+                 (i == 2 && std::fabs(*values[2]) < 0.01f);
+      if (bad)
       {
         s.typingError = s.typing->values()[i];
         return;
       }
+    }
     auto before = inspect::stateOf(node);
     auto after = before;
     after.position = CCPoint(*values[0], *values[1]);
@@ -1469,28 +1518,50 @@ std::vector<CCNode*> editor::editedNodes()
   return nodes;
 }
 
+namespace
+{
+  // Every edit for "Copy all", by layer: the scenes left, and this one's merged into its layer's group (a node
+  // edited again replacing its older code). This scene's nodes described as they are now; nodes removed from it
+  // with their edits as they were last
+  std::vector<std::pair<std::string, std::vector<codegen::NodeDesc>>> allEdits()
+  {
+    auto& s = state();
+    auto groups = s.earlier;
+    auto layer = layerName(runningScene());
+    auto group = std::find_if(groups.begin(), groups.end(), [&](auto const& g) { return g.first == layer; });
+    if (group == groups.end())
+    {
+      groups.emplace_back(layer, std::vector<codegen::NodeDesc>{});
+      group = groups.end() - 1;
+    }
+    for (auto const& [node, desc] : s.live)
+      if (hasSteps(node))
+        addTo(group->second, inspect::isIn(node, runningScene()) ? inspect::describe(node, originalOf(node)) : desc);
+    std::erase_if(groups, [](auto const& g) { return g.second.empty(); });
+    return groups;
+  }
+} // namespace
+
 std::string editor::codeForAll()
 {
-  auto& s = state();
-  std::vector<codegen::NodeDesc> nodes;
-  for (auto node : editedNodes())
-    nodes.push_back(inspect::describe(node, originalOf(node)));
-  if (s.earlier.empty())
-    return codegen::generateAll(nodes);
+  auto groups = allEdits();
+  if (groups.empty())
+    return "";
+  if (groups.size() == 1)
+    return codegen::generateAll(groups[0].second);
 
-  // Scenes left first, each under its layer's name, then this one
+  // Each layer under its name
   std::string code;
-  for (auto const& [layer, descs] : s.earlier)
-    code += "// ! --- In " + layer + " --- !\n\n" + codegen::generateAll(descs) + "\n";
-  if (!nodes.empty())
-    code += "// ! --- In " + layerName(runningScene()) + " --- !\n\n" + codegen::generateAll(nodes);
+  for (size_t i = 0; i < groups.size(); i++)
+    code += (i ? "\n" : "") + std::string("// ! --- In ") + groups[i].first + " --- !\n\n" +
+            codegen::generateAll(groups[i].second);
   return code;
 }
 
 size_t editor::editedCount()
 {
-  size_t count = editedNodes().size();
-  for (auto const& [layer, descs] : state().earlier)
+  size_t count = 0;
+  for (auto const& [layer, descs] : allEdits())
     count += descs.size();
   return count;
 }
@@ -1524,6 +1595,8 @@ void editor::copyAll()
   // Also a file, for a long session's worth of edits
   auto path = Mod::get()->getSaveDir() / "export.cpp";
   auto written = file::writeString(path, code);
+  if (!written)
+    log::warn("Couldn't write {}: {}", path, written.unwrapErr());
   log::info("Code for {} edited nodes{}:\n{}", count,
             written ? fmt::format(" (also in {})", path) : std::string(), code);
   logger_link::mark(fmt::format("copied the code for {} nodes", count));

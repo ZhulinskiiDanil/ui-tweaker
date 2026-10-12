@@ -285,9 +285,9 @@ namespace
     check(editor::typing(), "Enter starts typing values");
     // w/2+40 Tab h-25 Tab 1.5 Enter
     std::vector<std::pair<int, bool>> keys = {
-        {'W', false}, {0xBF, false}, {'2', false}, {0xBB, true}, {'4', false}, {'0', false}, {KEY_Tab, false},
-        {'H', false}, {0xBD, false}, {'2', false}, {'5', false}, {KEY_Tab, false},
-        {'1', false}, {0xBE, false}, {'5', false}, {KEY_Enter, false}};
+        {'W', false}, {KEY_Slash, false}, {'2', false}, {KEY_OEMEqual, true}, {'4', false}, {'0', false},
+        {KEY_Tab, false}, {'H', false}, {KEY_OEMMinus, false}, {'2', false}, {'5', false}, {KEY_Tab, false},
+        {'1', false}, {KEY_OEMPeriod, false}, {'5', false}, {KEY_Enter, false}};
     for (auto [key, shift] : keys)
       editor::typingKey(key, shift);
     auto after = inspect::stateOf(node);
@@ -298,9 +298,16 @@ namespace
     auto problem = inspect::checkCode(node, editor::codeFor(node));
     check(problem.empty(), fmt::format("the code for the typed values puts {} where it is: {}", name, problem));
 
+    // Enter, Enter with nothing typed: the exact values stay, not the rounded ones shown, and there's no step
+    auto steps = editor::historySize();
+    editor::startTyping();
+    editor::typingKey(KEY_Enter, false);
+    check(inspect::stateOf(node) == after && editor::historySize() == steps,
+          "Enter, Enter without typing changes nothing");
+
     // Something that can't be read stays to be fixed; Esc lets it go
     editor::startTyping();
-    for (auto [key, shift] : std::vector<std::pair<int, bool>>{{'P', false}, {0xBD, false}, {KEY_Enter, false}})
+    for (auto [key, shift] : std::vector<std::pair<int, bool>>{{'P', false}, {KEY_OEMMinus, false}, {KEY_Enter, false}})
       editor::typingKey(key, shift);
     check(editor::typing(), "a value that can't be read isn't applied");
     editor::typingKey(KEY_Escape, false);
@@ -641,16 +648,25 @@ namespace
          []
          {
            auto made = TestPopup::create();
+           check(made != nullptr, "the test popup is made");
+           if (!made)
+             return;
            made->show();
            popup = Retained<TestPopup>(made);
          }},
         {2,
          []
          {
+           if (!popup)
+             return;
            auto node = popup->getChildByIDRecursive("selftest-button"_spr);
            check(node != nullptr, "the popup's button is there");
            if (!node)
+           {
+             popup->close();
+             popup.reset();
              return;
+           }
            button = Retained<CCNode>(node);
            options = Retained<LayoutOptions>(node->getLayoutOptions());
            buttonBefore = inspect::stateOf(node);
@@ -816,6 +832,24 @@ namespace
            check(all.find("// ! --- In CreatorLayer --- !") != std::string::npos,
                  "the creator layer's edit is kept after the scene changed");
            check(editor::editedCount() == 2, fmt::format("{} edits kept from the scenes left", editor::editedCount()));
+           // Back in the main menu, the Geode button edited again: one section for the main menu, its newer code
+           if (auto again = CCDirector::get()->getRunningScene()->getChildByIDRecursive("geode.loader/geode-button"))
+           {
+             auto center = inspect::worldQuad(again).center();
+             editor::setSnapping(false);
+             editor::grab(again, {center.x, center.y});
+             editor::dragTo(CCPoint{center.x, center.y} + ccp(-9, 3));
+             editor::release();
+             editor::setSnapping(std::nullopt);
+             auto merged = editor::codeForAll();
+             size_t sections = 0;
+             for (auto at = merged.find("// ! --- In MenuLayer --- !"); at != std::string::npos;
+                  at = merged.find("// ! --- In MenuLayer --- !", at + 1))
+               sections++;
+             check(sections == 1, fmt::format("the main menu is one section after coming back ({})", sections));
+             check(editor::editedCount() == 2, fmt::format("the button edited again is one edit ({})", editor::editedCount()));
+             editor::undo();
+           }
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "play")
            {
              playLevel();
