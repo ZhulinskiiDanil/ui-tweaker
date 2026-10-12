@@ -47,6 +47,11 @@ namespace editor
   void copySelected();
   void copyAll();
 
+  // Alt held: the distances from the selected node to the hovered one. nullopt: as Alt says
+  void setMeasuring(std::optional<bool> on);
+  // The lengths drawn in the last frame
+  std::vector<float> measurements();
+
   // A: the other screens' shapes over this one
   void setAspectPreview(bool on);
 

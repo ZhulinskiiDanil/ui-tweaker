@@ -24,6 +24,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Ctrl+Z`, `Ctrl+Y` | Undo, redo. A turn of the wheel or a run of arrow presses is one step |
 | `Ctrl+C` | Copies the C++ for the selected node |
 | `Ctrl+Shift+C` | Copies the C++ for every node edited in the scene, one block, a comment for each |
+| `Alt` held | The distances from the selected node to the one under the mouse, as in Figma: the gaps between them, or from the inner one's edges to the outer one's |
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |
 | `PgUp`, `PgDn` | The parent, the first child |

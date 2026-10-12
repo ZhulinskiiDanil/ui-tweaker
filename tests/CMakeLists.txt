@@ -33,3 +33,6 @@ add_test(NAME aspect COMMAND aspect-tests)
 
 add_executable(tree-tests TreeTests.cpp ../src/core/Tree.cpp)
 add_test(NAME tree COMMAND tree-tests)
+
+add_executable(measure-tests MeasureTests.cpp ../src/core/Measure.cpp)
+add_test(NAME measure COMMAND measure-tests)

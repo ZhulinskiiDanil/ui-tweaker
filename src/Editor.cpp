@@ -6,6 +6,7 @@
 #include "core/Aspect.hpp"
 #include "core/Codegen.hpp"
 #include "core/History.hpp"
+#include "core/Measure.hpp"
 #include "core/Snap.hpp"
 #include "core/Text.hpp"
 #include "core/Tree.hpp"
@@ -52,6 +53,7 @@ namespace
   ccColor4F const SELECTED = {1.f, 0.6f, 0.15f, 1.f};
   ccColor4F const SELECTED_FILL = {0.1f, 0.06f, 0.015f, 0.1f};
   ccColor4F const GUIDE = {1.f, 0.3f, 0.75f, 1.f};
+  ccColor4F const MEASURE = {1.f, 0.3f, 0.3f, 1.f};
   ccColor3B const GOLD = {255, 210, 90};
   ccColor3B const GREY = {170, 170, 185};
 
@@ -86,6 +88,9 @@ namespace
     std::optional<bool> snapOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
+    // Alt held: the distances from the selected node to the hovered one
+    std::optional<bool> measureOverride;
+    std::vector<measure::Segment> measured;
     // Tab goes through what's under the mouse, deeper each time
     size_t cycle = 0;
     CCPoint cyclePoint;
@@ -299,6 +304,17 @@ namespace
         m_shapeLabels.push_back(label);
       }
 
+      for (int i = 0; i < 4; i++)
+      {
+        auto tag = CCLayerColor::create({200, 50, 50, 230}, 10, 8);
+        auto text = makeLabel(tag);
+        text->setAnchorPoint({0.5f, 0.5f});
+        text->setTag(1);
+        tag->setVisible(false);
+        addChild(tag);
+        m_measureTags.push_back(tag);
+      }
+
       // At the right, under the banner, hidden until T
       m_tree = TreePanel::create();
       m_tree->setPosition({win.width - m_tree->getContentWidth() - MARGIN,
@@ -366,6 +382,7 @@ namespace
     CCLabelBMFont* m_warning = nullptr;
     std::vector<Button> m_buttons;
     std::vector<CCLabelBMFont*> m_shapeLabels;
+    std::vector<CCLayerColor*> m_measureTags;
     TreePanel* m_tree = nullptr;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
@@ -390,7 +407,7 @@ namespace
       m_bannerText->setString(
           fmt::format("UI Tweaker: edit mode ({} leaves)\nDrag: move   Wheel: scale (Shift: fine)   Arrows: 1 px "
                       "(Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo\nCtrl+C: copy code   Ctrl+Shift+C: copy all   "
-                      "Tab: next under the mouse   Alt+click: inside   PgUp: parent   A: other screens   T: tree   H: panel",
+                      "Tab: next under the mouse   Alt: distances   Alt+click: inside   PgUp: parent   A: other screens   T: tree   H: panel",
                       key)
               .c_str());
       auto win = CCDirector::get()->getWinSize();
@@ -574,6 +591,36 @@ namespace
       }
     }
 
+    // Lines with their lengths, between the selected node and the hovered one
+    void drawMeasures(CCNode* hover, CCNode* selected)
+    {
+      auto& s = state();
+      for (auto tag : m_measureTags)
+        tag->setVisible(false);
+      s.measured.clear();
+      bool on = s.measureOverride.value_or(CCKeyboardDispatcher::get()->getAltKeyPressed());
+      if (!on || !hover || !selected || hover == selected)
+        return;
+      s.measured = measure::between(inspect::worldQuad(selected).bounds(), inspect::worldQuad(hover).bounds());
+      for (size_t i = 0; i < s.measured.size() && i < m_measureTags.size(); i++)
+      {
+        auto const& line = s.measured[i];
+        auto from = convertToNodeSpace({line.from.x, line.from.y});
+        auto to = convertToNodeSpace({line.to.x, line.to.y});
+        m_draw->drawSegment(from, to, 0.35f, MEASURE);
+        auto tag = m_measureTags[i];
+        auto text = static_cast<CCLabelBMFont*>(tag->getChildByTag(1));
+        auto value = number(line.length);
+        if (text->getString() != value)
+          text->setString(value.c_str());
+        auto size = text->getScaledContentSize();
+        tag->setContentSize(size + ccp(4, 1));
+        text->setPosition(tag->getContentSize() / 2);
+        tag->setPosition((from + to) / 2 - tag->getContentSize() / 2);
+        tag->setVisible(true);
+      }
+    }
+
   public:
     void redraw(CCNode* hover, CCNode* selected)
     {
@@ -597,6 +644,7 @@ namespace
       }
       if (state().aspectPreview)
         drawShapes(selected);
+      drawMeasures(hover, selected);
       showTag(hover ? hover : selected);
       showPanel(selected);
     }
@@ -1105,6 +1153,19 @@ void editor::copyAll()
 }
 
 // ! --- Self test --- !
+
+void editor::setMeasuring(std::optional<bool> on)
+{
+  state().measureOverride = on;
+}
+
+std::vector<float> editor::measurements()
+{
+  std::vector<float> lengths;
+  for (auto const& line : state().measured)
+    lengths.push_back(line.length);
+  return lengths;
+}
 
 void editor::setAspectPreview(bool on)
 {

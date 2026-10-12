@@ -200,6 +200,8 @@ namespace
 
   // A drag that ends with the node's center a point off the screen's middle ends right on it; without snapping
   // it doesn't. One step to undo either way
+  void finish(bool measurable);
+
   void snapping(CCNode* node)
   {
     auto name = inspect::name(node);
@@ -306,15 +308,52 @@ namespace
     // For the screenshot: the first visible one selected, the mouse over the next visible one
     if (!shown.empty())
       editor::select(shown[0]);
-    if (shown.size() > 1)
+    // The mouse over a visible sibling of the selected one if there is one (the panel covers the top left), or
+    // over the next node
+    CCNode* other = nullptr;
+    if (!shown.empty())
+      for (auto sibling : CCArrayExt<CCNode*>(shown[0]->getParent()->getChildren()))
+        if (sibling != shown[0] && visibleInTree(sibling) && sibling->getContentWidth() > 0 && reachable(sibling))
+        {
+          other = sibling;
+          break;
+        }
+    if (!other && shown.size() > 1)
+      other = shown[1];
+    if (other)
     {
-      auto center = inspect::worldQuad(shown[1]).center();
+      auto center = inspect::worldQuad(other).center();
       editor::pinMouse(CCPoint{center.x, center.y});
     }
 
     // UI_TWEAKER_SELFTEST=aspect: the other screens' shapes on, for a screenshot of them
     if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "aspect")
       editor::setAspectPreview(true);
+
+    // The distances as with Alt held, from the selected node to the one under the mouse: the overlay measures
+    // them when it draws, so the result is a few frames away
+    editor::setMeasuring(true);
+    g_frames = 0;
+    finish(other != nullptr);
+  }
+
+  void finish(bool measurable)
+  {
+    if (++g_frames < 5)
+    {
+      Loader::get()->queueInMainThread([measurable] { finish(measurable); });
+      return;
+    }
+    if (measurable)
+    {
+      auto lengths = editor::measurements();
+      std::string text;
+      for (auto length : lengths)
+        text += fmt::format("{} ", length);
+      log::info("Self test: distances from the selected node to the hovered one: {}", text);
+      check(!lengths.empty() && std::all_of(lengths.begin(), lengths.end(), [](float l) { return l > 0; }),
+            "Alt shows the distances from the selected node to the hovered one");
+    }
 
     if (g_failed == 0)
       log::info("Self test PASS: {} checks", g_checks);
