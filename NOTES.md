@@ -127,6 +127,13 @@
   before UI Tweaker (40 lines of log, no crash log); the next three starts were fine. Not this mod's (it hadn't
   loaded yet), noted in case it comes back.
 
+- 18:23 own: what's open (tree, code view, other screens, help) and a panel placed by hand are kept, also across
+  restarts (checked by closing the game normally, which is when Geode writes saved values).
+- 18:28 own: resize handles as in Figma (`geom::resize` keeps the opposite side whatever the transform; tested
+  with turned, flipped, ignoreAnchor nodes); real input drags one.
+- 18:35 own: "Copy all" as ready-made `$modify` hooks for 17 layers mods hook (signatures from the bindings),
+  grouped by the closest such parent; the tests compile three hooks against the fake API and call them.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
@@ -135,6 +142,8 @@
 | 16:32 (v0.2.0) | 9/9 | ok | PASS, 48 checks; real input 6/6 | tree search, other screens, box + tag |
 | 17:07 (v0.3.0) | 11/11 | ok | PASS, 68 checks; real input 6/6 | Russian panel, distances, GIF frames |
 | 17:33 (v0.4.0) | 12/12 | ok | PASS 91 (menu), 102 (+level), 102 (+editor); real input 7/7 | level, editor, typing |
+| 18:09 (v0.5.0) | 13/13 | ok | PASS 104 / 115 / 115; real input 8/8 | several selected, code view |
+| 18:35 (v0.6.0) | 14/14 | ok | PASS 113 / 124 / 124; real input 9/9 | handles, hooks |
 
 ## Not done / known
 
