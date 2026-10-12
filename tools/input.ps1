@@ -51,7 +51,7 @@ function To-Screen([double]$x, [double]$y) {
 }
 function Move-Cursor([double]$x, [double]$y) { $p = To-Screen $x $y; [Input]::SetCursorPos($p[0], $p[1]) | Out-Null; Start-Sleep -Milliseconds 60 }
 
-$keys = @{ left = 0x25; up = 0x26; right = 0x27; down = 0x28; z = 0x5A; y = 0x59; c = 0x43; a = 0x41; h = 0x48; tab = 0x09; esc = 0x1B; f8 = 0x77; pgup = 0x21; enter = 0x0D; slash = 0xBF; minus = 0xBD; backspace = 0x08; ctrl = 0xA2; shift = 0xA0; alt = 0xA4 }
+$keys = @{ left = 0x25; up = 0x26; right = 0x27; down = 0x28; z = 0x5A; y = 0x59; c = 0x43; a = 0x41; h = 0x48; tab = 0x09; esc = 0x1B; f8 = 0x77; f1 = 0x70; pgup = 0x21; enter = 0x0D; slash = 0xBF; minus = 0xBD; backspace = 0x08; ctrl = 0xA2; shift = 0xA0; alt = 0xA4 }
 
 switch ($action) {
   "move" { Move-Cursor ([double]$a) ([double]$b) }

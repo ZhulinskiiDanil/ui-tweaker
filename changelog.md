@@ -1,3 +1,8 @@
+# v0.7.0
+
+- `R` resets the selected nodes to how they were before their first edit
+- `F1`'s list of keys is wrapped by whole "key: what" items, inside the screen in both languages
+
 # v0.6.0
 
 - "Copy all" is ready-made hooks: grouped by the layer whose hook the code goes in (`MenuLayer`, `PlayLayer`, `EditorUI`, `PauseLayer` and 13 more), each a `$modify` with the right `init` or `customSetup`; compiled in the tests

@@ -328,6 +328,14 @@ namespace
     check(editor::codeFor(node).find("node->setContentSize({120.f, 40.f});") != std::string::npos,
           "the code sets the content size");
     check(editor::undo() && inspect::stateOf(node) == before, "undo put the content size back");
+
+    // R: back to before the first edit, undone back to the edit
+    editor::nudge(5, 0);
+    auto nudged = inspect::stateOf(node);
+    editor::reset();
+    check(inspect::stateOf(node) == before, fmt::format("R reset {}", name));
+    check(editor::undo() && inspect::stateOf(node) == nudged, "the reset is a step to undo");
+    editor::undo();
   }
 
   // The right side's handle dragged 10 to the right on the screen: wider, the left side where it was

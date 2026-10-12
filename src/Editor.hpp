@@ -37,6 +37,8 @@ namespace editor
   void nudge(float dx, float dy);
   // Ctrl+arrows: the anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen
   void stepAnchor(int dx, int dy);
+  // R: the selected nodes as they were before their first edit, as a step to undo
+  void reset();
   // [ and ]: the z-order down or up by one
   void stepZOrder(int delta);
   // Enter: the selected node's x, y and scale typed in, as numbers or expressions (w, h: the screen; pw, ph: the

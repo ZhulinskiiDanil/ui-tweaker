@@ -41,6 +41,7 @@ namespace
     Order = 5,
     Typed = 6,
     Resize = 7,
+    Reset = 8,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -59,6 +60,7 @@ namespace
   constexpr float MARGIN = 4.f;
   constexpr float PANEL_WIDTH = 190.f;
   constexpr size_t PANEL_COLUMNS = 52;
+  constexpr size_t HELP_COLUMNS = 120;
   constexpr float CODE_SCALE = 0.32f;
   constexpr char NEWLINE = 10;
   constexpr size_t CODE_COLUMNS = 66;
@@ -250,7 +252,7 @@ namespace
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -440,6 +442,12 @@ namespace
   }
 
   constexpr float HANDLE_SIZE = 1.6f;
+
+  // Characters, not bytes: Cyrillic is two bytes a letter in UTF-8
+  size_t characters(std::string const& text)
+  {
+    return std::count_if(text.begin(), text.end(), [](char c) { return (static_cast<unsigned char>(c) & 0xC0) != 0x80; });
+  }
 
   // The resize handles of a node on the screen: corners and the middles of the sides, as -1, 0, 1 on each axis.
   // None for a node without a size, or with several selected
@@ -704,7 +712,30 @@ namespace
       auto const& w = ui::words();
       // One line, out of the way of what's at the top of the screen; F1 for every key
       auto title = text::format(w.banner, {key});
-      m_bannerText->setString(m_help ? title + "\n" + w.help1 + "\n" + w.help2 : title + "   " + w.helpHint);
+      // Every key, wrapped to stay inside the screen
+      std::string help = title;
+      if (m_help)
+      {
+        // Whole "key: what" items to a line, never split
+        auto all = w.help1 + "   " + w.help2;
+        std::string line;
+        size_t at = 0;
+        while (at < all.size())
+        {
+          auto end = all.find("   ", at);
+          auto item = all.substr(at, end == std::string::npos ? std::string::npos : end - at);
+          at = end == std::string::npos ? all.size() : end + 3;
+          if (!line.empty() && characters(line) + 3 + characters(item) > HELP_COLUMNS)
+          {
+            help += "\n" + line;
+            line.clear();
+          }
+          line += (line.empty() ? "" : "   ") + item;
+        }
+        if (!line.empty())
+          help += "\n" + line;
+      }
+      m_bannerText->setString(m_help ? help : title + "   " + w.helpHint);
       auto win = CCDirector::get()->getWinSize();
       auto size = m_bannerText->getScaledContentSize();
       m_banner->setContentSize(size + ccp(MARGIN * 2, MARGIN));
@@ -1209,6 +1240,9 @@ namespace
     case KEY_NumEnter:
       editor::startTyping();
       break;
+    case KEY_R:
+      editor::reset();
+      break;
     case KEY_F1:
       if (s.overlay)
         s.overlay->toggleHelp();
@@ -1540,6 +1574,20 @@ void editor::nudge(float dx, float dy)
   if (!s.selected || s.dragging)
     return;
   editAll(Nudge, NUDGE_MERGE, [&](CCNode* each) { each->setPosition(each->getPosition() + ccp(dx, dy)); });
+}
+
+void editor::reset()
+{
+  auto& s = state();
+  if (!s.selected || s.pressed)
+    return;
+  // Only nodes edited before have a state to go back to
+  editAll(Reset, 0,
+          [](CCNode* node)
+          {
+            if (auto original = originalOf(node))
+              inspect::apply(node, *original);
+          });
 }
 
 void editor::stepAnchor(int dx, int dy)
