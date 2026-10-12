@@ -5,10 +5,12 @@
 #include "Retained.hpp"
 
 #include <Geode/Geode.hpp>
+#include <Geode/binding/CreatorLayer.hpp>
 #include <Geode/binding/MenuLayer.hpp>
 
 #include <cmath>
 #include <cstdlib>
+#include <functional>
 
 using namespace geode::prelude;
 
@@ -201,6 +203,7 @@ namespace
   // A drag that ends with the node's center a point off the screen's middle ends right on it; without snapping
   // it doesn't. One step to undo either way
   void finish(bool measurable);
+  void edgeCases();
 
   void snapping(CCNode* node)
   {
@@ -336,7 +339,19 @@ namespace
       anchorAndOrder(shown[0]);
     }
 
-    // For the screenshot: the first visible one selected, the mouse over the next visible one
+    edgeCases();
+  }
+
+  // For the screenshot: the Geode button selected, the mouse over a visible sibling of it (the panel covers the
+  // top left) or over a label. Whether there's something to measure the distance to
+  bool prepareScreenshot()
+  {
+    auto scene = CCDirector::get()->getRunningScene();
+    std::vector<CCNode*> shown;
+    if (auto node = scene->getChildByIDRecursive("geode.loader/geode-button"); node && visibleInTree(node))
+      shown.push_back(node);
+    if (auto label = findLabel(scene))
+      shown.push_back(label);
     if (!shown.empty())
       editor::select(shown[0]);
     // The mouse over a visible sibling of the selected one if there is one (the panel covers the top left), or
@@ -364,8 +379,122 @@ namespace
     // The distances as with Alt held, from the selected node to the one under the mouse: the overlay measures
     // them when it draws, so the result is a few frames away
     editor::setMeasuring(true);
-    g_frames = 0;
-    finish(other != nullptr);
+    return other != nullptr;
+  }
+
+  // ! --- Over several frames --- !
+
+  // Steps run one after another, each followed by its number of frames for the game to go on
+  struct Step
+  {
+    int frames;
+    std::function<void()> run;
+  };
+
+  std::vector<Step> g_steps;
+  size_t g_next = 0;
+  int g_wait = 0;
+
+  void tick()
+  {
+    if (g_wait > 0)
+    {
+      g_wait--;
+      Loader::get()->queueInMainThread(tick);
+      return;
+    }
+    if (g_next >= g_steps.size())
+      return;
+    auto step = g_steps[g_next++];
+    step.run();
+    g_wait = step.frames;
+    Loader::get()->queueInMainThread(tick);
+  }
+
+  // A node removed while it's selected, hovered, in the history and in the tree; then the scene replaced while
+  // a node is selected, an edit in the new scene, and back to the main menu
+  void edgeCases()
+  {
+    static Retained<CCNode> temp;
+    static CCPoint middle;
+    g_steps = {
+        {3,
+         []
+         {
+           auto win = CCDirector::get()->getWinSize();
+           middle = ccp(win.width / 2, win.height / 2);
+           CCNode* node = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+           if (!node)
+             node = CCLayerColor::create({255, 255, 255, 255}, 20, 20);
+           node->setID("selftest-node"_spr);
+           node->setPosition(middle);
+           CCDirector::get()->getRunningScene()->addChild(node, 1000);
+           temp = Retained<CCNode>(node);
+           editor::setTreeVisible(true);
+           editor::grab(node, middle);
+           editor::dragTo(middle + ccp(15, 10));
+           editor::release();
+           editor::wheel(1, false);
+           auto center = inspect::worldQuad(node).center();
+           editor::pinMouse(CCPoint{center.x, center.y});
+           check(editor::selected() == node, "the new node is selected");
+         }},
+        {3,
+         []
+         {
+           // Gone from the scene while selected, hovered, in the history and in the tree's rows
+           temp->removeFromParent();
+           temp.reset();
+         }},
+        {1,
+         []
+         {
+           check(editor::selected() == nullptr, "a removed node is unselected");
+           check(!editor::undo(), "undo skips a removed node's steps");
+           check(editor::editedNodes().empty(), "a removed node isn't among the edited ones");
+           editor::setTreeVisible(false);
+           editor::pinMouse(middle);
+           log::info("Self test: a node removed while selected: no crash");
+           auto button = CCDirector::get()->getRunningScene()->getChildByIDRecursive("geode.loader/geode-button");
+           editor::select(button);
+           auto scene = CreatorLayer::scene();
+           CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, scene));
+         }},
+        {5,
+         []
+         {
+           check(editor::active(), "the edit mode is on during the transition");
+           check(editor::selected() == nullptr, "the old scene's node is unselected in the transition");
+         }},
+        {60,
+         []
+         {
+           auto scene = CCDirector::get()->getRunningScene();
+           check(scene && scene->getChildByType<CreatorLayer>(0), "the creator layer is there");
+           auto picked = editor::pressAt(middle);
+           if (picked)
+           {
+             editor::dragTo(middle + ccp(20, 0));
+             editor::release();
+           }
+           check(picked != nullptr, "something is picked in the new scene");
+           check(editor::historySize() >= 1, "an edit in the new scene is in the history");
+           log::info("Self test: picked {} in the creator layer", picked ? inspect::name(picked) : "nothing");
+           CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, MenuLayer::scene(false)));
+         }},
+        {120,
+         []
+         {
+           check(editor::active(), "the edit mode is on after two scene changes");
+           check(editor::historySize() == 0, "the history forgot the creator layer's nodes");
+           auto measurable = prepareScreenshot();
+           g_frames = 0;
+           finish(measurable);
+         }},
+    };
+    g_next = 0;
+    g_wait = 0;
+    tick();
   }
 
   void finish(bool measurable)

@@ -56,6 +56,9 @@ namespace editor
   // The lengths drawn in the last frame
   std::vector<float> measurements();
 
+  // T: the node tree
+  void setTreeVisible(bool on);
+
   // A: the other screens' shapes over this one
   void setAspectPreview(bool on);
 

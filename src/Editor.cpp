@@ -1216,6 +1216,12 @@ std::vector<float> editor::measurements()
   return lengths;
 }
 
+void editor::setTreeVisible(bool on)
+{
+  if (auto overlay = state().overlay)
+    overlay->tree()->setVisible(on);
+}
+
 void editor::setAspectPreview(bool on)
 {
   state().aspectPreview = on;
