@@ -1,0 +1,81 @@
+#pragma once
+
+// The nodes the generated code is compiled and run for: one of every kind of code the generator writes. Each
+// with its own IDs, so they can all be in one scene for the code of all of them
+#include "../../src/core/Codegen.hpp"
+
+#include <string>
+#include <vector>
+
+inline constexpr geom::Size WIN{569, 320};
+inline constexpr geom::Size BOX{200, 100};
+
+inline std::vector<codegen::NodeDesc> samples()
+{
+  using namespace codegen;
+  std::vector<NodeDesc> all;
+  // add returns a pointer into it: no reallocation
+  all.reserve(32);
+  auto add = [&](std::string id, std::string className, std::string parentId, geom::Vec2 position, Frame frame)
+  {
+    NodeDesc node;
+    node.id = std::move(id);
+    node.className = std::move(className);
+    node.parentId = std::move(parentId);
+    node.parentClass = "CCMenu";
+    node.position = position;
+    node.frame = frame;
+    all.push_back(node);
+    return &all.back();
+  };
+  Frame screen{FrameKind::Screen, WIN, {0, 0}};
+  Frame centered{FrameKind::Screen, WIN, {284.5f, 160}};
+  Frame box{FrameKind::Parent, BOX, {}};
+
+  // 0: near the screen's right edge and top
+  add("s0", "CCSprite", "p0", {324.5f, 295}, screen);
+  // 1: a button in a menu as made, scaled
+  auto one = add("s1", "CCMenuItemSpriteExtra", "p1", {40, -135}, centered);
+  one->scaleX = one->scaleY = 1.2f;
+  one->scaleChanged = true;
+  // 2: in a box, its anchor point and z-order changed, scaled unevenly
+  auto two = add("s2", "CCSprite", "p2", {190, 50}, box);
+  two->scaleX = 0.5f;
+  two->scaleY = 0.75f;
+  two->scaleChanged = true;
+  two->anchor = {0, 1};
+  two->anchorChanged = true;
+  two->zOrder = 3;
+  two->zOrderChanged = true;
+  // 3: with AnchorLayoutOptions at the bottom right, which stay
+  auto three = add("s3", "CCSprite", "p3", {150, 30}, box);
+  three->layout = {LayoutKind::Anchor, "AnchorLayout", true, geom::Vec2{1, 0}, std::nullopt};
+  // 4: with AnchorLayoutOptions, the closest anchor
+  auto four = add("s4", "CCSprite", "p4", {190, 90}, box);
+  four->layout = {LayoutKind::Anchor, "AnchorLayout", true, std::nullopt, std::nullopt};
+  // 5: a button in a RowLayout, scaled, with a gap before it
+  auto five = add("s5", "CCMenuItemSpriteExtra", "p5", {60, 20}, box);
+  five->layout = {LayoutKind::Axis, "RowLayout", false, std::nullopt, 7.5f};
+  five->scaleX = five->scaleY = 1.3f;
+  five->scaleChanged = true;
+  // 6: in a SimpleRowLayout
+  auto six = add("s6", "CCSprite", "p6", {60, 20}, box);
+  six->layout = {LayoutKind::SimpleAxis, "SimpleRowLayout", false, std::nullopt, 4.f};
+  six->scaleX = six->scaleY = 0.8f;
+  six->scaleChanged = true;
+  // 7: no ID, the third sprite in its parent
+  auto seven = add("", "CCSprite", "p7", {10, 10}, screen);
+  seven->typeIndex = 2;
+  // 8: no ID, a class the code can't name: the fourth child of its parent
+  auto eight = add("", "`anonymous namespace'::Thing", "p8", {20, 5}, screen);
+  eight->byIndex = true;
+  eight->typeIndex = 3;
+  // 9: no ID anywhere: the lines are for `node`
+  add("", "CCSprite", "", {33.25f, 12.5f}, screen);
+  // 10: an ID with a quote and a backslash in it
+  add("say \"hi\" \\o/", "CCSprite", "p10", {5, 5}, screen);
+  return all;
+}
+
+// The sample without IDs that the code calls `node`
+inline constexpr int NO_ID = 9;

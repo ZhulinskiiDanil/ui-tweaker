@@ -43,3 +43,16 @@ add_test(NAME words COMMAND words-tests)
 
 add_executable(fields-tests FieldsTests.cpp ../src/core/Fields.cpp ../src/core/Expr.cpp)
 add_test(NAME fields COMMAND fields-tests)
+
+# The generated code itself, compiled against a fake of Geode's API and run on fake nodes
+set(CODEGEN_SOURCES ../src/core/Codegen.cpp ../src/core/Expr.cpp ../src/core/Geometry.cpp ../src/core/Words.cpp
+    ../src/core/Text.cpp)
+add_executable(generate-samples compile/GenerateSamples.cpp ${CODEGEN_SOURCES})
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/samples.inc
+    COMMAND generate-samples ${CMAKE_CURRENT_BINARY_DIR}/samples.inc
+    DEPENDS generate-samples
+    COMMENT "Generating the samples' code")
+add_executable(compiled-code-tests compile/RunSamples.cpp ${CMAKE_CURRENT_BINARY_DIR}/samples.inc ${CODEGEN_SOURCES})
+target_include_directories(compiled-code-tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+add_test(NAME compiled-code COMMAND compiled-code-tests)
