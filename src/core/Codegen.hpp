@@ -90,6 +90,8 @@ namespace codegen
     bool anchorChanged = false;
     bool zOrderChanged = false;
     bool sizeChanged = false;
+    bool visible = true;
+    bool visibleChanged = false;
   };
 
   struct Position

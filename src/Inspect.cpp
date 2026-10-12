@@ -178,13 +178,14 @@ bool inspect::NodeState::operator==(NodeState const& other) const
 {
   return position.x == other.position.x && position.y == other.position.y && scaleX == other.scaleX &&
          scaleY == other.scaleY && anchor.x == other.anchor.x && anchor.y == other.anchor.y &&
-         zOrder == other.zOrder && size.width == other.size.width && size.height == other.size.height;
+         zOrder == other.zOrder && size.width == other.size.width && size.height == other.size.height &&
+         visible == other.visible;
 }
 
 inspect::NodeState inspect::stateOf(CCNode* node)
 {
   return {node->getPosition(), node->getScaleX(), node->getScaleY(), node->getAnchorPoint(), node->getZOrder(),
-          node->getContentSize()};
+          node->getContentSize(), node->isVisible()};
 }
 
 void inspect::apply(CCNode* node, NodeState const& state, bool size)
@@ -199,6 +200,8 @@ void inspect::apply(CCNode* node, NodeState const& state, bool size)
     node->setAnchorPoint(state.anchor);
   if (node->getZOrder() != state.zOrder)
     node->setZOrder(state.zOrder);
+  if (node->isVisible() != state.visible)
+    node->setVisible(state.visible);
   if (size && node->getContentSize() != state.size)
   {
     node->setContentSize(state.size);
@@ -500,6 +503,7 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   desc.zOrder = state.zOrder;
   desc.size = {state.size.width, state.size.height};
   desc.hasLayout = node->getLayout() != nullptr;
+  desc.visible = state.visible;
 
   desc.layout = layoutOf(node);
   desc.frame = frameOf(node, desc.layout);
@@ -510,6 +514,7 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
     desc.anchorChanged = original->anchor != state.anchor;
     desc.zOrderChanged = original->zOrder != state.zOrder;
     desc.sizeChanged = original->size != state.size;
+    desc.visibleChanged = original->visible != state.visible;
   }
   return desc;
 }

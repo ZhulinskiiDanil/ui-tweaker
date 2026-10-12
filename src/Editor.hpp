@@ -37,6 +37,8 @@ namespace editor
   void nudge(float dx, float dy);
   // Ctrl+arrows: the anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen
   void stepAnchor(int dx, int dy);
+  // V: the selected nodes hidden, or shown again (the tree has hidden nodes too)
+  void toggleVisible();
   // R: the selected nodes as they were before their first edit, as a step to undo
   void reset();
   // [ and ]: the z-order down or up by one

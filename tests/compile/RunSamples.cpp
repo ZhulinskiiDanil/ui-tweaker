@@ -150,6 +150,8 @@ void checkSample(int index)
     CHECK(close(node->anchor.x, desc.anchor.x) && close(node->anchor.y, desc.anchor.y));
   if (desc.zOrderChanged)
     CHECK(node->zOrder == desc.zOrder);
+  if (desc.visibleChanged)
+    CHECK(node->visible == desc.visible);
   if (desc.sizeChanged)
   {
     CHECK(close(node->size.width, desc.size.width) && close(node->size.height, desc.size.height));

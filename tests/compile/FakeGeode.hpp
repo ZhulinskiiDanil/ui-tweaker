@@ -150,6 +150,8 @@ public:
   void setAnchorPoint(CCPoint const& value) { anchor = value; }
   void setZOrder(int value) { zOrder = value; }
   void setContentSize(CCSize const& value) { size = value; }
+  bool visible = true;
+  void setVisible(bool value) { visible = value; }
   void updateLayout() { layoutUpdates++; }
   int layoutUpdates = 0;
   LayoutOptions* getLayoutOptions() { return options; }

@@ -42,6 +42,7 @@ namespace
     Typed = 6,
     Resize = 7,
     Reset = 8,
+    Visibility = 9,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -272,7 +273,7 @@ namespace
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -1303,6 +1304,9 @@ namespace
     case KEY_R:
       editor::reset();
       break;
+    case KEY_V:
+      editor::toggleVisible();
+      break;
     case KEY_F1:
       if (s.overlay)
         s.overlay->toggleHelp();
@@ -1644,6 +1648,16 @@ void editor::nudge(float dx, float dy)
   if (!s.selected || s.dragging || s.resizing)
     return;
   editAll(Nudge, NUDGE_MERGE, [&](CCNode* each) { each->setPosition(each->getPosition() + ccp(dx, dy)); });
+}
+
+void editor::toggleVisible()
+{
+  auto& s = state();
+  if (!s.selected || s.pressed || s.resizing)
+    return;
+  // Hidden or shown as the first one is: all the same way
+  bool show = !s.selected->isVisible();
+  editAll(Visibility, 0, [show](CCNode* node) { node->setVisible(show); });
 }
 
 void editor::reset()

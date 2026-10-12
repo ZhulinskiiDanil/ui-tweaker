@@ -79,6 +79,10 @@ inline std::vector<codegen::NodeDesc> samples()
   eleven->size = {240, 40};
   eleven->sizeChanged = true;
   eleven->hasLayout = true;
+  // 12: a vanilla button hidden
+  auto twelve = add("s12", "CCMenuItemSpriteExtra", "p12", {50, 50}, screen);
+  twelve->visible = false;
+  twelve->visibleChanged = true;
   return all;
 }
 

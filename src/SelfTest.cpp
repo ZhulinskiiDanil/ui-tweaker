@@ -333,6 +333,12 @@ namespace
           "the code sets the content size");
     check(editor::undo() && inspect::stateOf(node) == before, "undo put the content size back");
 
+    // V: hidden, in the code, back with undo
+    editor::toggleVisible();
+    check(!node->isVisible(), fmt::format("V hid {}", name));
+    check(editor::codeFor(node).find("node->setVisible(false);") != std::string::npos, "the code hides it");
+    check(editor::undo() && node->isVisible() && inspect::stateOf(node) == before, "undo showed it again");
+
     // R: back to before the first edit, undone back to the edit
     editor::nudge(5, 0);
     auto nudged = inspect::stateOf(node);

@@ -36,6 +36,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Ctrl`+arrows | Moves its anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen (the position changes with it) |
 | `[`, `]` | The z-order down, up (in an axis layout that's the order) |
 | `R` | Back to how it was before its first edit: one step to undo |
+| `V` | Hides it (a vanilla button you don't want), or shows it again: the code has `setVisible(false)`. A hidden node is still in the tree (`T`) |
 | `Ctrl+Z`, `Ctrl+Y` | Undo, redo. A turn of the wheel or a run of arrow presses is one step |
 | `Ctrl+C` | Copies the C++ for the selected node |
 | `C` | Shows that code in the panel, as it is now: it changes as you drag |
