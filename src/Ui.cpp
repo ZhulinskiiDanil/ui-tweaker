@@ -2,6 +2,8 @@
 
 #include <Windows.h>
 
+#include <cstdlib>
+
 using namespace geode::prelude;
 
 namespace
@@ -13,6 +15,9 @@ namespace
 
 words::Lang ui::language()
 {
+  // UI_TWEAKER_LANG=en or ru: for screenshots, whatever the setting says
+  if (auto forced = std::getenv("UI_TWEAKER_LANG"))
+    return std::string(forced) == "ru" ? words::Lang::Russian : words::Lang::English;
   auto setting = Mod::get()->getSettingValue<std::string>("language");
   if (setting == "English")
     return words::Lang::English;

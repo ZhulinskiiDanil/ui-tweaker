@@ -4,6 +4,8 @@ A [Geode](https://geode-sdk.org) mod for Geometry Dash, for mod developers: move
 
 <img src="logo.png" width="128" alt="logo">
 
+![Hover, drag, the wheel and Ctrl+Z on the main menu's title, with real mouse and keys](docs/demo.gif)
+
 ![The edit mode in the main menu: the Geode button selected, its panel, the layout's warning](docs/edit-mode.png)
 
 ## Install
@@ -35,6 +37,8 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 
 A button, a label or a 9-slice is picked as a whole: a click on the play button's sprite selects the button.
 
+![The same in Russian](docs/edit-mode-ru.png)
+
 The edit mode speaks English and Russian (the *Language* setting; Auto follows Windows). GD's bitmap fonts have no Cyrillic, so in Russian its text is drawn with TTF labels, rendered again only when they change. The generated code is English either way.
 
 ## The code
@@ -56,7 +60,7 @@ if (auto node = this->getChildByIDRecursive("geode.loader/geode-button"))
 
 ## Self test
 
-`UI_TWEAKER_SELFTEST=1` at launch: in the main menu the mod turns the edit mode on and, with the same calls the mouse and the keys make, picks the play button, the Geode button and a label, drags each by (30, -20), turns the wheel, presses the arrows, generates the code and reads it back (it has to give the node's position exactly), then undoes everything and checks that every value is back, redoes and undoes again. The log ends with `Self test PASS: N checks` or the failures. `tools/check.sh` runs it, takes a screenshot of the game and prints the log's lines.
+`UI_TWEAKER_SELFTEST=1` at launch: in the main menu the mod turns the edit mode on and, with the same calls the mouse and the keys make, picks the play button, the Geode button and a label, drags each by (30, -20), turns the wheel, presses the arrows, generates the code and reads it back (it has to give the node's position exactly), then undoes everything and checks that every value is back, redoes and undoes again. The log ends with `Self test PASS: N checks` or the failures. `tools/check.sh` runs it, takes a screenshot of the game and prints the log's lines. `tools/real-input.sh` drives the edit mode with real mouse and keys (SendInput) and checks each step in the log; `tools/gif.sh` made the GIF above. `UI_TWEAKER_LANG=en` or `ru` overrides the language for screenshots.
 
 ## Build
 
