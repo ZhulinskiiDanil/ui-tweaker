@@ -1,5 +1,6 @@
 # v0.7.0
 
+- `UI_TWEAKER_SELFTEST=tour`: seven scenes of the game, whatever is under a grid of points in each dragged, its code read back and undone (63 nodes, all right)
 - `R` resets the selected nodes to how they were before their first edit
 - Fixes from a third review: nothing else edits a node while it's being resized (the wheel and the arrows waited for nothing and were undone on screen); a resize ends if the window loses focus; handles don't take clicks meant for the tree or Shift+click, and small nodes have no side handles over their middle; labels and sprites have no handles (their size is their text's or texture's); a size is written and put back only when it was set here, not when a label's text or a layout changed it; ProfilePage's hook is `loadPageFromUserInfo`, where its interface is made; "Copy all" starts with Geode's header and namespace, and each hook runs after node-ids' (`setHookPriorityAfter`); right click on the panel's title lets it move out of the way again
 - `F1`'s list of keys is wrapped by whole "key: what" items, inside the screen in both languages

@@ -11,7 +11,10 @@
 #include <Geode/binding/CreatorLayer.hpp>
 #include <Geode/binding/EditorUI.hpp>
 #include <Geode/binding/GJGameLevel.hpp>
+#include <Geode/binding/GJGarageLayer.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
+#include <Geode/binding/LevelSearchLayer.hpp>
+#include <Geode/binding/LevelSelectLayer.hpp>
 #include <Geode/binding/LevelEditorLayer.hpp>
 #include <Geode/binding/MenuLayer.hpp>
 #include <Geode/binding/PlayLayer.hpp>
@@ -20,6 +23,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <functional>
+#include <set>
 
 using namespace geode::prelude;
 
@@ -670,6 +674,77 @@ namespace
                        }});
   }
 
+  // Whatever is under a grid of points in the scene: each node dragged, its code read back, undone. The nodes of
+  // a real scene, with their layouts, turned parents and nested menus, not the ones picked for the test
+  void tourScene(std::string const& name)
+  {
+    auto scene = CCDirector::get()->getRunningScene();
+    auto win = CCDirector::get()->getWinSize();
+    std::set<CCNode*> seen;
+    int edited = 0;
+    editor::setSnapping(false);
+    for (int gx = 1; gx <= 7; gx++)
+      for (int gy = 1; gy <= 5; gy++)
+      {
+        CCPoint point{win.width * gx / 8, win.height * gy / 6};
+        auto hits = inspect::hitsAt(scene, point);
+        if (hits.empty() || seen.contains(hits[0]) || !hits[0]->getParent())
+          continue;
+        auto node = hits[0];
+        seen.insert(node);
+        auto nodeName = inspect::name(node);
+        auto before = inspect::stateOf(node);
+        auto worldBefore = worldPositionOf(node);
+        editor::grab(node, point);
+        editor::dragTo(point + ccp(7, -5));
+        editor::release();
+        auto moved = worldPositionOf(node) - worldBefore;
+        check(close(moved.x, 7, 0.1f) && close(moved.y, -5, 0.1f),
+              fmt::format("{}: {} moved by ({}, {}), not (7, -5)", name, nodeName, moved.x, moved.y));
+        auto problem = inspect::checkCode(node, editor::codeFor(node));
+        check(problem.empty(), fmt::format("{}: the code for {} puts it where it is: {}", name, nodeName, problem));
+        editor::undo();
+        check(inspect::stateOf(node) == before, fmt::format("{}: undo put {} back", name, nodeName));
+        edited++;
+      }
+    editor::setSnapping(std::nullopt);
+    log::info("Self test tour: {}: {} nodes dragged, their code read back, undone", name, edited);
+    // A level is mostly its background under the grid
+    check(edited >= 1, fmt::format("{}: {} nodes under the grid", name, edited));
+  }
+
+  // Scene after scene of the game, each looked through by tourScene
+  void tour()
+  {
+    auto visit = [](std::string name, std::function<CCScene*()> make)
+    {
+      g_steps.push_back({90, [make] { CCDirector::get()->replaceScene(make()); }});
+      g_steps.push_back({2, [name] { tourScene(name); }});
+    };
+    visit("MenuLayer", [] { return MenuLayer::scene(false); });
+    visit("CreatorLayer", [] { return CreatorLayer::scene(); });
+    visit("GJGarageLayer", [] { return GJGarageLayer::scene(); });
+    visit("LevelSelectLayer", [] { return LevelSelectLayer::scene(0); });
+    visit("LevelSearchLayer", [] { return LevelSearchLayer::scene(0); });
+    visit("PlayLayer", [] { return PlayLayer::scene(GameLevelManager::get()->getMainLevel(1, false), false, false); });
+    // Paused in the level: the pause menu's nodes
+    g_steps.push_back({60,
+                       []
+                       {
+                         if (auto play = PlayLayer::get())
+                           play->pauseGame(false);
+                       }});
+    g_steps.push_back({2, [] { tourScene("PauseLayer"); }});
+    g_steps.push_back({120, [] { CCDirector::get()->replaceScene(MenuLayer::scene(false)); }});
+    g_steps.push_back({1,
+                       []
+                       {
+                         auto measurable = prepareScreenshot();
+                         g_frames = 0;
+                         finish(measurable);
+                       }});
+  }
+
   // The level editor with a new level and 3000 objects: a button of its interface edited, and what the hover
   // costs there
   void openEditor()
@@ -965,6 +1040,11 @@ namespace
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "editor")
            {
              openEditor();
+             return;
+           }
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "tour")
+           {
+             tour();
              return;
            }
            auto measurable = prepareScreenshot();
