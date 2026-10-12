@@ -323,7 +323,7 @@ namespace
       m_body = makeLabel(m_panel);
       m_warning = makeLabel(m_panel, {255, 200, 90});
       addChild(m_panel);
-      m_panelTopLeft = ccp(MARGIN, win.height - 22);
+      m_panelTopLeft = ccp(MARGIN, win.height);
 
       auto const& w = ui::words();
       addButton(w.copy, [] { editor::copySelected(); });
@@ -404,6 +404,13 @@ namespace
 
     void togglePanel() { m_panel->setVisible(!m_panel->isVisible()); }
 
+    void toggleHelp()
+    {
+      m_help = !m_help;
+      setBanner();
+      movePanel(m_panelTopLeft);
+    }
+
     TreePanel* tree() const { return m_tree; }
 
   private:
@@ -420,6 +427,7 @@ namespace
     std::vector<UiLabel*> m_shapeLabels;
     std::vector<CCLayerColor*> m_measureTags;
     TreePanel* m_tree = nullptr;
+    bool m_help = false;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
 
@@ -441,13 +449,16 @@ namespace
       auto setting = std::dynamic_pointer_cast<KeybindSettingV3>(Mod::get()->getSetting("toggle-key"));
       std::string key = setting && !setting->getValue().empty() ? setting->getValue()[0].toString() : "F8";
       auto const& w = ui::words();
-      m_bannerText->setString(text::format(w.banner, {key}) + "\n" + w.help1 + "\n" + w.help2);
+      // One line, out of the way of what's at the top of the screen; F1 for every key
+      auto title = text::format(w.banner, {key});
+      m_bannerText->setString(m_help ? title + "\n" + w.help1 + "\n" + w.help2 : title + "   " + w.helpHint);
       auto win = CCDirector::get()->getWinSize();
       auto size = m_bannerText->getScaledContentSize();
       m_banner->setContentSize(size + ccp(MARGIN * 2, MARGIN));
       m_bannerText->setPosition({MARGIN, size.height + MARGIN / 2});
       m_banner->setPosition({(win.width - m_banner->getContentWidth()) / 2, win.height - m_banner->getContentHeight()});
-      m_panelTopLeft = ccp(MARGIN, win.height - m_banner->getContentHeight() - 2);
+      // Under the banner, unless dragged lower already
+      m_panelTopLeft.y = std::min(m_panelTopLeft.y, win.height - m_banner->getContentHeight() - 2);
     }
 
     void drawQuad(geom::Quad const& quad, ccColor4F fill, float border, ccColor4F color)
@@ -850,6 +861,10 @@ namespace
       break;
     case KEY_A:
       s.aspectPreview = !s.aspectPreview;
+      break;
+    case KEY_F1:
+      if (s.overlay)
+        s.overlay->toggleHelp();
       break;
     case KEY_H:
       if (s.overlay)

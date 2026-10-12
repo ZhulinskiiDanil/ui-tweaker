@@ -35,6 +35,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `A` | Other screens: the 16:10, 4:3 and 21:9 screens drawn over this one, the selected node where it would be on each, a red box around every node with an ID that wouldn't fit on one of them. The panel says it too |
 | `T` | The node tree of the scene at the right: every node with its ID and class, the hidden ones grey. A click on a row selects its node, the wheel scrolls it. `/` searches by ID and class (words in any order), `Enter` selects the first match |
 | `H` | Hides the panel. Its title bar drags it |
+| `F1` | Every key in the banner at the top (one line otherwise, out of the way of what's up there) |
 | `Esc` | Unselects, then leaves the edit mode |
 
 A button, a label or a 9-slice is picked as a whole: a click on the play button's sprite selects the button.
@@ -62,7 +63,7 @@ if (auto node = this->getChildByIDRecursive("geode.loader/geode-button"))
 
 ## Self test
 
-`UI_TWEAKER_SELFTEST=1` at launch: in the main menu the mod turns the edit mode on and, with the same calls the mouse and the keys make, picks the play button, the Geode button and a label, drags each by (30, -20), turns the wheel, presses the arrows, generates the code and reads it back (it has to give the node's position exactly), then undoes everything and checks that every value is back, redoes and undoes again. The log ends with `Self test PASS: N checks` or the failures. `tools/check.sh` runs it, takes a screenshot of the game and prints the log's lines. `tools/real-input.sh` drives the edit mode with real mouse and keys (SendInput) and checks each step in the log; `tools/gif.sh` made the GIF above. `UI_TWEAKER_LANG=en` or `ru` overrides the language for screenshots.
+`UI_TWEAKER_SELFTEST=1` at launch (`play` to go on into the first level afterwards and edit its percentage label there, `aspect` to leave the other screens' shapes on): in the main menu the mod turns the edit mode on and, with the same calls the mouse and the keys make, picks the play button, the Geode button and a label, drags each by (30, -20), turns the wheel, presses the arrows, generates the code and reads it back (it has to give the node's position exactly), then undoes everything and checks that every value is back, redoes and undoes again. Then snapping, the anchor point and z-order, the distances; 5000 more sprites in the scene for what the hover and the tree cost (about 2.4 ms for the hover, under 1 ms a frame for the tree here); a node removed while selected, hovered and in the tree; two scene changes with a node selected. The log ends with `Self test PASS: N checks` or the failures. `tools/check.sh` runs it, takes a screenshot of the game and prints the log's lines. `tools/real-input.sh` drives the edit mode with real mouse and keys (SendInput) and checks each step in the log; `tools/gif.sh` made the GIF above. `UI_TWEAKER_LANG=en` or `ru` overrides the language for screenshots.
 
 ## Build
 

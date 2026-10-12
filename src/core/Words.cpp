@@ -4,6 +4,7 @@ namespace
 {
   words::Words const ENGLISH = {
       .banner = "UI Tweaker: edit mode ({} leaves)",
+      .helpHint = "F1: all the keys",
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
       .help2 = "Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
                "inside   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   A: other screens   T: tree   H: panel",
@@ -58,6 +59,7 @@ namespace
 
   words::Words const RUSSIAN = {
       .banner = "UI Tweaker: режим редактирования ({} - выйти)",
+      .helpHint = "F1: все клавиши",
       .help1 = "Тащить: сдвиг   Колесо: масштаб (Shift: точно)   Стрелки: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: "
                "отменить / вернуть",
       .help2 = "Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "

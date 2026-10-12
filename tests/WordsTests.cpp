@@ -12,7 +12,7 @@ namespace
   // Every field, in the order they're declared
   std::vector<std::string const*> fields(Words const& w)
   {
-    return {&w.banner, &w.help1, &w.help2, &w.nothingSelected, &w.clickHint, &w.position, &w.scale, &w.rotation,
+    return {&w.banner, &w.helpHint, &w.help1, &w.help2, &w.nothingSelected, &w.clickHint, &w.position, &w.scale, &w.rotation,
             &w.anchor, &w.ignored, &w.size, &w.zOrder, &w.none, &w.copy, &w.copyAll, &w.undo, &w.redo, &w.leave,
             &w.offScreen, &w.selectFirst, &w.nothingEdited, &w.copiedFor, &w.copiedNodes, &w.treeTitle,
             &w.searchHint, &w.search, &w.anchorLayout, &w.axisLayout, &w.simpleAxisLayout, &w.otherLayout,

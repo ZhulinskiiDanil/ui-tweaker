@@ -6,9 +6,12 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/binding/CreatorLayer.hpp>
+#include <Geode/binding/GameLevelManager.hpp>
 #include <Geode/binding/MenuLayer.hpp>
+#include <Geode/binding/PlayLayer.hpp>
 
 #include <cmath>
+#include <chrono>
 #include <cstdlib>
 #include <functional>
 
@@ -385,6 +388,13 @@ namespace
   // ! --- Over several frames --- !
 
   // Steps run one after another, each followed by its number of frames for the game to go on
+  constexpr int CROWD = 5000;
+
+  double now()
+  {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  }
+
   struct Step
   {
     int frames;
@@ -411,13 +421,95 @@ namespace
     Loader::get()->queueInMainThread(tick);
   }
 
+  // The first main level, the edit mode on in it: a label of the level's interface dragged, its code checked,
+  // undone. The level plays on meanwhile, the player dies and starts again
+  void playLevel()
+  {
+    g_steps.push_back({180,
+                       []
+                       {
+                         auto level = GameLevelManager::get()->getMainLevel(1, false);
+                         CCDirector::get()->replaceScene(PlayLayer::scene(level, false, false));
+                       }});
+    g_steps.push_back({30,
+                       []
+                       {
+                         auto scene = CCDirector::get()->getRunningScene();
+                         check(scene && scene->getChildByType<PlayLayer>(0), "the level is playing");
+                         check(editor::active(), "the edit mode is on in the level");
+                         auto label = findLabel(scene);
+                         check(label != nullptr, "a label is in the level");
+                         if (!label)
+                           return;
+                         Case item{Retained<CCNode>(label), {}, {}};
+                         edit(item);
+                         int undone = 0;
+                         while (editor::undo())
+                           undone++;
+                         check(inspect::stateOf(label) == item.before, "undo put the level's label back");
+                         editor::select(label);
+                         editor::pinMouse(std::nullopt);
+                         editor::setMeasuring(std::nullopt);
+                       }});
+    g_steps.push_back({1,
+                       []
+                       {
+                         g_frames = 0;
+                         finish(false);
+                       }});
+  }
+
   // A node removed while it's selected, hovered, in the history and in the tree; then the scene replaced while
   // a node is selected, an edit in the new scene, and back to the main menu
   void edgeCases()
   {
     static Retained<CCNode> temp;
     static CCPoint middle;
+    static Retained<CCNode> crowd;
+    static double frameStart = 0;
+    static std::vector<double> frameTimes;
     g_steps = {
+        // A crowded scene, like a level in the editor: 5000 sprites. What the hover and the tree cost then
+        {1,
+         []
+         {
+           auto win = CCDirector::get()->getWinSize();
+           auto node = CCNode::create();
+           node->setID("selftest-crowd"_spr);
+           for (int i = 0; i < CROWD; i++)
+           {
+             auto sprite = CCSprite::createWithSpriteFrameName("square_01_001.png");
+             if (!sprite)
+               sprite = CCSprite::create();
+             sprite->setPosition({static_cast<float>(i % 100) * win.width / 100, static_cast<float>(i / 100) * 5});
+             sprite->setScale(0.2f);
+             node->addChild(sprite);
+           }
+           CCDirector::get()->getRunningScene()->addChild(node, -1);
+           crowd = Retained<CCNode>(node);
+
+           auto start = now();
+           size_t hits = 0;
+           for (int i = 0; i < 10; i++)
+             hits += inspect::hitsAt(CCDirector::get()->getRunningScene(), {win.width / 2, 20}).size();
+           auto millis = (now() - start) * 100;
+           log::info("Self test: what's under the mouse among {} more nodes: {:.2f} ms ({} hits)", CROWD, millis, hits / 10);
+           check(millis < 30, fmt::format("the hover in a crowded scene takes {:.2f} ms", millis));
+           editor::setTreeVisible(true);
+           frameTimes.clear();
+           frameStart = now();
+         }},
+        {30,
+         []
+         {
+           // The frames with the tree open over the crowd, the edit mode drawing as it does
+           auto millis = (now() - frameStart) * 1000 / 30;
+           log::info("Self test: a frame with the tree open over {} more nodes: {:.2f} ms on average", CROWD, millis);
+           check(millis < 50, fmt::format("a frame with the tree open in a crowded scene takes {:.2f} ms", millis));
+           editor::setTreeVisible(false);
+           crowd->removeFromParent();
+           crowd.reset();
+         }},
         {3,
          []
          {
@@ -487,6 +579,11 @@ namespace
          {
            check(editor::active(), "the edit mode is on after two scene changes");
            check(editor::historySize() == 0, "the history forgot the creator layer's nodes");
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "play")
+           {
+             playLevel();
+             return;
+           }
            auto measurable = prepareScreenshot();
            g_frames = 0;
            finish(measurable);

@@ -15,6 +15,7 @@ namespace words
   struct Words
   {
     std::string banner;      // {}: the toggle key
+    std::string helpHint;
     std::string help1;
     std::string help2;
     std::string nothingSelected;
