@@ -1015,7 +1015,13 @@ namespace
         auto label = m_shapeLabels[i];
         label->setVisible(true);
         label->setColor(ccc3(color.r * 255, color.g * 255, color.b * 255));
-        label->setPosition(convertToNodeSpace({std::max(left, 0.f) + 2, 12.f + 9.f * i}));
+        CCPoint at{std::max(left, 0.f) + 2, 12.f + 9.f * i};
+        label->setPosition(convertToNodeSpace(at));
+        // On a dark plate: colored text alone is lost on a busy screen (a logo of the same color)
+        auto size = label->getScaledContentSize();
+        geom::Quad plate{{geom::Vec2{at.x - 1.5f, at.y - 0.5f}, {at.x + size.width + 1.5f, at.y - 0.5f},
+                          {at.x + size.width + 1.5f, at.y + size.height + 0.5f}, {at.x - 1.5f, at.y + size.height + 0.5f}}};
+        drawQuad(plate, {0.f, 0.f, 0.f, 0.7f}, 0.f, none);
         if (selected)
         {
           auto box = aspect::move(inspect::worldQuad(selected).bounds(), win.width, width);

@@ -203,6 +203,8 @@
   Tweaker with its logo and description, installed v0.8.0; its releases cache has all 8 of them with the `.geode`,
   fetched without a token. The list says "No releases yet" while *Include pre-releases* is off (it is here), as
   for the other betas (Crash Doctor, Mod Profiler): their releases are pre-releases too.
+- 20:15 own: the other screens' names were colored text alone, lost over the vanilla menu's RobTop logo (green
+  and yellow on orange); now on dark plates. `aspect` PASS 131, looked at.
 
 ## Checks
 

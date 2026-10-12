@@ -2,6 +2,7 @@
 
 - Russian text in the panel is wrapped as wide as English: lines are counted in letters, not bytes
 - The self test's snapping check passes in a vanilla main menu too, where the play button's row is centered a point off the screen's middle
+- The other screens' names (16:10, 4:3, 21:9) are on dark plates, readable over a logo of their own color
 - README: the GIF and the screenshots made again in a clean, near-vanilla game
 
 # v0.8.0
