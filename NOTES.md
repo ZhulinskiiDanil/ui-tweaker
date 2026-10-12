@@ -160,6 +160,12 @@
 - 18:56 own: `UI_TWEAKER_SELFTEST=tour`: seven scenes, whatever is under a 7x5 grid dragged, its code read back,
   undone; with Alt picks too: 119 real nodes, 480 checks, all right.
 
+- 19:02 own: the code's layout comments wrapped at 100 columns; README "how it goes".
+- 19:05 own: the panel says what a node shows (frame name, font and text): `play-button shows GJ_playBtn_001.png`.
+- 19:09 soak (`tools/soak.sh 60`): 60 rounds of a real drag, the wheel and two Ctrl+Z with the tree and the code
+  view open, in Russian (TTF labels re-rendered as values change): the game's private memory 3173.3 MB at round 20,
+  3173.5 at 40, 3173.4 at 60. No leak.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |
