@@ -726,6 +726,9 @@ namespace
     std::vector<CCLayerColor*> m_measureTags;
     TreePanel* m_tree = nullptr;
     bool m_panelPlaced = false;
+    // The selected node's look, and which node it's of (compared only)
+    CCNode* m_lookNode = nullptr;
+    std::string m_look;
     bool m_help = false;
     CCPoint m_panelTopLeft;
     std::string m_panelKey;
@@ -849,6 +852,14 @@ namespace
                "   " + text::format(w.size, {number(size.width), number(size.height)}) + "\n" +
                text::format(w.zOrder, {std::to_string(info.zOrder),
                                        text::fit(parent ? inspect::name(parent) : w.none, 26)});
+        // A sprite's frame, a label's font: looked for once a node, they go through every frame
+        if (node != m_lookNode)
+        {
+          m_lookNode = node;
+          m_look = inspect::lookOf(node);
+        }
+        if (!m_look.empty())
+          body += "\n" + text::format(w.look, {text::fit(m_look, PANEL_COLUMNS - 10)});
         // The layout's warning says what the code does about it, the other reasons come after it
         auto facts = inspect::factsOf(node);
         std::vector<std::string> reasons;

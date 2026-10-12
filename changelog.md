@@ -1,5 +1,6 @@
 # v0.8.0
 
+- The panel says what the node shows: a sprite's or a button's frame name, a label's font and text, to make one like it
 - The layout warnings in the code are wrapped at a hundred columns, as code is
 - README: how it goes, in three steps
 

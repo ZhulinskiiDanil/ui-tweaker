@@ -440,6 +440,15 @@ namespace
     for (auto& item : cases)
       edit(item);
 
+    // What a button shows: its sprite's frame name, to make one like it
+    for (auto& item : cases)
+      if (typeinfo_cast<CCMenuItemSpriteExtra*>(item.node.get()))
+      {
+        auto look = inspect::lookOf(item.node.get());
+        log::info("Self test: {} shows {}", inspect::name(item.node.get()), look);
+        check(!look.empty(), fmt::format("the frame of {} is found", inspect::name(item.node.get())));
+      }
+
     auto edited = editor::editedNodes();
     check(edited.size() == cases.size(), fmt::format("{} nodes edited, {} expected", edited.size(), cases.size()));
     auto all = editor::codeForAll();

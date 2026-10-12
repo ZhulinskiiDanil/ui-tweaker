@@ -58,6 +58,10 @@ namespace inspect
   // The layout of the node's parent, as far as the code is concerned
   codegen::LayoutInfo layoutOf(cocos2d::CCNode* node);
 
+  // What the node shows, to make one like it: a sprite's frame name, a label's font and text. Empty if it's
+  // nothing of those. Goes through every sprite frame: not for every frame
+  std::string lookOf(cocos2d::CCNode* node);
+
   // What could make the node not move, not show or act oddly
   explain::Facts factsOf(cocos2d::CCNode* node);
 

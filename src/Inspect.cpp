@@ -2,6 +2,7 @@
 
 #include "Ui.hpp"
 #include "core/Expr.hpp"
+#include "core/Text.hpp"
 #include "core/Hooks.hpp"
 
 #include <Geode/binding/CCScrollLayerExt.hpp>
@@ -376,6 +377,39 @@ codegen::LayoutInfo inspect::layoutOf(CCNode* node)
   else
     info.kind = codegen::LayoutKind::Other;
   return info;
+}
+
+namespace
+{
+  // The name the sprite's frame is cached under, if it's one
+  std::string frameName(CCSprite* sprite)
+  {
+    auto frames = CCSpriteFrameCache::get()->m_pSpriteFrames;
+    if (!sprite || !frames)
+      return "";
+    auto texture = sprite->getTexture();
+    auto rect = sprite->getTextureRect();
+    for (auto [name, frame] : CCDictionaryExt<std::string, CCSpriteFrame*>(frames))
+      if (frame->getTexture() == texture && frame->getRect().equals(rect))
+        return name;
+    return "";
+  }
+} // namespace
+
+std::string inspect::lookOf(CCNode* node)
+{
+  if (auto label = typeinfo_cast<CCLabelBMFont*>(node))
+    return fmt::format("{}: \"{}\"", label->getFntFile() ? label->getFntFile() : "?",
+                       text::fit(label->getString() ? label->getString() : "", 24));
+  if (auto label = typeinfo_cast<CCLabelTTF*>(node))
+    return fmt::format("{}: \"{}\"", label->getFontName() ? label->getFontName() : "?",
+                       text::fit(label->getString() ? label->getString() : "", 24));
+  // A button shows its sprite
+  if (auto button = typeinfo_cast<CCMenuItemSprite*>(node))
+    node = button->getNormalImage();
+  if (auto sprite = typeinfo_cast<CCSprite*>(node))
+    return frameName(sprite);
+  return "";
 }
 
 explain::Facts inspect::factsOf(CCNode* node)

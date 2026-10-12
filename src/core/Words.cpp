@@ -61,6 +61,7 @@ namespace
       .typingHint = "Tab: next   Enter: apply   Esc: cancel   w h: screen, pw ph: parent",
       .typingError = "Can't read {}",
       .selectedCount = "{} selected",
+      .look = "shows {}",
   };
 
   words::Words const RUSSIAN = {
@@ -120,6 +121,7 @@ namespace
       .typingHint = "Tab: дальше   Enter: применить   Esc: отмена   w h: экран, pw ph: родитель",
       .typingError = "Не читается {}",
       .selectedCount = "Выбрано: {}",
+      .look = "показывает {}",
   };
 } // namespace
 

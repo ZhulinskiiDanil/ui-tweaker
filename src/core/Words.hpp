@@ -71,6 +71,8 @@ namespace words
     std::string typingError;
     // How many nodes are selected, with Shift+click
     std::string selectedCount;
+    // What the node shows: {} a frame name, a font and text
+    std::string look;
   };
 
   Words const& get(Lang lang);
