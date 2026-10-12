@@ -34,6 +34,8 @@ namespace inspect
   std::string name(cocos2d::CCNode* node);
 
   geom::Affine toGeom(cocos2d::CCAffineTransform const& transform);
+  // What the node keeps for its transform, for the math in core
+  geom::NodeTransform transformOf(cocos2d::CCNode* node);
   // The node's content box on the screen
   geom::Quad worldQuad(cocos2d::CCNode* node);
 

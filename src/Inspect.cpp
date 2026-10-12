@@ -182,6 +182,25 @@ geom::Affine inspect::toGeom(CCAffineTransform const& transform)
   return {transform.a, transform.b, transform.c, transform.d, transform.tx, transform.ty};
 }
 
+geom::NodeTransform inspect::transformOf(CCNode* node)
+{
+  geom::NodeTransform transform;
+  auto position = node->getPosition();
+  auto anchor = node->getAnchorPoint();
+  auto size = node->getContentSize();
+  transform.position = {position.x, position.y};
+  transform.anchor = {anchor.x, anchor.y};
+  transform.content = {size.width, size.height};
+  transform.scaleX = node->getScaleX();
+  transform.scaleY = node->getScaleY();
+  transform.rotationX = node->getRotationX();
+  transform.rotationY = node->getRotationY();
+  transform.skewX = node->getSkewX();
+  transform.skewY = node->getSkewY();
+  transform.ignoreAnchor = node->isIgnoreAnchorPointForPosition();
+  return transform;
+}
+
 geom::Quad inspect::worldQuad(CCNode* node)
 {
   auto size = node->getContentSize();

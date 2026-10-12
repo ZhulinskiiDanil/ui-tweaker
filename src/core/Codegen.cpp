@@ -86,9 +86,7 @@ namespace
         out << scaleLines(node, indent);
       // The position itself, for a node taken out of the layout
       out << indent << "// Without the layout: node->setPosition({" << x << ", " << y << "});\n";
-      result.usesWinSize = false;
-      result.lines = out.str();
-      return result;
+      // The anchor and the z-order below still count: the z-order is the order in the layout
     }
     else
     {

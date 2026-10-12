@@ -17,6 +17,7 @@
 #include <Geode/ui/OverlayManager.hpp>
 #include <Geode/utils/Keyboard.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -32,6 +33,8 @@ namespace
     Drag = 1,
     Wheel = 2,
     Nudge = 3,
+    Reanchor = 4,
+    Order = 5,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -154,7 +157,7 @@ namespace
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now()}, merge);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -756,17 +759,24 @@ namespace
         tree->setTyping(true);
       }
       break;
+    // Ctrl with an arrow moves the anchor point instead, the node staying where it is
     case KEY_Left:
-      editor::nudge(-step, 0);
+      control ? editor::stepAnchor(-1, 0) : editor::nudge(-step, 0);
       break;
     case KEY_Right:
-      editor::nudge(step, 0);
+      control ? editor::stepAnchor(1, 0) : editor::nudge(step, 0);
       break;
     case KEY_Up:
-      editor::nudge(0, step);
+      control ? editor::stepAnchor(0, 1) : editor::nudge(0, step);
       break;
     case KEY_Down:
-      editor::nudge(0, -step);
+      control ? editor::stepAnchor(0, -1) : editor::nudge(0, -step);
+      break;
+    case KEY_LeftBracket:
+      editor::stepZOrder(-1);
+      break;
+    case KEY_RightBracket:
+      editor::stepZOrder(1);
       break;
     case KEY_Z:
       if (control)
@@ -1018,6 +1028,42 @@ void editor::nudge(float dx, float dy)
   auto before = inspect::stateOf(node);
   node->setPosition(before.position + ccp(dx, dy));
   record(node, before, Nudge, NUDGE_MERGE);
+}
+
+void editor::stepAnchor(int dx, int dy)
+{
+  auto& s = state();
+  if (!s.selected || s.dragging)
+    return;
+  auto node = s.selected.get();
+  auto before = inspect::stateOf(node);
+  // To the next of 0, 0.5 and 1 on each axis, as far as 0 and 1
+  auto next = [](float value, int direction)
+  {
+    if (direction == 0)
+      return value;
+    float stepped = direction > 0 ? std::floor(value * 2 + 1e-4f) / 2 + 0.5f : std::ceil(value * 2 - 1e-4f) / 2 - 0.5f;
+    return std::clamp(stepped, 0.f, 1.f);
+  };
+  CCPoint anchor{next(before.anchor.x, dx), next(before.anchor.y, dy)};
+  if (anchor == before.anchor)
+    return;
+  auto transform = inspect::transformOf(node);
+  auto position = geom::positionForAnchor(transform, {anchor.x, anchor.y});
+  node->setAnchorPoint(anchor);
+  node->setPosition({position.x, position.y});
+  record(node, before, Reanchor, 0);
+}
+
+void editor::stepZOrder(int delta)
+{
+  auto& s = state();
+  if (!s.selected || s.dragging)
+    return;
+  auto node = s.selected.get();
+  auto before = inspect::stateOf(node);
+  node->setZOrder(before.zOrder + delta);
+  record(node, before, Order, NUDGE_MERGE);
 }
 
 bool editor::undo()

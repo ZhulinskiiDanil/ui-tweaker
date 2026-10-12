@@ -140,6 +140,12 @@ namespace
     CHECK(has(code, "\n  node->setScale(1.2f);"));
     CHECK(has(layoutWarning(node), "SimpleRowLayout"));
 
+    // In a layout the z-order is the order: still written
+    node.zOrder = 3;
+    node.zOrderChanged = true;
+    CHECK(has(generate(node), "node->setZOrder(3);"));
+    node.zOrderChanged = false;
+
     node.layout = {LayoutKind::Other, "GridLayout", false, std::nullopt};
     CHECK(has(layoutWarning(node), "GridLayout"));
     CHECK(has(generate(node), "node->setPosition"));

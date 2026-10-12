@@ -1,6 +1,8 @@
 # v0.3.0
 
 - Russian and English (the *Language* setting, Auto follows Windows): TTF labels in Russian, since GD's bitmap fonts have no Cyrillic. The generated code stays English
+- `Ctrl`+arrows move the anchor point (the node stays in place), `[` and `]` the z-order; both undo and are in the code
+- The code for a node in an axis layout has its anchor point and z-order too
 - With Improved Logger: the selection and the count of edited nodes pinned in its console, a marker when code is copied
 
 # v0.2.0

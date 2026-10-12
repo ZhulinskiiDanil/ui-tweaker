@@ -30,6 +30,10 @@ namespace editor
   void wheel(float notches, bool fine);
   // Moves the selected node by this much in its parent's space
   void nudge(float dx, float dy);
+  // Ctrl+arrows: the anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen
+  void stepAnchor(int dx, int dy);
+  // [ and ]: the z-order down or up by one
+  void stepZOrder(int delta);
   bool undo();
   bool redo();
   // Tab: the next press or hover takes the next node under the mouse, deeper each time

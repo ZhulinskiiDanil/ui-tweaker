@@ -234,6 +234,34 @@ namespace
     editor::setSnapping(std::nullopt);
   }
 
+  // Ctrl+arrows move the anchor point and keep the node where it is; [ and ] change the z-order. Both undo
+  void anchorAndOrder(CCNode* node)
+  {
+    auto name = inspect::name(node);
+    auto before = inspect::stateOf(node);
+    auto quad = inspect::worldQuad(node);
+    editor::select(node);
+    int direction = before.anchor.x > 0.25f ? -1 : 1;
+    editor::stepAnchor(direction, direction);
+    auto moved = inspect::stateOf(node);
+    check(!(moved.anchor == before.anchor), fmt::format("Ctrl+arrows moved the anchor point of {}", name));
+    auto after = inspect::worldQuad(node);
+    bool still = true;
+    for (size_t i = 0; i < 4; i++)
+      still = still && close(after.corners[i].x, quad.corners[i].x) && close(after.corners[i].y, quad.corners[i].y);
+    check(still, fmt::format("{} stayed where it was with its new anchor point", name));
+    auto code = editor::codeFor(node);
+    check(code.find("setAnchorPoint") != std::string::npos, fmt::format("the code for {} sets the anchor point", name));
+    auto problem = inspect::checkCode(node, code);
+    check(problem.empty(), fmt::format("the code with the new anchor point puts {} where it is: {}", name, problem));
+
+    editor::stepZOrder(1);
+    check(node->getZOrder() == before.zOrder + 1, fmt::format("] raised the z-order of {}", name));
+    check(editor::codeFor(node).find("setZOrder") != std::string::npos, "the code sets the z-order");
+    check(editor::undo() && editor::undo(), "the anchor and the z-order are two steps to undo");
+    check(inspect::stateOf(node) == before, fmt::format("undo put back the anchor and the z-order of {}", name));
+  }
+
   void run(MenuLayer* layer)
   {
     log::info("Self test: start");
@@ -303,7 +331,10 @@ namespace
       if (visibleInTree(item.node.get()))
         shown.push_back(item.node.get());
     if (!shown.empty())
+    {
       snapping(shown[0]);
+      anchorAndOrder(shown[0]);
+    }
 
     // For the screenshot: the first visible one selected, the mouse over the next visible one
     if (!shown.empty())
