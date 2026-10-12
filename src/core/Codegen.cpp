@@ -262,3 +262,54 @@ std::string codegen::generateAll(std::vector<NodeDesc> const& nodes)
   }
   return out.str();
 }
+
+std::string codegen::toKAndR(std::string const& code)
+{
+  std::vector<std::string> lines;
+  size_t start = 0;
+  while (start <= code.size())
+  {
+    auto end = code.find(char(10), start);
+    if (end == std::string::npos)
+    {
+      if (start < code.size())
+        lines.push_back(code.substr(start));
+      break;
+    }
+    lines.push_back(code.substr(start, end - start));
+    start = end + 1;
+  }
+
+  std::string out;
+  for (size_t i = 0; i < lines.size(); i++)
+  {
+    auto const& line = lines[i];
+    auto indent = line.find_first_not_of(' ');
+    if (indent == std::string::npos)
+    {
+      out += char(10);
+      continue;
+    }
+    auto body = line.substr(indent);
+    // A brace alone goes up to the line before, unless that line is a comment or nothing
+    if (body == "{" && !out.empty())
+    {
+      auto last = out.find_last_not_of(char(10));
+      auto lineStart = out.rfind(char(10), last);
+      auto previous = out.substr(lineStart == std::string::npos ? 0 : lineStart + 1, last - (lineStart == std::string::npos ? 0 : lineStart + 1) + 1);
+      auto previousBody = previous.substr(std::min(previous.find_first_not_of(' '), previous.size()));
+      if (!previousBody.empty() && previousBody.rfind("//", 0) != 0 && out.back() == char(10) && last + 1 == out.size() - 1)
+      {
+        out.pop_back();
+        out += " {";
+        out += char(10);
+        continue;
+      }
+    }
+    out += std::string(indent * 2, ' ') + body;
+    out += char(10);
+  }
+  if (!code.empty() && code.back() != char(10) && !out.empty())
+    out.pop_back();
+  return out;
+}

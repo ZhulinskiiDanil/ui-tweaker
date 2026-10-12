@@ -118,4 +118,8 @@ namespace codegen
 
   // Many nodes in one block, each with a comment saying which node it is
   std::string generateAll(std::vector<NodeDesc> const& nodes);
+
+  // The code is made with braces on their own lines and 2 spaces (Allman); this gives it with the opening brace at
+  // the end of the line before and 4 spaces (K&R), as most Geode mods are written
+  std::string toKAndR(std::string const& code);
 } // namespace codegen

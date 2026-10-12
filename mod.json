@@ -58,6 +58,16 @@
 				"English",
 				"Russian"
 			]
+		},
+		"code-style": {
+			"name": "Code style",
+			"description": "How the copied code is laid out: braces on their own lines with 2 spaces, or at the end of the line with 4 spaces as most Geode mods are written",
+			"type": "string",
+			"default": "Allman, 2 spaces",
+			"one-of": [
+				"Allman, 2 spaces",
+				"K&R, 4 spaces"
+			]
 		}
 	}
 }

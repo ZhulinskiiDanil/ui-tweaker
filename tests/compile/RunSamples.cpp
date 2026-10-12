@@ -180,6 +180,13 @@ void runHooks()
     checkSample(2);
   }
   {
+    // In K&R style
+    Hooked_GJGarageLayer layer;
+    buildScene(layer);
+    CHECK(static_cast<GJGarageLayer&>(layer).init());
+    checkSample(3);
+  }
+  {
     Hooked_LevelSelectLayer layer;
     buildScene(layer);
     CHECK(static_cast<LevelSelectLayer&>(layer).init(3));

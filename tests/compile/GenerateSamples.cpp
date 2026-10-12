@@ -40,5 +40,7 @@ int main(int argc, char** argv)
   hooksOut << hooks::wrap("MenuLayer", codegen::generateAll({all[0], all[1]})) << "\n";
   hooksOut << hooks::wrap("PauseLayer", codegen::generateAll({all[2]})) << "\n";
   hooksOut << hooks::wrap("LevelSelectLayer", codegen::generateAll({all[4]})) << "\n";
+  // And one in K&R style
+  hooksOut << codegen::toKAndR(hooks::wrap("GJGarageLayer", codegen::generateAll({all[3]}))) << "\n";
   return 0;
 }

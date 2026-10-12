@@ -237,6 +237,22 @@ namespace
     CHECK(has(code, "node->setZOrder(5);"));
   }
 
+  void styles()
+  {
+    auto code = toKAndR(generate(onScreen({324.5f, 295})));
+    CHECK(has(code, "if (auto node = this->getChildByIDRecursive(\"play-button\")) {\n"));
+    CHECK(has(code, "\n    auto winSize = CCDirector::get()->getWinSize();\n"));
+    CHECK(has(code, "\n    node->setPosition({winSize.width / 2 + 40.f, winSize.height - 25.f});\n}\n"));
+    // A brace after a comment stays on its own line: a comment can't end with it
+    auto loose = onScreen({10, 10});
+    loose.id = loose.parentId = "";
+    code = toKAndR(generate(loose));
+    CHECK(has(code, "with `node` being it\n{\n    node->setPosition({10.f, 10.f});\n}"));
+    // Empty lines stay empty; a block of all of them too
+    code = toKAndR("a\n\nif (x)\n{\n  b();\n}\n");
+    CHECK(code == "a\n\nif (x) {\n    b();\n}\n");
+  }
+
   void everything()
   {
     auto first = onScreen({324.5f, 295});
@@ -285,6 +301,7 @@ int main()
   lookups();
   properties();
   everything();
+  styles();
   roundTrips();
   return finish("codegen");
 }

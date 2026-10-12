@@ -1,5 +1,6 @@
 # v0.8.0
 
+- The *Code style* setting: braces on their own lines with 2 spaces, or K&R with 4 spaces as most Geode mods are written; both compiled in the tests
 - `V` hides the selected nodes, or shows them again, as a step to undo: the code has `setVisible(false)`
 - The self test also edits a button in nested menus, turned, flipped and scaled
 - The panel says what the node shows: a sprite's or a button's frame name, a label's font and text, to make one like it

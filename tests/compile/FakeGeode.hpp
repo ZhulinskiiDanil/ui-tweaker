@@ -221,3 +221,9 @@ class PauseLayer : public CCNode
 public:
   virtual void customSetup() {}
 };
+
+class GJGarageLayer : public CCNode
+{
+public:
+  virtual bool init() { return true; }
+};

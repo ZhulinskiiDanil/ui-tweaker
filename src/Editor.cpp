@@ -234,6 +234,14 @@ namespace
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
   }
 
+  // The code laid out as the setting says
+  std::string styled(std::string code)
+  {
+    if (Mod::get()->getSettingValue<std::string>("code-style") == "K&R, 4 spaces")
+      return codegen::toKAndR(code);
+    return code;
+  }
+
   bool isSized(CCNode* node)
   {
     auto const& sized = state().sized;
@@ -1932,7 +1940,7 @@ std::string editor::codeFor(CCNode* node)
 {
   if (!node)
     return "";
-  return codegen::generate(describeEdited(node));
+  return styled(codegen::generate(describeEdited(node)));
 }
 
 std::vector<CCNode*> editor::editedNodes()
@@ -1991,7 +1999,7 @@ std::string editor::codeForAll()
   std::string code = hooks::preamble();
   for (auto const& [layer, descs] : groups)
     code += "\n// ! --- In " + layer + " --- !\n\n" + hooks::wrap(layer, codegen::generateAll(descs));
-  return code;
+  return styled(code);
 }
 
 size_t editor::editedCount()
@@ -2017,7 +2025,7 @@ void editor::copySelected()
     std::vector<codegen::NodeDesc> descs;
     for (auto each : nodes)
       descs.push_back(describeEdited(each));
-    auto code = codegen::generateAll(descs);
+    auto code = styled(codegen::generateAll(descs));
     clipboard::write(code);
     log::info("Code for {} selected nodes:\n{}", nodes.size(), code);
     Notification::create(text::format(ui::words().copiedNodes, {std::to_string(nodes.size())}), NotificationIcon::Success,
