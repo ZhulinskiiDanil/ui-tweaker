@@ -1,3 +1,9 @@
+# v0.8.1
+
+- Russian text in the panel is wrapped as wide as English: lines are counted in letters, not bytes
+- The self test's snapping check passes in a vanilla main menu too, where the play button's row is centered a point off the screen's middle
+- README: the GIF and the screenshots made again in a clean, near-vanilla game
+
 # v0.8.0
 
 - Fixes from a fourth review: visibility the game changes (a tab switched) isn't an edit: not in the code, not put back by undo; the panel's look of a node is the node's, a label's text as it is now; the tree keeps hidden and search colors over the edited one; Ctrl+V and Ctrl+R don't hide or reset; K&R never puts a brace after a comment; names cut at a letter, not inside one

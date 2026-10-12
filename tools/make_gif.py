@@ -23,8 +23,13 @@ for name, (cx, cy) in zip(names, cursors):
     height = round(frame.size[1] * width / frame.size[0])
     frames.append(frame.resize((width, height), Image.LANCZOS))
 
-# One palette for all, so the colors don't flicker
-palette = frames[len(frames) // 2].quantize(colors=200, method=Image.Quantize.MEDIANCUT)
+# One palette for all, so the GIF stays small and the colors don't flicker; made from frames across the whole
+# of it, as the main menu's background goes through every hue
+picks = frames[:: max(1, len(frames) // 8)]
+sheet = Image.new("RGB", (frames[0].size[0], frames[0].size[1] * len(picks)))
+for i, frame in enumerate(picks):
+    sheet.paste(frame, (0, frames[0].size[1] * i))
+palette = sheet.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
 quantized = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
 quantized[0].save(out, save_all=True, append_images=quantized[1:], duration=90, loop=0, optimize=True)
 print(out, len(frames), "frames", os.path.getsize(out) // 1024, "KB")

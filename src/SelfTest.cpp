@@ -228,8 +228,19 @@ namespace
       editor::setSnapping(on);
       auto bounds = inspect::worldQuad(node).bounds();
       CCPoint from{bounds.midX(), bounds.midY()};
-      // Halfway up the screen too, so it snaps on both axes
-      CCPoint to{win.width / 2 + 1, win.height / 2 - 1};
+      // Halfway up the screen too, so it snaps on both axes. On the side where the screen's middle is the closest
+      // guide: its parent or a sibling centered a point off the middle is snapped to instead, rightly
+      CCPoint middle{win.width / 2, win.height / 2};
+      CCPoint to = middle + ccp(1, -1);
+      for (auto off : {ccp(1, -1), ccp(1, 1), ccp(-1, -1), ccp(-1, 1)})
+      {
+        auto snapped = editor::snappedCenter(node, middle + off);
+        if (close(snapped.x, middle.x) && close(snapped.y, middle.y))
+        {
+          to = middle + off;
+          break;
+        }
+      }
       editor::pinMouse(from);
       editor::grab(node, from);
       for (int step = 1; step <= 4; step++)
@@ -241,7 +252,7 @@ namespace
               fmt::format("{} snapped to the middle of the screen: its center at ({}, {})", name, after.midX(),
                           after.midY()));
       else
-        check(close(after.midX(), win.width / 2 + 1, 0.05f) && close(after.midY(), win.height / 2 - 1, 0.05f),
+        check(close(after.midX(), to.x, 0.05f) && close(after.midY(), to.y, 0.05f),
               fmt::format("{} didn't snap with snapping off: its center at ({}, {})", name, after.midX(),
                           after.midY()));
       check(editor::undo(), "the snapped drag is one step to undo");

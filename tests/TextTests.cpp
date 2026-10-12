@@ -26,7 +26,16 @@ int main()
   CHECK(fit("CCMenuItemSpriteExtra", 10) == "CCMenuIt..");
   CHECK(fit("short", 10) == "short");
   CHECK(fit("abc", 2) == "ab");
-  // Not inside a letter of two bytes: "привет" cut at 5 bytes is 2 letters, not 2 and a half
-  CHECK(fit("привет", 7) == "пр..");
+  // Letters, not bytes: "привет" is 6 letters of 12 bytes
+  CHECK(fit("привет", 6) == "привет");
+  CHECK(fit("привет", 5) == "при..");
+  CHECK(fit("привет", 2) == "пр");
+
+  // A Russian line is as long as an English one: "вернёт ноду в ряд," is 18 letters
+  lines = wrap("вернёт ноду в ряд, позиция потеряется", 20);
+  CHECK(lines.size() == 2 && lines[0] == "вернёт ноду в ряд," && lines[1] == "позиция потеряется");
+  // A long Russian word is cut at letters
+  lines = wrap("абвгдеж", 3);
+  CHECK(lines.size() == 3 && lines[0] == "абв" && lines[1] == "где" && lines[2] == "ж");
   return finish("text");
 }

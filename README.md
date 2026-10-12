@@ -6,7 +6,7 @@ A [Geode](https://geode-sdk.org) mod for Geometry Dash, for mod developers: move
 
 <img src="logo.png" width="128" alt="logo">
 
-![The main menu's title selected with real mouse and keys, the panel moving out of its way, resized by a handle, dragged past the guides, scaled, undone; the code view shows its code as it changes](docs/demo.gif)
+![The main menu's title selected with real mouse and keys, dragged until it snaps to the screen's center with a guide, scaled with the wheel, undone; the code view shows its code as it changes](docs/demo.gif)
 
 ![The edit mode in the main menu: the Geode button selected, its panel, the layout's warning](docs/edit-mode.png)
 

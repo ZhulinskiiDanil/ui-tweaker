@@ -44,8 +44,8 @@ if ! wait_for 'grep -q "Self test PASS\|Self test FAIL: [0-9]" "$log"' "$timeout
   stop
   exit 1
 fi
-# A few frames for the overlay to draw the selection
-sleep 3
+# A few frames for the overlay to draw the selection; SHOT_DELAY longer for the screen's notifications to go
+sleep "${SHOT_DELAY:-3}"
 if [ -n "$shot" ]; then
   powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$here/screenshot.ps1")" -out "$(cygpath -w "$shot")"
 fi

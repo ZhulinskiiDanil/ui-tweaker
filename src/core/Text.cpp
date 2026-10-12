@@ -1,5 +1,33 @@
 #include "Text.hpp"
 
+namespace
+{
+  // Columns are letters, not bytes: a Russian letter is two bytes of UTF-8 and one letter on the screen
+  bool continues(char byte)
+  {
+    return (static_cast<unsigned char>(byte) & 0xC0) == 0x80;
+  }
+
+  size_t letters(std::string_view text)
+  {
+    size_t count = 0;
+    for (char byte : text)
+      if (!continues(byte))
+        count++;
+    return count;
+  }
+
+  // The bytes of the first `count` letters
+  size_t bytesOf(std::string_view text, size_t count)
+  {
+    size_t at = 0;
+    for (; at < text.size(); at++)
+      if (!continues(text[at]) && count-- == 0)
+        break;
+    return at;
+  }
+} // namespace
+
 std::vector<std::string> text::wrap(std::string_view text, size_t columns)
 {
   std::vector<std::string> lines;
@@ -20,7 +48,7 @@ std::vector<std::string> text::wrap(std::string_view text, size_t columns)
       auto word = paragraph.substr(at, space == std::string_view::npos ? std::string_view::npos : space - at);
       at = space == std::string_view::npos ? paragraph.size() : space + 1;
 
-      while (word.size() > columns)
+      while (letters(word) > columns)
       {
         // Too long for any line: cut
         if (!line.empty())
@@ -28,14 +56,15 @@ std::vector<std::string> text::wrap(std::string_view text, size_t columns)
           lines.push_back(line);
           line.clear();
         }
-        lines.emplace_back(word.substr(0, columns));
-        word.remove_prefix(columns);
+        auto cut = bytesOf(word, columns);
+        lines.emplace_back(word.substr(0, cut));
+        word.remove_prefix(cut);
       }
       if (word.empty())
         continue;
       if (line.empty())
         line = word;
-      else if (line.size() + 1 + word.size() <= columns)
+      else if (letters(line) + 1 + letters(word) <= columns)
         line += " " + std::string(word);
       else
       {
@@ -54,18 +83,11 @@ std::vector<std::string> text::wrap(std::string_view text, size_t columns)
 
 std::string text::fit(std::string_view text, size_t columns)
 {
-  if (text.size() <= columns)
+  if (letters(text) <= columns)
     return std::string(text);
-  // Not inside a letter of more than a byte: back to where one starts
-  auto cut = [&](size_t at)
-  {
-    while (at > 0 && at < text.size() && (static_cast<unsigned char>(text[at]) & 0xC0) == 0x80)
-      at--;
-    return std::string(text.substr(0, at));
-  };
   if (columns <= 2)
-    return cut(columns);
-  return cut(columns - 2) + "..";
+    return std::string(text.substr(0, bytesOf(text, columns)));
+  return std::string(text.substr(0, bytesOf(text, columns - 2))) + "..";
 }
 
 std::string text::format(std::string_view pattern, std::initializer_list<std::string> values)

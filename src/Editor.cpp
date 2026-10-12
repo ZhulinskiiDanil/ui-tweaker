@@ -1609,6 +1609,15 @@ void editor::setSnapping(std::optional<bool> on)
   state().snapOverride = on;
 }
 
+CCPoint editor::snappedCenter(CCNode* node, CCPoint center)
+{
+  auto bounds = inspect::worldQuad(node).bounds();
+  bounds.x += center.x - bounds.midX();
+  bounds.y += center.y - bounds.midY();
+  auto result = snap::snap(bounds, guidesFor(node), SNAP_DISTANCE);
+  return center + ccp(result.correction.x, result.correction.y);
+}
+
 void editor::release()
 {
   auto& s = state();

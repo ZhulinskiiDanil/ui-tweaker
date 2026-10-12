@@ -8,6 +8,7 @@
 
 namespace text
 {
+  // Columns are letters (UTF-8 code points), not bytes
   // Lines of at most `columns` characters, broken at spaces where there are any. A word longer than a line is
   // cut. Newlines in the text are kept
   std::vector<std::string> wrap(std::string_view text, size_t columns);

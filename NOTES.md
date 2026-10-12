@@ -7,18 +7,14 @@
 
 ## Links
 
-- Repository: https://github.com/ZhulinskiiDanil/ui-tweaker — **private for now, see Blocked**
+- Repository: https://github.com/ZhulinskiiDanil/ui-tweaker (public since 20:01)
 - Releases (pre-releases, `.geode` attached by CI): https://github.com/ZhulinskiiDanil/ui-tweaker/releases
 
 ## Blocked — needs you
 
-- **The repository is private, not public.** `gh repo create --public` was refused by Claude Code's auto-mode
-  classifier ("Create Public Surface"), so I didn't go around it: I created it private (CI and releases work the same).
-  To make it public: `gh repo edit ZhulinskiiDanil/ui-tweaker --visibility public --accept-visibility-change-consequences`
-- **Not in Zhulis Mods Manager yet.** The manager reads GitHub releases without a token, so a private repository's
-  releases can't be installed from it. The entry is ready to add once the repo is public (same as Crash Doctor's:
-  `mods.json` + the built-in list in `src/registry/index.cpp`, description "Beta: ..."). I haven't committed it to
-  the manager so it doesn't list a mod nobody can download.
+- Nothing now. (Until 20:01 the repository was private: `gh repo create --public` had been refused by Claude Code's
+  auto-mode classifier. At 20:00 you asked to make it public if the manager can't show private repositories; it
+  can't, see the log at 20:00, so it's public now and the mod is in Zhulis Mods Manager.)
 
 ## What's done
 
@@ -177,6 +173,24 @@
   written and put back (now only V's counts, like sizes), the panel's cached look surviving to a node at the same
   address; and the smaller ones (tree colors, Ctrl+V/Ctrl+R, K&R after a trailing comment, UTF-8-safe fit,
   every sample compiled in K&R, `/utf-8` for MSVC). A self test check that the game hiding a node isn't an edit.
+- 19:44 v0.8.0's own `.geode` from CI (not the local build) installed and checked: tour PASS, 504 checks.
+- 19:45 **you turned the other mods off for a clean, near-vanilla game** (19 on: node-ids, devtools,
+  texture-loader and the like; MiSide menu and Improved Logger off). Everything again on it: 1/play/editor/tour/
+  aspect PASS (131/142/142/504/131); `code` failed once: the snapping check dragged the play button to a point off
+  the screen's middle, and in vanilla its menu (the play/icon/editor row) is centered 1.2 points from it, a closer
+  guide, which the drag rightly snapped to. MiSide hid that button, so it never came up. The check now drops it on
+  the side where the screen's middle is the closest guide (`editor::snappedCenter`, the drag's own guides).
+- 19:55 README's GIF and both screenshots made again on the clean game. The vanilla title is a sprite (no handles),
+  so `tools/gif.sh` takes the handle as optional and shows a drag that snaps to the screen's center with its guide;
+  it waits for the GPU overlay's toast to go (`SETTLE`, and `SHOT_DELAY` in check.sh); the GIF's palette is made
+  from frames across all of it, as the menu's background goes through every hue (one frame's palette banded).
+- 19:57 own (seen on the Russian screenshot): the panel wrapped Russian text at half the width, counting bytes,
+  not letters. `text::wrap` and `fit` count UTF-8 letters now, with tests.
+- 20:00 you asked for Zhulis Mods Manager to show private repositories too, or else to make this one public. It
+  can't for players: it reads GitHub's releases without a token, as it must, and GitHub answers 404 for a private
+  repository to anyone without access. Showing one to everyone would need a token shipped in the mod, a key made
+  public. A token setting would work only for you and your collaborators. So the repository is public (anonymous
+  API: 200), and the mod is added to the manager like Crash Doctor.
 
 ## Checks
 
@@ -201,7 +215,6 @@
 
 ## Proposals
 
-- Make the repository public and add the mod to Zhulis Mods Manager (see Blocked): everything else is ready.
 - Publish Improved Logger to the Geode Index first if UI Tweaker should go there (`geode build` warns about the
   soft dependency on a mod that isn't on the Index), as mod-profiler's NOTES say too.
 - A "freeze the level while editing" option (pause the running scene's schedulers/actions but not the overlay's):
