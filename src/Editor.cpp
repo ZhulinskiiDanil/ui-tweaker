@@ -1,6 +1,7 @@
 #include "Editor.hpp"
 
 #include "Inspect.hpp"
+#include "LoggerLink.hpp"
 #include "Retained.hpp"
 #include "TreePanel.hpp"
 #include "core/Aspect.hpp"
@@ -507,6 +508,7 @@ namespace
       if (key == m_panelKey)
         return;
       m_panelKey = key;
+      logger_link::pin(node ? title + ": " + body.substr(0, body.find('\n')) : "nothing", edited);
 
       m_title->setString(title.c_str());
       m_body->setString(body.c_str());
@@ -905,6 +907,7 @@ void editor::setActive(bool on)
       s.overlay->removeFromParent();
       s.overlay = nullptr;
     }
+    logger_link::clear();
     log::info("Edit mode off");
   }
 }
@@ -1133,6 +1136,7 @@ void editor::copySelected()
   auto code = codeFor(node);
   clipboard::write(code);
   log::info("Code for {}:\n{}", inspect::name(node), code);
+  logger_link::mark("copied the code for " + inspect::name(node));
   Notification::create(fmt::format("Copied the code for {}", inspect::name(node)), NotificationIcon::Success, 1.5f)
       ->show();
 }
@@ -1148,6 +1152,7 @@ void editor::copyAll()
   auto code = codeForAll();
   clipboard::write(code);
   log::info("Code for {} edited nodes:\n{}", nodes.size(), code);
+  logger_link::mark(fmt::format("copied the code for {} nodes", nodes.size()));
   Notification::create(fmt::format("Copied the code for {} nodes", nodes.size()), NotificationIcon::Success, 1.5f)
       ->show();
 }

@@ -17,6 +17,12 @@
 		"info": "Report bugs on GitHub or in the Discord server",
 		"url": "https://github.com/ZhulinskiiDanil/ui-tweaker/issues"
 	},
+	"dependencies": {
+		"zhulis.improved-logger": {
+			"version": ">=v1.5.0",
+			"required": false
+		}
+	},
 	"tags": [
 		"developer",
 		"interface",
@@ -33,6 +39,12 @@
 		"snap": {
 			"name": "Snapping",
 			"description": "A dragged node snaps its edges and its center to the screen's, its parent's and its siblings' within 3 points, with the guides drawn. Hold <cy>Ctrl</c> to drag without it",
+			"type": "bool",
+			"default": true
+		},
+		"logger-pins": {
+			"name": "Pinned in Improved Logger",
+			"description": "With <cy>Improved Logger</c>: the selected node and the count of edited nodes pinned in its console, and a marker when code is copied. Every edit and the copied code are in the log either way",
 			"type": "bool",
 			"default": true
 		}
