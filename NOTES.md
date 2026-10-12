@@ -166,6 +166,12 @@
   view open, in Russian (TTF labels re-rendered as values change): the game's private memory 3173.3 MB at round 20,
   3173.5 at 40, 3173.4 at 60. No leak.
 
+- 19:13 own: the self test edits a button in nested menus, the outer turned by 30, flipped and scaled, the inner
+  turned back: picked through them, moved as far on the screen, its code right, undone. 19:14 `V` hides/shows.
+- 19:17 own: a code style setting (Allman 2 / K&R 4), the K&R hook compiled in the tests too.
+- 19:20 own: edited nodes marked in the tree. One real input run missed Shift+Right (the key's SendInput didn't land
+  that time); the rerun was 9/9.
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |

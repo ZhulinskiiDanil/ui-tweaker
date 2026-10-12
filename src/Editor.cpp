@@ -1369,7 +1369,7 @@ namespace
       editor::dragTo(mouse);
     auto hover = hovered(mouse);
     if (m_tree->isVisible())
-      m_tree->refresh(runningScene(), s.selected.get(), hover.get());
+      m_tree->refresh(runningScene(), s.selected.get(), hover.get(), editor::editedNodes());
     else
       m_tree->forget();
     redraw(hover.get(), s.selected.get());

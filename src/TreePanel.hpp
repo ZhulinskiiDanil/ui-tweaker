@@ -23,7 +23,9 @@ public:
   bool init() override;
 
   // The rows again, from the scene as it is now. The selected node's row is kept in view when it changes
-  void refresh(cocos2d::CCNode* scene, cocos2d::CCNode* selected, cocos2d::CCNode* hovered);
+  // `edited`: the nodes with edits, marked in the tree (compared only)
+  void refresh(cocos2d::CCNode* scene, cocos2d::CCNode* selected, cocos2d::CCNode* hovered,
+               std::vector<cocos2d::CCNode*> const& edited);
 
   // Lets go of the nodes while it's hidden
   void forget();

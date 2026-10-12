@@ -27,6 +27,7 @@ namespace
   ccColor3B const SELECTED = {255, 160, 50};
   ccColor3B const HOVERED = {110, 210, 255};
   ccColor3B const MATCH = {255, 230, 140};
+  ccColor3B const EDITED = {130, 230, 140};
 
   bool shownInTree(CCNode* node)
   {
@@ -102,7 +103,7 @@ bool TreePanel::init()
   return true;
 }
 
-void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
+void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered, std::vector<CCNode*> const& edited)
 {
   // The scene again a few times a second, or when the search changed
   if (++m_framesSinceRefresh >= REFRESH_FRAMES || m_query != m_refreshedQuery)
@@ -147,12 +148,15 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered)
     label->setVisible(true);
     auto const& row = rows[m_shown[at]];
     auto node = m_nodes[m_shown[at]];
-    std::string name = row.id.empty() ? row.className : row.id + " " + row.className;
+    bool changed = std::find(edited.begin(), edited.end(), node) != edited.end();
+    std::string name = (changed ? "* " : "") + (row.id.empty() ? row.className : row.id + " " + row.className);
     auto text = text::fit(std::string(std::min(row.depth, 12) * 2, ' ') + name, COLUMNS);
     label->setString(text);
     ccColor3B color = row.hidden ? HIDDEN : WHITE;
     if (!m_query.empty() && tree::matches(row, m_query))
       color = MATCH;
+    if (changed)
+      color = EDITED;
     if (node == hovered)
       color = HOVERED;
     if (node == selected)
