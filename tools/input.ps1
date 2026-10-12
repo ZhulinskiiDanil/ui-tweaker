@@ -1,6 +1,6 @@
 # Real input into the game's window, as a user's: SendInput with scan codes (GLFW and raw input read those).
 # Points are GD's: x from the left, y from the bottom, of a 569 x 320 screen (the width from -width).
-#   input.ps1 move x y | down | up | rdown | rup | wheel n | key name [mods] | drag x1 y1 x2 y2
+#   input.ps1 move x y | down | up | rdown | rup | wheel n | key name [mods] | type text | shiftclick x y | drag x1 y1 x2 y2
 param([string]$action, [string]$a = "", [string]$b = "", [string]$c = "", [string]$d = "", [double]$width = 569)
 
 Add-Type @"
@@ -70,6 +70,11 @@ switch ($action) {
     Start-Sleep -Milliseconds 100
   }
   "type" { foreach ($ch in $a.ToCharArray()) { $code = [int][char]([string]$ch).ToUpper(); if ($ch -eq '-') { $code = 0xBD }; [Input]::Key($code, $false); Start-Sleep -Milliseconds 40; [Input]::Key($code, $true); Start-Sleep -Milliseconds 40 } }
+  "shiftclick" {
+    Move-Cursor ([double]$a) ([double]$b); [Input]::Key($keys['shift'], $false); Start-Sleep -Milliseconds 60
+    [Input]::Mouse(0x0002, 0); Start-Sleep -Milliseconds 80; [Input]::Mouse(0x0004, 0); Start-Sleep -Milliseconds 60
+    [Input]::Key($keys['shift'], $true); Start-Sleep -Milliseconds 80
+  }
   "drag" {
     Move-Cursor ([double]$a) ([double]$b); [Input]::Mouse(0x0002, 0); Start-Sleep -Milliseconds 100
     for ($i = 1; $i -le 10; $i++) { Move-Cursor ([double]$a + ([double]$c - [double]$a) * $i / 10) ([double]$b + ([double]$d - [double]$b) * $i / 10) }

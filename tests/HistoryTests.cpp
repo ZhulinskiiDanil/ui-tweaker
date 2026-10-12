@@ -71,6 +71,33 @@ namespace
     CHECK(!steps.canRedo());
   }
 
+  void groups()
+  {
+    Steps steps;
+    steps.record({1, 0, 1});
+    // A drag of three nodes: one step
+    for (int target : {2, 3, 4})
+      steps.record({target, 0, 5, 1, 0, 7});
+    auto undone = steps.undoGroup();
+    CHECK(undone.size() == 3);
+    CHECK(undone.size() == 3 && undone[0].target == 4 && undone[2].target == 2);
+    CHECK(steps.changes().size() == 1);
+    // Redone together, in the order they were made
+    auto redone = steps.redoGroup();
+    CHECK(redone.size() == 3 && redone[0].target == 2 && redone[2].target == 4);
+    // A change without a group is a step of its own
+    steps.undoGroup();
+    CHECK(steps.undoGroup().size() == 1);
+    CHECK(steps.undoGroup().empty());
+
+    // Two groups one after another stay apart; grouped changes aren't merged by time
+    Steps more;
+    more.record({1, 0, 1, 1, 0, 1}, 10);
+    more.record({1, 1, 2, 1, 0, 2}, 10);
+    CHECK(more.changes().size() == 2);
+    CHECK(more.undoGroup().size() == 1);
+  }
+
   void ownedTargets()
   {
     // Targets that own something are moved around, not copied and lost: what the mod's retained nodes need
@@ -92,6 +119,7 @@ int main()
   merging();
   limits();
   forgetting();
+  groups();
   ownedTargets();
   return finish("history");
 }

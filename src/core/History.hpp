@@ -19,6 +19,8 @@ namespace history
     int kind = 0;
     // Seconds, from any clock
     double time = 0;
+    // Changes made together (a drag of several nodes): the same number, not 0. Undone and redone together
+    int group = 0;
   };
 
   template <class Target, class State>
@@ -37,7 +39,8 @@ namespace history
       if (!m_undo.empty() && mergeSeconds > 0)
       {
         auto& last = m_undo.back();
-        if (last.target == change.target && last.kind == change.kind && change.time - last.time <= mergeSeconds)
+        if (last.target == change.target && last.kind == change.kind && last.group == 0 && change.group == 0 &&
+            change.time - last.time <= mergeSeconds)
         {
           last.after = std::move(change.after);
           last.time = change.time;
@@ -69,6 +72,49 @@ namespace history
       m_redo.pop_back();
       m_undo.push_back(change);
       return change;
+    }
+
+    // Changes the after state of `target` in the last group, if it's the last step: a run of arrow presses on several
+    // nodes stays one step, as on one node
+    template <class Key>
+    bool amend(int group, Key const& target, State after, double time)
+    {
+      for (auto it = m_undo.rbegin(); it != m_undo.rend() && it->group == group && group != 0; ++it)
+        if (it->target == target)
+        {
+          it->after = std::move(after);
+          it->time = time;
+          return true;
+        }
+      return false;
+    }
+
+    // The last change and the ones made together with it, the last first
+    std::vector<Entry> undoGroup()
+    {
+      std::vector<Entry> changes;
+      while (auto change = undo())
+      {
+        int group = change->group;
+        changes.push_back(std::move(*change));
+        if (group == 0 || m_undo.empty() || m_undo.back().group != group)
+          break;
+      }
+      return changes;
+    }
+
+    // The last undone change and the ones made together with it
+    std::vector<Entry> redoGroup()
+    {
+      std::vector<Entry> changes;
+      while (auto change = redo())
+      {
+        int group = change->group;
+        changes.push_back(std::move(*change));
+        if (group == 0 || m_redo.empty() || m_redo.back().group != group)
+          break;
+      }
+      return changes;
     }
 
     // Forgets the changes of targets that are gone, from both lists

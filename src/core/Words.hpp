@@ -67,6 +67,8 @@ namespace words
     std::string scaleField;
     std::string typingHint;
     std::string typingError;
+    // How many nodes are selected, with Shift+click
+    std::string selectedCount;
   };
 
   Words const& get(Lang lang);

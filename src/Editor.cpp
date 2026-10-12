@@ -79,6 +79,25 @@ namespace
   {
     bool active = false;
     Retained<CCNode> selected;
+    // The other selected nodes, with Shift+click
+    std::vector<Retained<CCNode>> also;
+    // A drag: every selected node, where it started and its parent's transform
+    struct Grab
+    {
+      Retained<CCNode> node;
+      NodeState start;
+      geom::Affine parentToWorld;
+    };
+    std::vector<Grab> grabs;
+    // Steps of several nodes made together share a number; the last such step, to merge the next one like it
+    int groups = 0;
+    struct LastGroup
+    {
+      int id = 0;
+      int kind = 0;
+      double time = 0;
+      std::vector<CCNode*> targets;
+    } lastGroup;
     history::History<Retained<CCNode>, NodeState> history{200};
     // Every edited node's state before its first edit, for the code of all of them
     std::vector<std::pair<Retained<CCNode>, NodeState>> originals;
@@ -208,7 +227,7 @@ namespace
     }
   }
 
-  void record(CCNode* node, NodeState const& before, Kind kind, double merge)
+  void record(CCNode* node, NodeState const& before, Kind kind, double merge, int group = 0)
   {
     auto& s = state();
     auto after = inspect::stateOf(node);
@@ -216,7 +235,7 @@ namespace
       return;
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
-    s.history.record({Retained<CCNode>(node), before, after, kind, now()}, merge);
+    s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
     static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
@@ -366,6 +385,45 @@ namespace
       snap::addBox(guides, inspect::worldQuad(sibling).bounds());
     }
     return guides;
+  }
+
+  // The nodes of one step selected together, the first shown in the panel
+  void selectAll(std::vector<CCNode*> const& nodes)
+  {
+    auto& s = state();
+    editor::select(nodes.front());
+    for (size_t i = 1; i < nodes.size(); i++)
+      s.also.emplace_back(nodes[i]);
+  }
+
+  // An edit of every selected node: one step for all of them, merged with the last one like it within `merge`
+  // (a turn of the wheel, a run of arrow presses)
+  template <class Edit>
+  void editAll(Kind kind, double merge, Edit edit)
+  {
+    auto& s = state();
+    auto nodes = editor::selection();
+    if (nodes.size() == 1)
+    {
+      auto before = inspect::stateOf(nodes[0]);
+      edit(nodes[0]);
+      record(nodes[0], before, kind, merge);
+      return;
+    }
+    auto const& changes = s.history.changes();
+    bool again = s.lastGroup.id != 0 && s.lastGroup.kind == kind && now() - s.lastGroup.time <= merge &&
+                 s.lastGroup.targets == nodes && !changes.empty() && changes.back().group == s.lastGroup.id;
+    int group = again ? s.lastGroup.id : ++s.groups;
+    for (auto node : nodes)
+    {
+      auto before = inspect::stateOf(node);
+      edit(node);
+      if (again && s.history.amend(group, node, inspect::stateOf(node), now()))
+        snapshot(node);
+      else
+        record(node, before, kind, 0, group);
+    }
+    s.lastGroup = {group, kind, now(), nodes};
   }
 
   // ! --- Overlay --- !
@@ -647,6 +705,10 @@ namespace
         auto size = node->getContentSize();
         auto desc = inspect::describe(node, originalOf(node));
         title = text::fit(inspect::name(node), PANEL_COLUMNS);
+        if (!s.also.empty())
+          title = text::fit(text::format(ui::words().selectedCount, {std::to_string(s.also.size() + 1)}) + ": " +
+                                inspect::name(node),
+                            PANEL_COLUMNS);
         auto const& w = ui::words();
         body = text::format(w.position, {number(info.position.x), number(info.position.y), number(world.x),
                                          number(world.y)}) +
@@ -855,6 +917,9 @@ namespace
       if (selected)
       {
         drawQuad(inspect::worldQuad(selected), SELECTED_FILL, 0.8f, SELECTED);
+        // The rest of a selection of several, thinner
+        for (auto const& other : state().also)
+          drawQuad(inspect::worldQuad(other.get()), SELECTED_FILL, 0.5f, SELECTED);
         // The anchor point: where the position is
         if (auto parent = selected->getParent())
           m_draw->drawDot(convertToNodeSpace(parent->convertToWorldSpace(selected->getPosition())), 1.6f, SELECTED);
@@ -930,7 +995,18 @@ namespace
         s.panelGrab = mouse - s.overlay->panelTopLeft();
       }
       else if (!s.overlay || !s.overlay->panelContains(mouse))
-        editor::pressAt(mouse, hasModifier(data.modifiers, KeyboardModifier::Alt));
+      {
+        bool alt = hasModifier(data.modifiers, KeyboardModifier::Alt);
+        // Shift+click: into the selection or out of it, no drag
+        if (hasModifier(data.modifiers, KeyboardModifier::Shift))
+        {
+          auto hits = inspect::hitsAt(runningScene(), mouse, alt);
+          if (!hits.empty())
+            editor::toggleSelect(hits[s.cycle % hits.size()]);
+        }
+        else
+          editor::pressAt(mouse, alt);
+      }
     }
     else if (data.button == Left && data.action == Release)
     {
@@ -1081,6 +1157,7 @@ namespace
     auto& s = state();
     forgetOtherScenes();
     // Removed, or the scene changed
+    std::erase_if(s.also, [](auto const& node) { return !inspect::isIn(node.get(), runningScene()); });
     if (s.selected && !inspect::isIn(s.selected.get(), runningScene()))
     {
       s.selected.reset();
@@ -1210,7 +1287,18 @@ CCNode* editor::pressAt(CCPoint world, bool deep)
 void editor::grab(CCNode* node, CCPoint world)
 {
   auto& s = state();
-  select(node);
+  // A node of a selection of several: they're all dragged, this one first (snapping goes by it)
+  auto part = std::find(s.also.begin(), s.also.end(), node);
+  if (part != s.also.end())
+  {
+    std::swap(*part, s.selected);
+  }
+  else if (s.selected != node || !s.also.empty())
+  {
+    if (s.selected != node)
+      select(node);
+  }
+  s.grabs.clear();
   if (node && node->getParent())
   {
     s.pressed = true;
@@ -1219,6 +1307,10 @@ void editor::grab(CCNode* node, CCPoint world)
     s.dragStart = inspect::stateOf(node);
     s.parentToWorld = inspect::toGeom(node->getParent()->nodeToWorldTransform());
     s.guides = guidesFor(node);
+    for (auto other : selection())
+      if (other->getParent())
+        s.grabs.push_back({Retained<CCNode>(other), inspect::stateOf(other),
+                           inspect::toGeom(other->getParent()->nodeToWorldTransform())});
   }
 }
 
@@ -1231,11 +1323,19 @@ void editor::dragTo(CCPoint world)
   if (!s.dragging && ccpLength(delta) < DRAG_THRESHOLD)
     return;
   s.dragging = true;
-  auto local = geom::localDelta(s.parentToWorld, {delta.x, delta.y});
-  auto position = s.dragStart.position + ccp(local.x, local.y);
-  s.selected->setPosition(position);
+  // Every selected node moved as far on the screen, each through its own parent's transform
+  auto moveAll = [&](geom::Vec2 onScreen)
+  {
+    for (auto const& grab : s.grabs)
+    {
+      auto local = geom::localDelta(grab.parentToWorld, onScreen);
+      grab.node->setPosition(grab.start.position + ccp(local.x, local.y));
+    }
+  };
+  geom::Vec2 onScreen{delta.x, delta.y};
+  moveAll(onScreen);
 
-  // Ctrl held: no snapping, as in Figma
+  // Ctrl held: no snapping, as in Figma. The node pressed snaps, the others follow it
   s.snapLines.clear();
   bool snapping = s.snapOverride.value_or(Mod::get()->getSettingValue<bool>("snap"));
   if (!snapping || (!s.snapOverride && CCKeyboardDispatcher::get()->getControlKeyPressed()))
@@ -1244,8 +1344,7 @@ void editor::dragTo(CCPoint world)
   auto result = snap::snap(bounds, s.guides, SNAP_DISTANCE);
   if (result.correction.x == 0 && result.correction.y == 0)
     return;
-  auto fix = geom::localDelta(s.parentToWorld, result.correction);
-  s.selected->setPosition(position + ccp(fix.x, fix.y));
+  moveAll(onScreen + result.correction);
   s.snapLines = std::move(result.lines);
 }
 
@@ -1259,7 +1358,13 @@ void editor::release()
   auto& s = state();
   s.snapLines.clear();
   if (s.dragging && s.selected)
-    record(s.selected.get(), s.dragStart, Drag, 0);
+  {
+    int group = s.grabs.size() > 1 ? ++s.groups : 0;
+    for (auto const& grab : s.grabs)
+      record(grab.node.get(), grab.start, Drag, 0, group);
+    s.lastGroup = {};
+  }
+  s.grabs.clear();
   s.pressed = false;
   s.dragging = false;
 }
@@ -1284,12 +1389,16 @@ void editor::wheel(float notches, bool fine)
       next = size + (notches > 0 ? 0.01f : -0.01f);
     return sign * std::max(next, 0.01f);
   };
-  auto after = before;
-  after.scaleX = scaled(before.scaleX);
-  after.scaleY = scaled(before.scaleY);
-  // apply sets a button's base scale too, which its press animation goes back to
-  inspect::apply(node, after);
-  record(node, before, Wheel, WHEEL_MERGE);
+  (void)before;
+  editAll(Wheel, WHEEL_MERGE,
+          [&](CCNode* each)
+          {
+            auto after = inspect::stateOf(each);
+            after.scaleX = scaled(after.scaleX);
+            after.scaleY = scaled(after.scaleY);
+            // apply sets a button's base scale too, which its press animation goes back to
+            inspect::apply(each, after);
+          });
 }
 
 void editor::nudge(float dx, float dy)
@@ -1297,10 +1406,7 @@ void editor::nudge(float dx, float dy)
   auto& s = state();
   if (!s.selected || s.dragging)
     return;
-  auto node = s.selected.get();
-  auto before = inspect::stateOf(node);
-  node->setPosition(before.position + ccp(dx, dy));
-  record(node, before, Nudge, NUDGE_MERGE);
+  editAll(Nudge, NUDGE_MERGE, [&](CCNode* each) { each->setPosition(each->getPosition() + ccp(dx, dy)); });
 }
 
 void editor::stepAnchor(int dx, int dy)
@@ -1422,47 +1528,68 @@ bool editor::undo()
 {
   auto& s = state();
   release();
-  while (auto change = s.history.undo())
+  s.lastGroup = {};
+  while (true)
   {
-    auto node = change->target.get();
-    // Removed since: nothing to put back, and no code to keep for it
-    if (!inspect::isIn(node, runningScene()))
+    auto changes = s.history.undoGroup();
+    if (changes.empty())
+      return false;
+    std::vector<CCNode*> undone;
+    for (auto const& change : changes)
     {
-      std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
-      continue;
+      auto node = change.target.get();
+      // Removed since: nothing to put back, and no code to keep for it
+      if (!inspect::isIn(node, runningScene()))
+      {
+        std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
+        continue;
+      }
+      inspect::apply(node, change.before);
+      snapshot(node);
+      undone.push_back(node);
+      log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
+                number(change.before.position.x), number(change.before.position.y), number(change.before.scaleX),
+                number(change.before.scaleY));
     }
-    inspect::apply(node, change->before);
-    snapshot(node);
-    select(node);
-    log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
-              number(change->before.position.x), number(change->before.position.y), number(change->before.scaleX),
-              number(change->before.scaleY));
+    if (undone.empty())
+      continue;
+    selectAll(undone);
     return true;
   }
-  return false;
 }
 
 bool editor::redo()
 {
   auto& s = state();
   release();
-  while (auto change = s.history.redo())
+  s.lastGroup = {};
+  while (true)
   {
-    auto node = change->target.get();
-    if (!inspect::isIn(node, runningScene()))
+    auto changes = s.history.redoGroup();
+    if (changes.empty())
+      return false;
+    std::vector<CCNode*> redone;
+    for (auto const& change : changes)
+    {
+      auto node = change.target.get();
+      if (!inspect::isIn(node, runningScene()))
+        continue;
+      inspect::apply(node, change.after);
+      snapshot(node);
+      redone.push_back(node);
+      log::info("Redid a step of {}", inspect::name(node));
+    }
+    if (redone.empty())
       continue;
-    inspect::apply(node, change->after);
-    snapshot(node);
-    select(node);
-    log::info("Redid a step of {}", inspect::name(node));
+    selectAll(redone);
     return true;
   }
-  return false;
 }
 
 void editor::select(CCNode* node)
 {
   auto& s = state();
+  s.also.clear();
   if (s.selected == node)
     return;
   release();
@@ -1470,6 +1597,46 @@ void editor::select(CCNode* node)
   s.selected = Retained<CCNode>(node);
   if (node)
     log::info("Selected {}", inspect::name(node));
+}
+
+void editor::toggleSelect(CCNode* node)
+{
+  auto& s = state();
+  if (!node)
+    return;
+  release();
+  s.typing.reset();
+  s.lastGroup = {};
+  auto part = std::find(s.also.begin(), s.also.end(), node);
+  if (s.selected == node)
+  {
+    // The first of the others is shown instead
+    if (s.also.empty())
+      s.selected.reset();
+    else
+    {
+      s.selected = s.also.front();
+      s.also.erase(s.also.begin());
+    }
+  }
+  else if (part != s.also.end())
+    s.also.erase(part);
+  else if (!s.selected)
+    s.selected = Retained<CCNode>(node);
+  else
+    s.also.emplace_back(node);
+  log::info("Selection: {} nodes", selection().size());
+}
+
+std::vector<CCNode*> editor::selection()
+{
+  auto& s = state();
+  std::vector<CCNode*> nodes;
+  if (s.selected)
+    nodes.push_back(s.selected.get());
+  for (auto const& node : s.also)
+    nodes.push_back(node.get());
+  return nodes;
 }
 
 void editor::nextUnderMouse()
@@ -1572,6 +1739,21 @@ void editor::copySelected()
   if (!node)
   {
     Notification::create(ui::words().selectFirst, NotificationIcon::Warning, 1.5f)->show();
+    return;
+  }
+  // Several selected: the code for all of them in one block
+  auto nodes = selection();
+  if (nodes.size() > 1)
+  {
+    std::vector<codegen::NodeDesc> descs;
+    for (auto each : nodes)
+      descs.push_back(inspect::describe(each, originalOf(each)));
+    auto code = codegen::generateAll(descs);
+    clipboard::write(code);
+    log::info("Code for {} selected nodes:\n{}", nodes.size(), code);
+    Notification::create(text::format(ui::words().copiedNodes, {std::to_string(nodes.size())}), NotificationIcon::Success,
+                         1.5f)
+        ->show();
     return;
   }
   auto code = codeFor(node);

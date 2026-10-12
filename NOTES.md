@@ -106,6 +106,20 @@
 - 17:30 own: the level editor in the self test (`UI_TWEAKER_SELFTEST=editor`): build-button in a RowLayout edited,
   the hover 0.43 ms with 3000 objects since big batch nodes aren't looked into.
 
+- 17:36 v0.4.0 released (pre-release) after the checks in the menu, a level and the editor, and real input 7/7.
+- 17:38 README.ru.md; ARCHITECTURE as the code is now.
+- 17:41 own: `C` shows the selected node's code in the panel (bitmap, wrapped with its indentation).
+- 17:44 own: the panel moves to the other side when the selected node is under it (not if placed by hand, not
+  for screen-sized nodes, which would make it jump every frame).
+- 17:48 second review (separate agent, the changes since v0.3.0): no critical/high; 3 medium, 9 low, all fixed
+  (Enter-Enter rounding, duplicate sections on coming back to a layer, removed nodes' code lost when the mode is
+  turned off, scenes told apart by a tag instead of an address, typing/selection/drag interplay, value checks,
+  anchor read from the options, the self test typing Geode's real key codes). Each with a check in the self test.
+- 17:58 own: **the generated code compiled and run in the tests** (tests/compile): eleven kinds of nodes, every
+  branch of the generator, compiled against a fake of Geode's API (names and signatures checked against the real
+  headers) and run on fake nodes, positions/scales/anchors/z/layout options compared. Found a dangling reference
+  in the test itself that only MSVC showed (CI is GCC + MSVC).
+
 ## Checks
 
 | When | Tests | geode build | Self test | Screenshot |

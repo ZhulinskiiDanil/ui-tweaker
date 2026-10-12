@@ -317,6 +317,46 @@ namespace
     check(inspect::stateOf(node) == before, fmt::format("undo put {} back after the typed values", name));
   }
 
+  // Shift+click: two nodes dragged, nudged and scaled together; each is one step to undo
+  void several(CCNode* first, CCNode* second)
+  {
+    auto a = inspect::stateOf(first);
+    auto b = inspect::stateOf(second);
+    auto worldA = worldPositionOf(first);
+    auto worldB = worldPositionOf(second);
+    editor::select(first);
+    editor::toggleSelect(second);
+    check(editor::selection().size() == 2, "Shift+click adds a second node to the selection");
+    auto steps = editor::historySize();
+
+    auto center = inspect::worldQuad(first).center();
+    CCPoint from{center.x, center.y};
+    editor::setSnapping(false);
+    editor::grab(first, from);
+    editor::dragTo(from + ccp(12, 8));
+    editor::release();
+    editor::setSnapping(std::nullopt);
+    auto movedA = worldPositionOf(first) - worldA;
+    auto movedB = worldPositionOf(second) - worldB;
+    check(close(movedA.x, 12, 0.05f) && close(movedA.y, 8, 0.05f) && close(movedB.x, 12, 0.05f) &&
+              close(movedB.y, 8, 0.05f),
+          fmt::format("both moved by (12, 8) on the screen: ({}, {}) and ({}, {})", movedA.x, movedA.y, movedB.x,
+                      movedB.y));
+    editor::nudge(1, 0);
+    editor::nudge(1, 0);
+    editor::wheel(1, false);
+    check(editor::historySize() == steps + 6, fmt::format("a drag, two arrows and the wheel on two nodes: {} steps",
+                                                          editor::historySize() - steps));
+    check(editor::undo() && editor::undo() && editor::undo(), "three steps to undo");
+    check(inspect::stateOf(first) == a && inspect::stateOf(second) == b, "undo put both back");
+    check(editor::selection().size() == 2, "undo selected both");
+    check(editor::redo(), "redo");
+    check(close(worldPositionOf(second).x - worldB.x, 12, 0.05f), "redo moved the second one again");
+    editor::undo();
+    editor::toggleSelect(second);
+    check(editor::selection().size() == 1, "Shift+click takes a node out of the selection");
+  }
+
   void run(MenuLayer* layer)
   {
     log::info("Self test: start");
@@ -390,6 +430,8 @@ namespace
       snapping(shown[0]);
       anchorAndOrder(shown[0]);
       typing(shown[0]);
+      if (shown.size() > 1)
+        several(shown[0], shown[1]);
     }
 
     edgeCases();

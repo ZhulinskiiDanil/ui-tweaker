@@ -59,6 +59,10 @@ sleep 0.3; shot typing.png; input key enter; sleep 1.5
 expect "Typed " "real keys typed the values w/2, h/2"
 fresh | grep "Typed " | tail -1 | cut -c1-160
 input key z ctrl
+# Shift+click: the Geode button added to the selected title
+input shiftclick "$gx" "$gy"; sleep 1.5
+expect "Selection: 2 nodes" "Shift+click selected a second node"
+shot several.png
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

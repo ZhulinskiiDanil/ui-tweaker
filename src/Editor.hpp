@@ -45,6 +45,10 @@ namespace editor
   void nextUnderMouse();
 
   void select(cocos2d::CCNode* node);
+  // Shift+click: the node added to the selection, or taken out of it. Drags, arrows and the wheel move all of it
+  void toggleSelect(cocos2d::CCNode* node);
+  // The selected nodes, the one the panel shows first
+  std::vector<cocos2d::CCNode*> selection();
   cocos2d::CCNode* selected();
   size_t historySize();
 

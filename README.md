@@ -35,6 +35,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Alt` held | The distances from the selected node to the one under the mouse, as in Figma: the gaps between them, or from the inner one's edges to the outer one's |
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |
+| `Shift`+click | Adds a node to the selection or takes it out. Drags, arrows and the wheel move all of them, one step to undo; `Ctrl+C` copies the code for all of them |
 | `PgUp`, `PgDn` | The parent, the first child |
 | `A` | Other screens: the 16:10, 4:3 and 21:9 screens drawn over this one, the selected node where it would be on each, a red box around every node with an ID that wouldn't fit on one of them. The panel says it too |
 | `T` | The node tree of the scene at the right: every node with its ID and class, the hidden ones grey. A click on a row selects its node, the wheel scrolls it. `/` searches by ID and class (words in any order), `Enter` selects the first match |
