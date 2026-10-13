@@ -20,15 +20,23 @@ namespace
     {
       std::istringstream fields(line);
       std::string id;
-      float x = 0, y = 0, scale = 0;
-      if (!(fields >> id >> x >> y >> scale))
+      float x = 0, y = 0, scale = 0, rotation = 0;
+      if (!(fields >> id >> x >> y >> scale >> rotation))
         continue;
       // A node made in the edit mode has this mod's prefix here, as "new-N"_spr gives it
       std::string const made = "zhulis.ui-tweaker/";
       if (id.starts_with(made + "new-"))
         id = std::string(Mod::get()->getID()) + "/" + id.substr(made.size());
       checked++;
-      auto node = layer->getChildByIDRecursive(id);
+      // A node without an ID: its parent's ID and its class, "play-button>CCSprite"
+      CCNode* node = nullptr;
+      if (auto split = id.find('>'); split != std::string::npos)
+      {
+        if (auto parent = layer->getChildByIDRecursive(id.substr(0, split)))
+          node = parent->getChildByType<CCSprite>(0);
+      }
+      else
+        node = layer->getChildByIDRecursive(id);
       if (!node || !node->getParent())
       {
         failed++;
@@ -36,11 +44,12 @@ namespace
         continue;
       }
       auto world = node->getParent()->convertToWorldSpace(node->getPosition());
-      if (std::fabs(world.x - x) > 0.5f || std::fabs(world.y - y) > 0.5f || std::fabs(node->getScaleX() - scale) > 0.001f)
+      if (std::fabs(world.x - x) > 0.5f || std::fabs(world.y - y) > 0.5f || std::fabs(node->getScaleX() - scale) > 0.001f ||
+          std::fabs(node->getRotation() - rotation) > 0.01f)
       {
         failed++;
-        log::error("E2E: {} is at ({}, {}) scale {}, the edit left it at ({}, {}) scale {}", id, world.x, world.y,
-                   node->getScaleX(), x, y, scale);
+        log::error("E2E: {} is at ({}, {}) scale {} rotation {}, the edit left it at ({}, {}) scale {} rotation {}", id,
+                   world.x, world.y, node->getScaleX(), node->getRotation(), x, y, scale, rotation);
       }
       else
         log::info("E2E: {} is where the edit left it", id);

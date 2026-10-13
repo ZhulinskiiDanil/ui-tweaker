@@ -1575,6 +1575,18 @@ namespace
                          editor::wheel(1, false);
                          editor::select(name);
                          editor::nudge(10, 5);
+                         // Turned too
+                         editor::turn(1, false);
+                         // The play button's sprite, without an ID: found by its frame in the play button
+                         auto play = scene->getChildByIDRecursive("play-button");
+                         CCNode* inner = play ? play->getChildByType<CCSprite>(0) : nullptr;
+                         if (inner)
+                         {
+                           auto at = inspect::worldQuad(inner).center();
+                           editor::grab(inner, {at.x, at.y});
+                           editor::dragTo(CCPoint{at.x, at.y} + ccp(6, 9));
+                           editor::release();
+                         }
                          editor::select(title);
                          editor::duplicate();
                          auto made = editor::selected();
@@ -1588,14 +1600,17 @@ namespace
                          }
                          editor::setSnapping(std::nullopt);
 
-                         // Where each one is on the screen, and its scale: "id x y scale" a line
+                         // Where each one is on the screen, its scale and rotation: "id x y scale rotation" a line, a
+                         // node without an ID as "play-button>CCSprite"
                          std::string expected;
-                         for (auto node : {title, name, made})
+                         for (auto node : {title, name, made, inner})
                          {
                            if (!node)
                              continue;
                            auto world = worldPositionOf(node);
-                           expected += fmt::format("{} {} {} {}\n", node->getID(), world.x, world.y, node->getScaleX());
+                           std::string key = node == inner ? "play-button>CCSprite" : std::string(node->getID());
+                           expected += fmt::format("{} {} {} {} {}\n", key, world.x, world.y, node->getScaleX(),
+                                                   node->getRotation());
                          }
                          auto dir = Mod::get()->getSaveDir();
                          auto code = file::writeString(dir / "e2e-code.cpp", editor::codeForAll());
