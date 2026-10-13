@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 16:36.
+  what the mod does), this file last updated 16:32.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -191,7 +191,7 @@
 - 16:16 `docs/ARCHITECTURE.md`: the box, Ctrl+A and how Ctrl+D reads a button's look; README media all tracked;
   the README in both languages has the same rows and sections. OptionsLayer's 7 text buttons with your mods are a
   mod's (vanilla's has none). CI green on 1f9bf37.
-- 16:35 soak with your mods (40 rounds asked; 20+ done in my 10 minutes, rounds are slower with them): the game
+- 16:30 soak with your mods (40 rounds asked; 20+ done in my 10 minutes, rounds are slower with them): the game
   alive, memory 3451 → 3310 MB (down), 42 drags, 42 boxes, 7 Ctrl+D in the log, no error of the mod's. One ERROR line
   is Geode's own at load: "Unable to load setting 'grid' for mod zhulis.ui-tweaker (not found in savedata)": the
   Grid setting is new and the game is killed after each check, so Geode never saved it; the default is used, and it
