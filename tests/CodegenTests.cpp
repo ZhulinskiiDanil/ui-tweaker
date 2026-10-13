@@ -212,6 +212,49 @@ namespace
     CHECK(has(code, "No ID to find it by"));
     CHECK(has(code, "  node->setPosition({10.f, 10.f});"));
 
+    // A parent without an ID either: down from the closest parent with one, one nested `if` a step
+    auto deep = onScreen({10, 10});
+    deep.id = "";
+    deep.parentId = "";
+    deep.pathRoot = "bottom-menu";
+    deep.path = {{"", "CCMenuItemSpriteExtra", 2, false, ""}, {"", "CCSprite", 0, false, "GJ_playBtn_001.png"}};
+    auto conditions = lookup(deep);
+    CHECK(conditions.size() == 3);
+    code = generate(deep);
+    CHECK(has(code, "if (auto parent = this->getChildByIDRecursive(\"bottom-menu\"))\n"
+                    "  if (auto child1 = parent->getChildByType<CCMenuItemSpriteExtra>(2))\n"
+                    "    if (auto node = geode::cocos::getChildBySpriteFrameName(child1, \"GJ_playBtn_001.png\"))\n"
+                    "    {\n      node->setPosition("));
+    CHECK(has(code, "    }\n"));
+    CHECK(has(code, "// No ID on it or its parent: found from \"bottom-menu\""));
+
+    // From the layer itself, `this`; a step by a child's ID
+    deep.pathRoot = "";
+    deep.pathFromLayer = true;
+    deep.path = {{"inner", "", 0, false, ""}, {"", "CCSprite", 1, false, ""}};
+    code = generate(deep);
+    CHECK(has(code, "if (auto child1 = this->getChildByID(\"inner\"))\n  if (auto node = child1->getChildByType<CCSprite>(1))\n  {"));
+    CHECK(has(code, "found from the layer"));
+    // One step from the layer: one `if`, no comment about a path
+    deep.path = {{"", "CCSprite", 1, false, ""}};
+    code = generate(deep);
+    CHECK(has(code, "if (auto node = this->getChildByType<CCSprite>(1))\n{"));
+    CHECK(!has(code, "found from the layer"));
+
+    // An ID another node in the layer has too: the path, and why
+    auto twin = onScreen({10, 10});
+    twin.id = "background";
+    twin.idUnique = false;
+    twin.pathRoot = "level-page";
+    twin.path = {{"", "CCSprite", 1, false, ""}};
+    code = generate(twin);
+    CHECK(!has(code, "getChildByIDRecursive(\"background\")"));
+    CHECK(has(code, "parent->getChildByType<CCSprite>(1)"));
+    CHECK(has(code, "Another node in the layer has the ID \"background\""));
+    // With no way down to it, its ID all the same
+    twin.path.clear();
+    CHECK(has(generate(twin), "getChildByIDRecursive(\"background\")"));
+
     // Two without IDs in one block of code: each in braces, so parentSize isn't declared twice
     auto first = inParent({190, 50}, {200, 100});
     first.id = first.parentId = "";

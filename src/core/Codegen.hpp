@@ -73,6 +73,26 @@ namespace codegen
     // getChildByIndex
     bool byIndex = false;
 
+    // A node whose parent has no ID either: the way down to it from its closest parent with an ID (pathRoot), or
+    // from the layer whose hook the code goes in (pathFromLayer), one step a level, the node's own the last. Empty:
+    // through parentId and the fields above
+    struct PathStep
+    {
+      // An ID none of the siblings before it has: getChildByID
+      std::string id;
+      std::string className;
+      int typeIndex = 0;
+      bool byIndex = false;
+      // A sprite's or a button's frame that none of the siblings before it has: getChildBySpriteFrameName finds
+      // it whatever is added around it
+      std::string frameName;
+    };
+    std::string pathRoot;
+    bool pathFromLayer = false;
+    std::vector<PathStep> path;
+    // Another node in the layer has the same ID and getChildByIDRecursive finds that one first: then the path
+    bool idUnique = true;
+
     geom::Vec2 position;
     float scaleX = 1;
     float scaleY = 1;
@@ -109,9 +129,10 @@ namespace codegen
   // What the parent's layout does to the node's position, for the panel and the code. Empty if nothing
   std::string layoutWarning(NodeDesc const& node, words::Lang lang = words::Lang::English);
 
-  // The condition of the `if` that gets the node: `auto node = this->getChildByIDRecursive("play-button")`, or
-  // through its parent's ID and getChildByType. Empty if neither has an ID
-  std::string lookup(NodeDesc const& node);
+  // The conditions of the nested `if`s that get the node, the last one declaring `node`:
+  // `auto node = this->getChildByIDRecursive("play-button")`, or through its parent's ID and getChildByType, or
+  // down a path from a parent with an ID or the layer. Empty if there's no way to it
+  std::vector<std::string> lookup(NodeDesc const& node);
 
   // A block of C++ for one node, ready to paste into a hook of the layer
   std::string generate(NodeDesc const& node);

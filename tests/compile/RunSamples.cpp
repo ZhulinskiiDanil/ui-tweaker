@@ -44,6 +44,70 @@ namespace
   }
 } // namespace
 
+// A sample found by a path: the nodes on the way, each after siblings its step has to tell it from (others of its
+// class, a sprite with another frame, a child with another ID), and before all of it a node with the sample's own
+// ID when another node is meant to have it too
+void buildPath(CCNode& layer, codegen::NodeDesc const& desc)
+{
+  if (!desc.id.empty() && !desc.idUnique)
+  {
+    auto twin = new CCSprite();
+    twin->id = desc.id;
+    layer.addChild(twin);
+  }
+  CCNode* at = &layer;
+  if (!desc.pathFromLayer)
+  {
+    at = new CCNode();
+    at->id = desc.pathRoot;
+    layer.addChild(at);
+  }
+  CCNode* node = nullptr;
+  for (auto const& step : desc.path)
+  {
+    if (!step.id.empty())
+    {
+      auto other = new CCNode();
+      other->id = step.id + "-not";
+      at->addChild(other);
+      node = new CCNode();
+      node->id = step.id;
+    }
+    else if (!step.frameName.empty())
+    {
+      auto other = new CCSprite();
+      other->frame = "another.png";
+      at->addChild(other);
+      auto sprite = new CCSprite();
+      sprite->frame = step.frameName;
+      node = sprite;
+    }
+    else
+    {
+      // Others of its class before it, and a node of another class in between that isn't counted
+      bool button = step.className == "CCMenuItemSpriteExtra";
+      for (int i = 0; i < step.typeIndex; i++)
+      {
+        if (!button)
+          at->addChild(new CCMenuItemSpriteExtra());
+        at->addChild(make(step.className));
+      }
+      if (!button)
+        at->addChild(new CCMenuItemSpriteExtra());
+      node = make(step.className);
+    }
+    at->addChild(node);
+    at = node;
+  }
+  if (!desc.id.empty())
+    node->id = desc.id;
+  // The node's own frame box for samples in one
+  if (auto parent = node->getParent(); parent && desc.frame.kind == codegen::FrameKind::Parent)
+    parent->size = {desc.frame.extent.width, desc.frame.extent.height};
+  g_nodes.push_back(node);
+  g_parents.push_back(node->getParent());
+}
+
 // Every sample's parent and node in the layer, with the siblings the lookups count
 void buildScene(CCNode& layer)
 {
@@ -51,6 +115,11 @@ void buildScene(CCNode& layer)
   g_parents.clear();
   for (auto const& desc : samples())
   {
+    if (!desc.path.empty())
+    {
+      buildPath(layer, desc);
+      continue;
+    }
     auto parent = new CCNode();
     parent->id = desc.parentId;
     parent->size = desc.frame.kind == codegen::FrameKind::Parent ? CCSize{desc.frame.extent.width, desc.frame.extent.height}

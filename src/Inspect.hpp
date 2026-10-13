@@ -72,4 +72,7 @@ namespace inspect
   // Whether the generated code, read back, puts the node exactly where it is. Empty if it does, what's wrong
   // otherwise. Checks setPosition (also a commented one), or AnchorLayoutOptions' anchor and offset
   std::string checkCode(cocos2d::CCNode* node, std::string const& code);
+  // For the self test: the node a node's path (desc.path) leads to from its layer, with the calls the generated
+  // code makes. Null if it leads nowhere or there's no path
+  cocos2d::CCNode* followPath(cocos2d::CCNode* node, codegen::NodeDesc const& desc);
 } // namespace inspect

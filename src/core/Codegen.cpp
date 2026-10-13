@@ -21,7 +21,7 @@ namespace
   }
 
   // A C++ string literal of the text
-  std::string quoted(std::string const& text)
+  std::string literal(std::string const& text)
   {
     std::string out = "\"";
     for (char c : text)
@@ -154,8 +154,8 @@ namespace
       for (auto const& line : text::wrap(warning, COMMENT_COLUMNS))
         out << "// " << line << "\n";
 
-    auto find = codegen::lookup(node);
-    if (find.empty())
+    auto conditions = codegen::lookup(node);
+    if (conditions.empty())
     {
       // Nothing to find it by: the lines are for wherever the node is made
       // In a block of its own, so two of them in one place don't declare parentSize twice
@@ -167,11 +167,33 @@ namespace
       return out.str();
     }
 
-    auto inner = body(node, "  ");
-    out << "if (" << find << ")\n{\n";
+    // Why it's found the way it is, wrapped as the layout's warning is
+    std::string why;
+    if (!node.id.empty() && !node.idUnique && !node.path.empty())
+      why = "Another node in the layer has the ID " + literal(node.id) +
+            " and getChildByIDRecursive finds that one first: found down from a parent instead";
+    else if (conditions.size() > 1)
+      why = "No ID on it or its parent: found " +
+            (node.pathFromLayer ? std::string("from the layer") : "from " + literal(node.pathRoot)) +
+            " down through its parents, each by its frame or by how many of its class come before it, which a node "
+            "the game or another mod adds can change";
+    if (!why.empty())
+      for (auto const& line : text::wrap(why, COMMENT_COLUMNS))
+        out << "// " << line << "\n";
+    // One `if` a step, nested; the node's lines in the last
+    std::string indent;
+    for (size_t i = 0; i < conditions.size(); i++)
+    {
+      out << indent << "if (" << conditions[i] << ")\n";
+      if (i + 1 < conditions.size())
+        indent += "  ";
+    }
+    auto inside = indent + "  ";
+    auto inner = body(node, inside);
+    out << indent << "{\n";
     if (inner.usesWinSize && declareWinSize)
-      out << "  auto winSize = CCDirector::get()->getWinSize();\n";
-    out << inner.lines << "}\n";
+      out << inside << "auto winSize = CCDirector::get()->getWinSize();\n";
+    out << inner.lines << indent << "}\n";
     return out.str();
   }
 } // namespace
@@ -228,17 +250,55 @@ std::string codegen::layoutWarning(NodeDesc const& node, words::Lang lang)
   return "";
 }
 
-std::string codegen::lookup(NodeDesc const& node)
+std::vector<std::string> codegen::lookup(NodeDesc const& node)
 {
-  if (!node.id.empty())
-    return "auto node = this->getChildByIDRecursive(" + quoted(node.id) + ")";
-  if (node.parentId.empty())
-    return "";
-  auto parent = "auto parent = this->getChildByIDRecursive(" + quoted(node.parentId) + "); auto node = parent ? ";
-  // A class the code can't name (another mod's, in a namespace): which child it is of all
-  if (node.byIndex)
-    return parent + "parent->getChildByIndex(" + std::to_string(node.typeIndex) + ") : nullptr";
-  return parent + "parent->getChildByType<" + node.className + ">(" + std::to_string(node.typeIndex) + ") : nullptr";
+  if (!node.id.empty() && (node.idUnique || node.path.empty()))
+    return {"auto node = this->getChildByIDRecursive(" + literal(node.id) + ")"};
+
+  // How a step gets its child from `from`
+  auto stepCall = [](std::string const& from, NodeDesc::PathStep const& step)
+  {
+    if (!step.id.empty())
+      return from + "->getChildByID(" + literal(step.id) + ")";
+    if (!step.frameName.empty())
+      return "geode::cocos::getChildBySpriteFrameName(" + from + ", " + literal(step.frameName) + ")";
+    // A class the code can't name (another mod's, in a namespace): which child it is of all
+    if (step.byIndex)
+      return from + "->getChildByIndex(" + std::to_string(step.typeIndex) + ")";
+    return from + "->getChildByType<" + step.className + ">(" + std::to_string(step.typeIndex) + ")";
+  };
+
+  auto path = node.path;
+  auto root = node.pathRoot;
+  if (path.empty())
+  {
+    if (node.parentId.empty())
+      return {};
+    path.push_back({{}, node.className, node.typeIndex, node.byIndex, {}});
+    root = node.parentId;
+  }
+  if (!node.pathFromLayer && root.empty())
+    return {};
+
+  // The parent with an ID and the node in one `if`, as most nodes without an ID are
+  if (!node.pathFromLayer && path.size() == 1)
+    return {"auto parent = this->getChildByIDRecursive(" + literal(root) + "); auto node = parent ? " +
+            stepCall("parent", path[0]) + " : nullptr"};
+
+  std::vector<std::string> out;
+  std::string from = "this";
+  if (!node.pathFromLayer)
+  {
+    out.push_back("auto parent = this->getChildByIDRecursive(" + literal(root) + ")");
+    from = "parent";
+  }
+  for (size_t i = 0; i < path.size(); i++)
+  {
+    auto name = i + 1 == path.size() ? std::string("node") : "child" + std::to_string(i + 1);
+    out.push_back("auto " + name + " = " + stepCall(from, path[i]));
+    from = name;
+  }
+  return out;
 }
 
 std::string codegen::generate(NodeDesc const& node)

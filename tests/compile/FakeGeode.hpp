@@ -125,6 +125,14 @@ public:
     return nullptr;
   }
 
+  CCNode* getChildByID(std::string_view wanted)
+  {
+    for (auto child : children)
+      if (child->id == wanted)
+        return child;
+    return nullptr;
+  }
+
   template <class T>
   T* getChildByType(int index)
   {
@@ -170,6 +178,9 @@ public:
 
 class CCSprite : public CCNode
 {
+public:
+  // The frame it shows, for getChildBySpriteFrameName
+  std::string frame;
 };
 
 class CCMenuItemSpriteExtra : public CCNode
@@ -177,6 +188,17 @@ class CCMenuItemSpriteExtra : public CCNode
 public:
   float m_baseScale = 1;
 };
+
+namespace geode::cocos
+{
+  inline CCNode* getChildBySpriteFrameName(CCNode* parent, const char* name)
+  {
+    for (auto child : parent->children)
+      if (auto sprite = dynamic_cast<CCSprite*>(child); sprite && sprite->frame == name)
+        return child;
+    return nullptr;
+  }
+} // namespace geode::cocos
 
 class AxisGap : public CCNode
 {

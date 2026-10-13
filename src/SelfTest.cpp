@@ -32,6 +32,8 @@ using namespace geode::prelude;
 
 namespace
 {
+  constexpr char NEWLINE = 10;
+
   // Frames in the main menu before the test, for it to settle, and as long as they'd last at 60 fps
   constexpr int SETTLE_FRAMES = 90;
   constexpr float DRAG_X = 30.f;
@@ -953,6 +955,8 @@ namespace
     auto win = CCDirector::get()->getWinSize();
     std::set<CCNode*> seen;
     int edited = 0;
+    int paths = 0;
+    int deepPaths = 0;
     editor::setSnapping(false);
     for (int gx = 1; gx <= 7; gx++)
       for (int gy = 1; gy <= 5; gy++)
@@ -977,13 +981,31 @@ namespace
                 fmt::format("{}: {} moved by ({}, {}), not (7, -5)", name, nodeName, moved.x, moved.y));
           auto problem = inspect::checkCode(node, editor::codeFor(node));
           check(problem.empty(), fmt::format("{}: the code for {} puts it where it is: {}", name, nodeName, problem));
+          // Without an ID: the code's way down to it leads to it
+          auto desc = inspect::describe(node);
+          if ((desc.id.empty() || !desc.idUnique) && !desc.path.empty())
+          {
+            auto found = inspect::followPath(node, desc);
+            std::string way;
+            for (auto const& condition : codegen::lookup(desc))
+              way += "\n  if (" + condition + ")";
+            check(found == node, fmt::format("{}: the code's path to {} (hook in {}) leads to {}:{}", name, nodeName,
+                                             desc.layer, found ? inspect::name(found) : "nothing", way));
+            paths++;
+            // The first one in a scene through parents without an ID, as an example
+            if (desc.path.size() > 1 && deepPaths++ == 0)
+              log::info("Self test tour: {}: the code for {}, down through its parents:{}{}", name, nodeName, NEWLINE,
+                        editor::codeFor(node));
+          }
           editor::undo();
           check(inspect::stateOf(node) == before, fmt::format("{}: undo put {} back", name, nodeName));
           edited++;
         }
       }
     editor::setSnapping(std::nullopt);
-    log::info("Self test tour: {}: {} nodes dragged, their code read back, undone", name, edited);
+    log::info("Self test tour: {}: {} nodes dragged, their code read back, undone; {} without an ID found by "
+              "their path ({} through parents without one)",
+              name, edited, paths, deepPaths);
     // A level is mostly its background under the grid
     check(edited >= 1, fmt::format("{}: {} nodes under the grid", name, edited));
   }

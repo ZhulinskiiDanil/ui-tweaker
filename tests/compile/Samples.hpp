@@ -83,6 +83,19 @@ inline std::vector<codegen::NodeDesc> samples()
   auto twelve = add("s12", "CCMenuItemSpriteExtra", "p12", {50, 50}, screen);
   twelve->visible = false;
   twelve->visibleChanged = true;
+  // 13: no ID on it or its parent: from the layer, its second sprite, then a sprite in it by its frame
+  auto thirteen = add("", "CCSprite", "", {120, 40}, screen);
+  thirteen->pathFromLayer = true;
+  thirteen->path = {{"", "CCSprite", 1, false, ""}, {"", "CCSprite", 0, false, "GJ_button_01.png"}};
+  // 14: from a parent with an ID: a child by its ID, the third button, its first sprite
+  auto fourteen = add("", "CCSprite", "", {30, 70}, box);
+  fourteen->pathRoot = "p14";
+  fourteen->path = {{"inner-14", "", 0, false, ""}, {"", "CCMenuItemSpriteExtra", 2, false, ""}, {"", "CCSprite", 0, false, ""}};
+  // 15: an ID another node in the layer has before it: found by the path instead
+  auto fifteen = add("twin", "CCSprite", "", {44, 22}, screen);
+  fifteen->idUnique = false;
+  fifteen->pathRoot = "p15";
+  fifteen->path = {{"", "CCSprite", 1, false, ""}};
   return all;
 }
 

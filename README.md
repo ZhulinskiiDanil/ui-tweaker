@@ -71,7 +71,7 @@ if (auto node = this->getChildByIDRecursive("geode.loader/geode-button"))
 }
 ```
 
-- **Found by its ID** (Geode node IDs). Without one, through its parent's ID and `getChildByType`; without that either, the lines are for wherever you make the node
+- **Found by its ID** (Geode node IDs), if no other node in the layer has it first. Without one, down from the closest parent with one (or from the layer), each step by a child's ID, by the frame a sprite or button shows, or by `getChildByType`; the code says when that's fragile
 - **Relative to the closest edge or the center**, on each axis: of the screen when the parent is screen-sized and not scaled or turned (a layer, a menu as made), of the parent's content box otherwise (`parentSize.width - 10.f`). On a wider or narrower screen the node stays by the same edge
 - **Layouts**: if the parent has one, the panel says what `updateLayout()` will do to the node. For an `AnchorLayout` the code is the anchor and the offset (`AnchorLayoutOptions`; a node that has them keeps its anchor, only the offset changes), for an `AxisLayout` (`RowLayout`, `ColumnLayout`) the gap before the node and `setAutoScale(false)` if it was scaled, for a `SimpleAxisLayout` an `AxisGap`; the position itself is then a comment
 - **Laid out** with braces on their own lines and 2 spaces, or K&R with 4 spaces (the *Code style* setting)

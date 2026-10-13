@@ -14,6 +14,7 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 3 | Nodes without IDs: a path from the closest parent with a findable ID or the layer, each step by ID, frame or type; IDs that aren't unique avoided; `inspect::followPath` | unit tests, three new compiled samples (nested ifs, frames, a twin ID), tour both ways: 74 paths in vanilla, 30 through parents without IDs, all lead to their node |
 | 1 | Align/distribute (`Alt`+`A` `D` `H` `W` `S` `V`, `Alt`+`Shift`+`H` `V`), `core/Align.cpp` with tests; undo keeps a selection that covers the step | self test (turned/flipped/scaled parent, one node in its parent, code read back) both ways; real Alt+A, 10/10 |
 
 ## Decisions
@@ -53,6 +54,11 @@
 - 07:48 quirk 8, the cursor in a level: shown and let go while editing, put back after. The first version of the
   check passed for nothing (GD locks only with its option on, off here): it now finds out whether the cursor
   locks at all first; and `showCursor(true)` unlocking too hid the relock. Menu/play/editor PASS both ways.
+- 08:10 backlog 3, nodes without IDs. Before, a node whose parent had no ID got "no ID to find it by". Now a path
+  down from the closest parent with an ID or the layer. The tour checks each with the same calls; its first run
+  found the code for a LevelSelectLayer sprite leading nowhere: `getChildByIDRecursive("background")` found
+  another `background` first. IDs are now checked for that (the node's own too). The fake scene for the compiled
+  samples had two bugs of its own (a CCNode step counts every node; buttons as "others" before a button).
 
 ## Checks
 
@@ -80,7 +86,9 @@ source or an issue). What's done about each is marked.
    by its own child index): `[` then `]` or an undo of a z-order moves a node to the end of its row among same-z
    siblings. VERIFIED. Known, left: restoring GD's child index isn't safe to do from outside.
 5. **Index paths depend on state** (MenuLayer's IDs by `m_clickedGarage`, controllers; NodeIDs #119 #39 #166 #116
-   #133); `getChildBySpriteFrameName` matches a sprite or a button's image by frame. → backlog 3.
+   #133); `getChildBySpriteFrameName` matches a sprite or a button's image by frame. **Done (08:10)**, backlog 3;
+   and the tour found an ID that isn't unique (LevelSelectLayer's `background`s) leading a path astray: an ID is
+   used only if `getChildByIDRecursive` from the layer finds that very node.
 6. **AxisLayout defaults** (gap 5, autoScale resets scales and `m_baseScale`, ignores invisible children, positions
    every child, forces ignoreAnchor off; `respectAnchor` shifts children). → backlog 2: a new container, every option
    set explicitly.

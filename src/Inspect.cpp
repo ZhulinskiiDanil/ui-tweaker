@@ -10,6 +10,8 @@
 #include <Geode/ui/SimpleAxisLayout.hpp>
 
 #include <algorithm>
+#include <map>
+#include <tuple>
 #include <cstring>
 #include <cmath>
 #include <typeinfo>
@@ -398,6 +400,53 @@ namespace
         return std::string(name);
     return "";
   }
+
+  // The same, remembered by texture and rect: the code view describes the selected node every frame, and a path
+  // down to it can go through several sprites. Forgotten as it grows (and textures are made again on a reload)
+  std::string cachedFrameName(CCSprite* sprite)
+  {
+    static std::map<std::tuple<void*, float, float, float, float>, std::string> cache;
+    if (!sprite)
+      return "";
+    auto rect = sprite->getTextureRect();
+    std::tuple<void*, float, float, float, float> key{sprite->getTexture(), rect.origin.x, rect.origin.y,
+                                                      rect.size.width, rect.size.height};
+    if (auto found = cache.find(key); found != cache.end())
+      return found->second;
+    if (cache.size() > 512)
+      cache.clear();
+    return cache[key] = frameName(sprite);
+  }
+
+  // One step of the way down to a node without an ID: by its frame if none of the siblings before it has it,
+  // else by its class and how many of its class come before it
+  codegen::NodeDesc::PathStep stepTo(CCNode* node)
+  {
+    codegen::NodeDesc::PathStep step;
+    // By its ID if it's the first child with it
+    if (!node->getID().empty() && node->getParent() && node->getParent()->getChildByID(node->getID()) == node)
+    {
+      step.id = std::string(node->getID());
+      return step;
+    }
+    step.className = inspect::className(node);
+    step.byIndex = step.className.find_first_of(":`<> ") != std::string::npos;
+    step.typeIndex = childIndex(node, step.byIndex);
+    std::string frame;
+    if (auto button = typeinfo_cast<CCMenuItemSprite*>(node))
+      frame = cachedFrameName(typeinfo_cast<CCSprite*>(button->getNormalImage()));
+    else if (auto sprite = typeinfo_cast<CCSprite*>(node))
+      frame = cachedFrameName(sprite);
+    if (!frame.empty() && node->getParent())
+      for (auto sibling : CCArrayExt<CCNode*>(node->getParent()->getChildren()))
+        if (geode::cocos::isSpriteFrameName(sibling, frame.c_str()))
+        {
+          if (sibling == node)
+            step.frameName = frame;
+          break;
+        }
+    return step;
+  }
 } // namespace
 
 namespace
@@ -475,6 +524,50 @@ explain::Facts inspect::factsOf(CCNode* node)
   return facts;
 }
 
+CCNode* inspect::followPath(CCNode* node, codegen::NodeDesc const& desc)
+{
+  if (desc.path.empty())
+    return nullptr;
+  // The layer the hook is in, `this`: the closest parent of that class
+  CCNode* layer = nullptr;
+  for (auto up = node->getParent(); up && !layer; up = up->getParent())
+    if (className(up) == desc.layer)
+      layer = up;
+  if (!layer)
+    return nullptr;
+  CCNode* at = desc.pathFromLayer ? layer : layer->getChildByIDRecursive(desc.pathRoot);
+  // A node in a hook's layer: getChildByIDRecursive from the layer
+  // The nodes the steps are expected to reach, for the class a getChildByType would be given
+  std::vector<CCNode*> chain;
+  for (auto up = node; chain.size() < desc.path.size() && up; up = up->getParent())
+    chain.insert(chain.begin(), up);
+  for (size_t i = 0; at && i < desc.path.size(); i++)
+  {
+    auto const& step = desc.path[i];
+    if (!step.id.empty())
+      at = at->getChildByID(step.id);
+    else if (!step.frameName.empty())
+      at = geode::cocos::getChildBySpriteFrameName(at, step.frameName.c_str());
+    else if (step.byIndex)
+      at = at->getChildByIndex(step.typeIndex);
+    else
+    {
+      // getChildByType<T>(n): the n-th child typeinfo_cast<T*> takes
+      auto name = rttiName(chain[i]);
+      CCNode* found = nullptr;
+      int seen = 0;
+      for (auto child : CCArrayExt<CCNode*>(at->getChildren()))
+        if (castable(child, name) && seen++ == step.typeIndex)
+        {
+          found = child;
+          break;
+        }
+      at = found;
+    }
+  }
+  return at;
+}
+
 codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
 {
   codegen::NodeDesc desc;
@@ -492,19 +585,52 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   // The hook the code goes in: the closest parent that's a layer with a known hook, else the top one under the
   // scene (a popup, a layer of a mod)
   CCNode* top = nullptr;
+  CCNode* layer = nullptr;
   for (auto up = node->getParent(); up; up = up->getParent())
   {
     auto name = className(up);
     if (hooks::find(name))
     {
       desc.layer = name;
+      layer = up;
       break;
     }
     if (up->getParent() && typeinfo_cast<CCScene*>(up->getParent()))
       top = up;
   }
   if (desc.layer.empty() && top)
+  {
     desc.layer = className(top);
+    layer = top;
+  }
+
+  // An ID getChildByIDRecursive finds from the layer, not another node's that's the same
+  auto findable = [&](CCNode* target)
+  {
+    auto from = layer ? layer : static_cast<CCNode*>(CCDirector::get()->getRunningScene());
+    return !target->getID().empty() && from && from->getChildByIDRecursive(target->getID()) == target;
+  };
+  desc.idUnique = desc.id.empty() || findable(node);
+
+  // Without an ID (or one another node has too): the way down from the closest parent with a findable one, or from
+  // the layer (`this` in its hook; its own ID, which node-ids sets to its class name, isn't among its children)
+  if (!desc.idUnique || (desc.id.empty() && node->getParent()))
+  {
+    std::vector<CCNode*> chain{node};
+    auto up = node->getParent();
+    while (up && up != layer && !findable(up) && !typeinfo_cast<CCScene*>(up))
+    {
+      chain.push_back(up);
+      up = up->getParent();
+    }
+    if (up && (up == layer || (findable(up) && !typeinfo_cast<CCScene*>(up))))
+    {
+      desc.pathFromLayer = up == layer;
+      desc.pathRoot = desc.pathFromLayer ? "" : std::string(up->getID());
+      for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+        desc.path.push_back(stepTo(*it));
+    }
+  }
 
   auto state = stateOf(node);
   desc.position = {state.position.x, state.position.y};
