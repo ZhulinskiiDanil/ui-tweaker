@@ -11,6 +11,7 @@
 #include "core/Fields.hpp"
 #include "core/History.hpp"
 #include "core/Hooks.hpp"
+#include "core/Grid.hpp"
 #include "core/Measure.hpp"
 #include "core/Session.hpp"
 #include "core/Snap.hpp"
@@ -147,6 +148,9 @@ namespace
     std::vector<snap::Guide> guides;
     std::vector<snap::Guide> snapLines;
     std::optional<bool> snapOverride;
+    std::optional<int> gridOverride;
+    // The grid's step while a drag uses it, for drawing it
+    int gridShown = 0;
     std::optional<bool> putBackOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
@@ -1060,6 +1064,33 @@ namespace
       movePanel(m_panelTopLeft);
     }
 
+    // The grid a drag snaps the code's numbers to: the screen's lines for a node measured on the screen, its parent's,
+    // through the parent's transform, for one measured in its parent. Faint, and none finer than 4 points
+    void drawGrid(CCNode* node, float step)
+    {
+      if (step < 4)
+        return;
+      auto desc = inspect::describe(node);
+      ccColor4F const color = {0.55f * 0.14f, 0.75f * 0.14f, 0.14f, 0.14f};
+      auto segment = [&](CCPoint from, CCPoint to) { m_draw->drawSegment(convertToNodeSpace(from), convertToNodeSpace(to), 0.25f, color); };
+      if (desc.frame.kind == codegen::FrameKind::Screen)
+      {
+        auto win = CCDirector::get()->getWinSize();
+        for (auto x : grid::lines(win.width, step))
+          segment({x, 0}, {x, win.height});
+        for (auto y : grid::lines(win.height, step))
+          segment({0, y}, {win.width, y});
+        return;
+      }
+      auto parent = node->getParent();
+      auto size = parent->getContentSize();
+      auto toWorld = [&](float x, float y) { return parent->convertToWorldSpace({x, y}); };
+      for (auto x : grid::lines(size.width, step))
+        segment(toWorld(x, 0), toWorld(x, size.height));
+      for (auto y : grid::lines(size.height, step))
+        segment(toWorld(0, y), toWorld(size.width, y));
+    }
+
     // The narrower and wider screens, centered on this one, the selected node where it would be on each, and a
     // red box around every node with an ID that doesn't fit on one of them
     void drawShapes(CCNode* selected)
@@ -1159,6 +1190,8 @@ namespace
           m_draw->drawPolygon(square, 4, {1, 1, 1, 1}, 0.4f, SELECTED);
         }
       }
+      if (state().gridShown > 0 && state().dragging && selected && selected->getParent())
+        drawGrid(selected, static_cast<float>(state().gridShown));
       for (auto const& line : state().snapLines)
       {
         auto from = line.vertical ? CCPoint{line.at, line.from} : CCPoint{line.from, line.at};
@@ -1706,17 +1739,49 @@ void editor::dragTo(CCPoint world)
   geom::Vec2 onScreen{delta.x, delta.y};
   moveAll(onScreen);
 
-  // Ctrl held: no snapping, as in Figma. The node pressed snaps, the others follow it
+  // Ctrl held: no snapping and no grid, as in Figma. The node pressed snaps, the others follow it
   s.snapLines.clear();
-  bool snapping = s.snapOverride.value_or(Mod::get()->getSettingValue<bool>("snap"));
-  if (!snapping || (!s.snapOverride && CCKeyboardDispatcher::get()->getControlKeyPressed()))
+  s.gridShown = 0;
+  bool free = !s.snapOverride && !s.gridOverride && CCKeyboardDispatcher::get()->getControlKeyPressed();
+  if (free)
     return;
-  auto bounds = inspect::worldQuad(s.selected.get()).bounds();
-  auto result = snap::snap(bounds, s.guides, SNAP_DISTANCE);
-  if (result.correction.x == 0 && result.correction.y == 0)
+  geom::Vec2 correction;
+  if (s.snapOverride.value_or(Mod::get()->getSettingValue<bool>("snap")))
+  {
+    auto bounds = inspect::worldQuad(s.selected.get()).bounds();
+    auto result = snap::snap(bounds, s.guides, SNAP_DISTANCE);
+    if (result.correction.x != 0 || result.correction.y != 0)
+    {
+      correction = result.correction;
+      moveAll(onScreen + correction);
+      s.snapLines = std::move(result.lines);
+    }
+  }
+
+  // The grid: on each axis no guide took, the pressed node's position as its code writes it (from the closest edge
+  // or center of its frame) rounded to the step. Not for a node an axis layout places
+  int step = s.gridOverride.value_or(static_cast<int>(Mod::get()->getSettingValue<int64_t>("grid")));
+  auto node = s.selected.get();
+  if (step <= 0 || !node->getParent())
     return;
-  moveAll(onScreen + result.correction);
-  s.snapLines = std::move(result.lines);
+  auto desc = inspect::describe(node);
+  if (desc.layout.kind == codegen::LayoutKind::Axis || desc.layout.kind == codegen::LayoutKind::SimpleAxis)
+    return;
+  s.gridShown = step;
+  auto position = codegen::positionExpressions(desc);
+  geom::Vec2 local;
+  if (correction.x == 0)
+    local.x = expr::evaluate(grid::round(position.x, static_cast<float>(step)), desc.frame.extent.width) - desc.position.x;
+  if (correction.y == 0)
+    local.y = expr::evaluate(grid::round(position.y, static_cast<float>(step)), desc.frame.extent.height) - desc.position.y;
+  if (local.x == 0 && local.y == 0)
+    return;
+  moveAll(onScreen + correction + s.parentToWorld.applyLinear(local));
+}
+
+void editor::setGrid(std::optional<int> step)
+{
+  state().gridOverride = step;
 }
 
 std::optional<CCPoint> editor::handleAt(CCPoint world)
@@ -1786,6 +1851,7 @@ void editor::release()
 {
   auto& s = state();
   s.snapLines.clear();
+  s.gridShown = 0;
   if (s.resizing)
   {
     if (s.selected)

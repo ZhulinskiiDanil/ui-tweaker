@@ -28,7 +28,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | --- | --- |
 | Hover | A box around the topmost node under the mouse, its class (from RTTI), its ID and its parent |
 | Click | Selects it: an orange box, its anchor point, and the panel with its position, scale, anchor point, size, parent and z-order, what it shows (a sprite's frame name, a label's font and text), and why it may not move or show: its parent's layout, running actions, an invisible parent, opacity or scale 0, no content size, an ignored anchor point, a clipping parent, being off the screen |
-| Drag | Moves it. A turned, scaled or flipped parent is taken into account: the node follows the mouse. Its edges and center snap to the screen's, the parent's and the siblings' within 3 points, with the guides drawn (`Ctrl`: no snapping; a setting) |
+| Drag | Moves it. A turned, scaled or flipped parent is taken into account: the node follows the mouse. Its edges and center snap to the screen's, the parent's and the siblings' within 3 points, with the guides drawn (`Ctrl`: no snapping; a setting). With the *Grid* setting (in points), the code's numbers go in steps of it from the closest edge or center (`winSize.width / 2 - 20.f`), the grid drawn while dragging |
 | Handles | The eight small squares on the selected node's box resize it (its content size), the opposite side staying where it is, whatever its anchor point, scale or rotation. A node with a layout of its own lays its children out as it goes |
 | Wheel | Scales it by 10% a notch, `Shift`: by 0.01 |
 | `Ctrl`+wheel | Turns it by 15 degrees a notch, `Shift`: by 1 |

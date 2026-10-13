@@ -26,6 +26,8 @@ namespace editor
   void dragTo(cocos2d::CCPoint world);
   // Snapping on or off whatever the setting and Ctrl say; nullopt: as they say
   void setSnapping(std::optional<bool> on);
+  // For the self test: the grid's step whatever the setting says (0: none)
+  void setGrid(std::optional<int> step);
   // Where a drag would put the node's center from this point: snapped to the screen, its parent and its siblings
   cocos2d::CCPoint snappedCenter(cocos2d::CCNode* node, cocos2d::CCPoint center);
   // The resize handle of the selected node at a point on the screen: -1, 0 or 1 on each axis

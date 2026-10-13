@@ -810,6 +810,57 @@ namespace
     sprite->removeFromParent();
   }
 
+  // The grid: a node dragged by an odd amount ends where its code's offsets are whole steps, on the screen and in a
+  // turned, scaled parent; its code puts it there
+  void gridding()
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto scene = CCDirector::get()->getRunningScene();
+    auto onScreen = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    if (!onScreen)
+      onScreen = CCSprite::create();
+    onScreen->setID("selftest-grid-sprite"_spr);
+    onScreen->setPosition({win.width / 2 + 31.3f, win.height / 2 - 12.2f});
+    scene->addChild(onScreen, 1000);
+    auto box = CCLayerColor::create({90, 200, 120, 90}, 160, 100);
+    box->setID("selftest-grid-box"_spr);
+    box->ignoreAnchorPointForPosition(false);
+    box->setPosition({win.width / 2 - 100, win.height / 2 + 40});
+    box->setRotation(20);
+    box->setScale(1.3f);
+    scene->addChild(box, 1000);
+    auto inBox = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    if (!inBox)
+      inBox = CCSprite::create();
+    inBox->setID("selftest-grid-inner"_spr);
+    inBox->setPosition({33.3f, 71.1f});
+    box->addChild(inBox);
+
+    editor::setSnapping(false);
+    editor::setGrid(5);
+    for (auto node : {static_cast<CCNode*>(onScreen), static_cast<CCNode*>(inBox)})
+    {
+      auto name = inspect::name(node);
+      auto center = inspect::worldQuad(node).center();
+      editor::grab(node, {center.x, center.y});
+      editor::dragTo(CCPoint{center.x, center.y} + ccp(13.3f, -7.7f));
+      editor::release();
+      auto position = codegen::positionExpressions(inspect::describe(node));
+      auto whole = [](float offset) { return std::fabs(offset / 5 - std::round(offset / 5)) < 1e-3f; };
+      check(whole(position.x.offset) && whole(position.y.offset),
+            fmt::format("{} dragged on a grid of 5: its code's offsets {} and {} are whole steps", name,
+                        position.x.offset, position.y.offset));
+      auto problem = inspect::checkCode(node, editor::codeFor(node));
+      check(problem.empty(), fmt::format("the code for {} on the grid puts it where it is: {}", name, problem));
+      editor::undo();
+    }
+    editor::setGrid(std::nullopt);
+    editor::setSnapping(std::nullopt);
+    editor::select(nullptr);
+    onScreen->removeFromParent();
+    box->removeFromParent();
+  }
+
   void several(CCNode* first, CCNode* second)
   {
     auto a = inspect::stateOf(first);
@@ -935,6 +986,7 @@ namespace
       aligning();
       layouts(layer);
       turning();
+      gridding();
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);
@@ -966,6 +1018,20 @@ namespace
     // =code: the selected node's code in the panel
     if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "code")
       editor::setCodeView(true);
+    // =grid: in the middle of a drag on a grid of 10, the grid drawn
+    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "grid")
+    {
+      // A node outside layouts: the title, if the main menu has its own
+      if (auto title = scene->getChildByIDRecursive("main-title"); title && visibleInTree(title))
+        editor::select(title);
+      if (auto node = editor::selected())
+      {
+        editor::setGrid(10);
+        auto center = inspect::worldQuad(node).center();
+        editor::grab(node, {center.x, center.y});
+        editor::dragTo(CCPoint{center.x, center.y} + ccp(-23, 11));
+      }
+    }
   }
 
   // The mouse over a node the edit mode would hover there, not under the panel (so a few frames after the
@@ -976,7 +1042,8 @@ namespace
   {
     auto scene = CCDirector::get()->getRunningScene();
     auto selected = editor::selected();
-    if (!selected)
+    // =grid ends in the middle of a drag: nothing is hovered during one
+    if (!selected || std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "grid")
       return false;
     auto measurable = [&](CCNode* node)
     {

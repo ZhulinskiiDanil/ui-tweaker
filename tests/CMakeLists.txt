@@ -28,6 +28,9 @@ add_test(NAME align COMMAND align-tests)
 add_executable(rowfit-tests RowFitTests.cpp ../src/core/RowFit.cpp)
 add_test(NAME rowfit COMMAND rowfit-tests)
 
+add_executable(grid-tests GridTests.cpp ../src/core/Grid.cpp ../src/core/Expr.cpp)
+add_test(NAME grid COMMAND grid-tests)
+
 add_executable(session-tests SessionTests.cpp ../src/core/Session.cpp ../src/core/Codegen.cpp ../src/core/Expr.cpp
     ../src/core/Geometry.cpp ../src/core/Words.cpp ../src/core/Text.cpp ../src/core/RowFit.cpp)
 add_test(NAME session COMMAND session-tests)
