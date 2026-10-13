@@ -8,7 +8,8 @@
 - Hard stop (11 h): **2026-10-13 17:56 +02:00**; stabilization from ~16:56
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
-- Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; this file last updated ~16:00.
+- Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
+  what the mod does), this file last updated 16:21.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -187,6 +188,9 @@
   PASS both ways (1165 yours, 1262 vanilla); READMEs list the `export` mode and say real input and the restart
   check run in vanilla. CI green. Both scripts now warn when other mods are on (they count the installed mods
   that load: 59 yours, 2 in vanilla); real input again 19/19 with no warning.
+- 16:16 `docs/ARCHITECTURE.md`: the box, Ctrl+A and how Ctrl+D reads a button's look; README media all tracked;
+  the README in both languages has the same rows and sections. OptionsLayer's 7 text buttons with your mods are a
+  mod's (vanilla's has none). CI green on 1f9bf37.
 
 ## Checks
 
