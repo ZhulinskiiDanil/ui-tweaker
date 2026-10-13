@@ -2,6 +2,7 @@
 
 - `Alt`+`A` `D` `H` / `W` `S` `V` align the selected nodes on the screen as in Figma: several to the box of them all, one to its parent's box; `Alt`+`Shift`+`H` / `V` distribute three or more with the same gaps. One step to undo, the code as for any move
 - `L` copies the selected nodes of one parent as a row or a column: a new menu with a `RowLayout`/`ColumnLayout` whose gap, size, position and alignment keep them where they are, and the code that moves them into it (checked with Geode's own layouts in the self test)
+- Nodes without an ID are found even when their parent has none either: down from the closest parent with an ID (or the layer itself), each level by a child's ID, the frame a sprite or button shows, or its class and index, in nested `if`s with a comment when that's fragile. An ID another node in the layer has first isn't used. The tour follows every such path in seven scenes (74 nodes in vanilla)
 - Undo and redo keep a selection that has every node of the step
 - The edit mode's key works while a text field has the keyboard (Geode's keybinds don't by default), and takes the keyboard from the field
 - In a level, the edit mode shows the cursor the level hid and lets go of one GD's *Lock cursor* option locked (a locked cursor's position doesn't change, so the mouse did nothing); leaving the edit mode puts them back while the level is played
