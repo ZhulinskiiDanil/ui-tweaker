@@ -45,6 +45,8 @@ namespace words
     std::string forgotKept; // {}: how many
     std::string forgetAsk;  // {}: how many
     std::string cantMake;
+    std::string noWay;
+    std::string copiedWay; // {}: the node
     std::string column;
     std::string treeTitle;   // {} {}: shown, all
     std::string searchHint;

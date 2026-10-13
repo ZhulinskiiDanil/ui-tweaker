@@ -67,6 +67,9 @@ input key z ctrl
 input ctrlwheel 1; sleep 1.5
 expect "Turned main-title" "Ctrl+wheel turned the title"
 input key z ctrl
+# Alt+C copies the way to it
+input key c alt; sleep 1.5
+expect "The way to main-title" "Alt+C copied the way to the title"
 # Ctrl+D makes one like it
 input key d ctrl; sleep 1.5
 expect "Made zhulis.ui-tweaker/new-" "Ctrl+D made a title like it"

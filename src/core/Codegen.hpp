@@ -168,6 +168,10 @@ namespace codegen
   // A block of C++ for one node, ready to paste into a hook of the layer
   std::string generate(NodeDesc const& node);
 
+  // Only the way to the node: its lookup's nested ifs around an empty block where `node` is it, for code of your
+  // own that needs it. Empty if there's no way to find it
+  std::string findCode(NodeDesc const& node);
+
   // Many nodes in one block, each with a comment saying which node it is
   std::string generateAll(std::vector<NodeDesc> const& nodes);
 

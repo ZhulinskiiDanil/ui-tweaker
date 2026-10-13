@@ -394,6 +394,28 @@ std::vector<std::string> codegen::lookup(NodeDesc const& node, std::string const
   return out;
 }
 
+std::string codegen::findCode(NodeDesc const& node)
+{
+  auto conditions = lookup(node);
+  if (conditions.empty())
+    return "";
+  std::ostringstream out;
+  out << "// " << describe(node.id, node.className) << " in " << describe(node.parentId, node.parentClass) << "\n";
+  std::string indent;
+  for (size_t i = 0; i < conditions.size(); i++)
+  {
+    out << indent << "if (" << conditions[i] << ")\n";
+    if (i + 1 < conditions.size())
+      indent += "  ";
+  }
+  // Typed, so its own functions are there
+  out << indent << "{\n";
+  if (node.className.find_first_of(":`<> ") == std::string::npos && node.className != "CCNode")
+    out << indent << "  auto it = static_cast<" << node.className << "*>(node);\n";
+  out << indent << "  // ...\n" << indent << "}\n";
+  return out.str();
+}
+
 std::string codegen::generate(NodeDesc const& node)
 {
   return block(node, true);

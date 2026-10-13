@@ -84,7 +84,12 @@ int main(int argc, char** argv)
     {
       auto style = [&](std::string const& code) { return kAndR ? codegen::toKAndR(code) : code; };
       for (auto const& sample : all)
+      {
         method(style(codegen::generate(sample)));
+        // Alt+C's: only the way to it
+        if (auto way = codegen::findCode(sample); !way.empty())
+          method(style(way));
+      }
       method(style(codegen::generateAll(all)));
       for (auto const& layout : layoutSamples())
         method(style(codegen::layoutCode(layout)));

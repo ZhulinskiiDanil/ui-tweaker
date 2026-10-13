@@ -85,6 +85,8 @@ namespace editor
   // The edited nodes here and in the scenes left, which "Copy all" has
   size_t editedCount();
   void copySelected();
+  // Alt+C: only the code that finds the selected node, for code of your own that needs it
+  void copyFinding();
   // The edits of every scene, kept in the save folder between runs: read when the mod loads, written as they change
   // and when the game exits. Ctrl+Delete forgets those of other scenes
   void loadSession();

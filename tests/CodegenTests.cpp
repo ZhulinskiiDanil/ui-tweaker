@@ -253,6 +253,27 @@ namespace
     CHECK(conditions.size() == 1 && has(conditions[0], "auto root = this->getChildByIDRecursive(\"menu\"); auto parent = root ? "));
   }
 
+  void finding()
+  {
+    auto node = onScreen({10, 10});
+    node.id = "play-button";
+    node.className = "CCMenuItemSpriteExtra";
+    auto code = findCode(node);
+    CHECK(has(code, "if (auto node = this->getChildByIDRecursive(\"play-button\"))\n{\n  auto it = static_cast<CCMenuItemSpriteExtra*>(node);\n  // ...\n}\n"));
+    CHECK(!has(code, "setPosition"));
+    // Down a path; a class the code can't name isn't cast
+    node.id = "";
+    node.className = "`anonymous namespace'::Thing";
+    node.pathRoot = "menu";
+    node.path = {{"", "CCNode", 0, false, ""}, {"", "Thing", 2, true, ""}};
+    code = findCode(node);
+    CHECK(has(code, "if (auto parent = this->getChildByIDRecursive(\"menu\"))\n  if (auto child1"));
+    CHECK(!has(code, "static_cast"));
+    node.path.clear();
+    node.parentId = "";
+    CHECK(findCode(node).empty());
+  }
+
   void lookups()
   {
     auto node = onScreen({10, 10});
@@ -418,6 +439,7 @@ int main()
   axisLayout();
   turnedAndFaded();
   made();
+  finding();
   lookups();
   properties();
   everything();

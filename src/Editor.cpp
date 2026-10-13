@@ -1482,6 +1482,9 @@ namespace
       case KEY_V:
         shift ? editor::distribute(false) : editor::alignTo(Edge::CenterY);
         break;
+      case KEY_C:
+        editor::copyFinding();
+        break;
       default:
         break;
       }
@@ -1494,6 +1497,7 @@ namespace
       case KEY_W:
       case KEY_S:
       case KEY_V:
+      case KEY_C:
         return ListenerResult::Stop;
       default:
         break;
@@ -2902,6 +2906,28 @@ void editor::forgetKept()
   saveSession(true);
   log::info("Forgot the kept edits of {} nodes", count);
   Notification::create(text::format(ui::words().forgotKept, {std::to_string(count)}), NotificationIcon::Info, 1.5f)
+      ->show();
+}
+
+void editor::copyFinding()
+{
+  inspect::forgetLookups();
+  auto node = selected();
+  if (!node)
+  {
+    Notification::create(ui::words().selectFirst, NotificationIcon::Warning, 1.5f)->show();
+    return;
+  }
+  auto code = codegen::findCode(inspect::describe(node));
+  if (code.empty())
+  {
+    Notification::create(ui::words().noWay, NotificationIcon::Warning, 2.f)->show();
+    return;
+  }
+  code = styled(code);
+  clipboard::write(code);
+  log::info("The way to {}:\n{}", inspect::name(node), code);
+  Notification::create(text::format(ui::words().copiedWay, {inspect::name(node)}), NotificationIcon::Success, 1.5f)
       ->show();
 }
 

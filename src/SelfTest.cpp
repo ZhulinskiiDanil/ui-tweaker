@@ -1420,6 +1420,11 @@ namespace
                 fmt::format("{}: {} moved by ({}, {}), not (7, -5)", name, nodeName, moved.x, moved.y));
           auto problem = inspect::checkCode(node, editor::codeFor(node));
           check(problem.empty(), fmt::format("{}: the code for {} puts it where it is: {}", name, nodeName, problem));
+          // Alt+C's code for it: its lookup and nothing else
+          auto way = codegen::findCode(inspect::describe(node));
+          if (!way.empty())
+            check(way.find("setPosition") == std::string::npos && way.find("// ...") != std::string::npos,
+                  fmt::format("{}: the way to {} is only its lookup", name, nodeName));
           // Without an ID: the code's way down to it leads to it
           auto desc = inspect::describe(node);
           if ((desc.id.empty() || !desc.idUnique) && !desc.path.empty())
