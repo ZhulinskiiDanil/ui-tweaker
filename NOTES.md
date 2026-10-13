@@ -8,22 +8,24 @@
 - Hard stop (11 h): **2026-10-13 17:56 +02:00**; stabilization from ~16:56
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
+- Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; this file last updated ~16:00.
+  Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
 
-- **Releases today**: v0.8.1, v0.9.0, v0.10.0, v0.11.0, v0.12.0, v0.13.0 (pre-releases, `.geode` from CI, each
-  installed and checked both ways; Zhulis Mods Manager in the game fetched v0.13.0).
+- **Releases today**: v0.8.1, v0.9.0, v0.10.0, v0.11.0, v0.12.0, v0.13.0, **v0.13.1** (the last; pre-releases,
+  `.geode` from CI, each installed and checked both ways; Zhulis Mods Manager in the game fetched v0.13.1).
 - **New for modders**: align/distribute (Alt+letters), `L` a row/column layout from a selection, paths to nodes
   without IDs (and IDs that aren't unique avoided), edits kept between runs and *Put edits back*, rotation and
   opacity, a *Grid* for round numbers in the code, `Ctrl+D` new nodes like existing ones (sprites, buttons, text
   and circle buttons, labels), `Alt+C` the way to a node, typed values for several nodes, the tree's search by
   frame or text, the panel kept off the taskbar, F8 in text fields, the cursor in levels; selecting several with
-  `Ctrl+A` (siblings) or a right drag's box (outlined while drawn), text buttons made with their font and background.
-- **Checked**: every feature in the self test (11 modes, both with your mods and in vanilla: the tour alone is 1200
-  checks in vanilla), real mouse and keyboard (16 steps), a restart with an edit put back, the generated code
+  `Ctrl+A` (siblings) or a right drag's box (outlined while drawn), text buttons made with their font and background, buttons with their image's own scale.
+- **Checked**: every feature in the self test (12 modes, both with your mods and in vanilla: the tour alone is 1258
+  checks in vanilla), real mouse and keyboard (19 steps), an hour-long kind of soak (memory: the game's own rise), a restart with an edit put back, the generated code
   compiled against the fake API and against the real Geode headers, and **end to end**: an edit's "Copy all" built
   into a mod and run in the game, the nodes exactly where the edit left them (`tools/e2e.sh`).
-- **Reviews**: seven by separate agents, every finding fixed but one minor left as a note (three critical among
+- **Reviews**: eight by separate agents, every finding fixed but a few minor left as notes (three critical among
   them: a kept edit put on another layer's node; edits falling out after 200 steps; a mod's button background
   losing its folder).
 - **Yours to decide**: the Geode Index (`reject-vibecoded`, Improved Logger not on the Index), see "Geode Index".
@@ -32,6 +34,7 @@
 
 | | What | Checked by |
 | --- | --- | --- |
+| own | v0.13.1: Ctrl+D on a button keeps its image's own scale (made, scaled, then the button); the eighth review's minor fixes | unit tests, compiled sample, self test and tour both ways, codecheck; the release's `.geode` both ways |
 | own | v0.13.0: a right drag's box selects (outlined while drawn, Esc, Shift adds, no level objects), Ctrl+A siblings, Ctrl+D text buttons with their font/background (a mod's resource too), the sixth and seventh reviews fixed | self test both ways (editor: a box over 3000 objects, 2 ms), tour making every text button again, real input 19/19, codecheck, E2E PASS; the release's `.geode` both ways |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
 | own | Alt+C (the way to a node), Ctrl+D (sprites, buttons, text and circle buttons, labels), typed values for every selected node, the tree's search by frame or text, a popup's code pointed to its `init()`, nodes back where they were left out of "Copy all" | unit tests, compiled samples, self test both ways, real input 16/16 |
@@ -176,11 +179,16 @@
   them: every mode PASS both ways (yours: 1 234, play 248, editor 247, tour 1165, reload 244, session 246, code
   234, aspect 234, grid 233, ime 234, limit 238, export 236; vanilla: 236 / 250 / 249 / 1258 / 248 / 248 / 236 /
   236 / 235 / 236 / 240 / 238); after them 1 and tour again both ways, unit tests 18/18, codecheck.
+- 15:57 v0.13.1 released (pre-release, the `.geode` CI built from 6c133b2): installed, self test PASS both ways;
+  the manager's cache has v0.13.1. Before it: real input 19/19, restart 6/6, E2E PASS, saved.json's md5 the same
+  all day (a51c96ed...).
 
 ## Checks
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
+| 15:56 (v0.13.1) | yours | 18/18 | ok | PASS every mode (1 234 / play 248 / editor 247 / tour 1165 / reload 244 / session 246 / code 234 / aspect 234 / grid 233 / ime 234 / limit 238 / export 236); the release's `.geode`: PASS | |
+| 15:56 (v0.13.1) | vanilla | 18/18 | ok | PASS every mode (236 / 250 / 249 / tour 1258 / 248 / 248 / 236 / 236 / 235 / 236 / 240 / 238); real input 19/19; restart 6/6; E2E PASS; codecheck; the release's `.geode`: PASS | box.png |
 | 14:35 (v0.13.0) | yours | 18/18 | ok | PASS 1 / play / editor / tour / reload / session / code / aspect / grid / ime / limit / export (the release's `.geode`: PASS) | |
 | 14:35 (v0.13.0) | vanilla | 18/18 | ok | PASS every mode; real input 19/19; E2E PASS; codecheck against Geode 5.10.1 (the release's `.geode`: PASS) | box.png |
 | 12:58 (v0.12.0) | yours | 18/18 | ok | PASS 202 / play 216 / editor 214 / tour 1100 / reload 212 / session 214 / code 202 / aspect 202 / grid 201 / ime 202 / limit 202 | |
