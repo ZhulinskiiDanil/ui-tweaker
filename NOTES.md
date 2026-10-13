@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 17:33.
+  what the mod does), this file last updated 17:38; the run ended there.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -213,6 +213,9 @@
   `should-load-` keys had differed) at 17:22, before any game start. `tools/vanilla.sh` now runs the check in the
   background and waits: Ctrl+C or a timeout stops it and puts the mods back at once (tested: a 15 s timeout, the
   md5 the same, no temporary file left; a normal check, real input 19/19 and E2E through it: PASS).
+- 17:37 the end of the run: self test PASS both ways once more (234 / 236), saved.json's md5 the same, no test mod
+  or temporary file left, the game closed, the release's `.geode` installed (v0.13.1). 75 commits today, all pushed,
+  CI green. The "don't turn the computer off" banner closed.
 
 ## Checks
 
