@@ -114,7 +114,7 @@ inline std::vector<codegen::NodeDesc> samples()
   // 18: a label made in the edit mode, in the layer itself
   auto eighteen = add("zhulis.ui-tweaker/new-18", "CCLabelBMFont", "", {200, 280}, screen);
   eighteen->made.kind = "label";
-  eighteen->made.text = "Hello";
+  eighteen->made.text = "Hello\nthere \"you\"";
   eighteen->made.font = "bigFont.fnt";
   eighteen->made.like = "a label";
   return all;

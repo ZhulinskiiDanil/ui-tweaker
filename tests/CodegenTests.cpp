@@ -224,6 +224,9 @@ namespace
     code = generate(node);
     CHECK(has(code, "if (auto parent = static_cast<CCNode*>(this))"));
     CHECK(has(code, "CCLabelBMFont::create(\"Hi \\\"you\\\"\", \"bigFont.fnt\")"));
+    // Line breaks escaped: a raw one in a literal wouldn't compile
+    node.made.text = "Level\nComplete";
+    CHECK(has(generate(node), "CCLabelBMFont::create(\"Level\\nComplete\", \"bigFont.fnt\")"));
     CHECK(has(code, "parent->updateLayout();"));
     CHECK(!has(code, "menu_selector"));
     // The parent's lookup as `parent`, its own start not clashing

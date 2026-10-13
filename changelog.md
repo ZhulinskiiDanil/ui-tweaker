@@ -3,7 +3,7 @@
 - Values typed with several nodes selected: the fields typed into go to each of them (`pw`, `ph` its own parent's), one step to undo; the others stay each node's own. A scale for a whole row of buttons at once
 - `Ctrl+D` makes a node like the selected one next to it: a sprite, a button or a label, to drag where it goes; its code makes it (`CCMenuItemSpriteExtra::create` with your callback instead of `nullptr`) and adds it to the same parent. Undo takes it out
 - The tree's search finds nodes by what they show too: a sprite's or button's frame, a label's text (`playbtn` finds the play button)
-- "Copy all" says a mod's own Geode Popup's code goes in its `setup()`
+- "Copy all" says a mod's own Geode Popup's code goes in its `init()`, after `Popup::init()`
 
 # v0.10.0
 

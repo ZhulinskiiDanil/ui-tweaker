@@ -17,8 +17,8 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 ## How it goes
 
 1. In your mod, add your button or popup anywhere, with an ID (`setID("my-button"_spr)`), and build once
-2. In the game, `F8`, drag it where it belongs, scale it with the wheel, type exact values with `Enter` if you like; `A` shows whether it still fits on a 4:3 or a 21:9 screen
-3. `Ctrl+Shift+C`: the code for everything you moved, as `$modify` hooks of the layers it's in, also in `export.cpp`. Paste the lines into your hook (or the whole hook), build: it's where you put it, on every screen
+2. In the game, `F8`, drag it where it belongs, scale it with the wheel, type exact values with `Enter` if you like; line several up with `Alt`+`A`/`D`/`H`/`W`/`S`/`V` or turn them into a row with `L`; `A` shows whether it still fits on a 4:3 or a 21:9 screen. No button yet? `Ctrl+D` makes one like a vanilla one, to place
+3. `Ctrl+Shift+C`: the code for everything you moved or made, as `$modify` hooks of the layers it's in, also in `export.cpp`. Paste the lines into your hook (or the whole hook), build: it's where you put it, on every screen. The edits are kept if you restart the game before pasting
 
 ## Use
 
@@ -47,7 +47,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |
 | `Shift`+click | Adds a node to the selection or takes it out. Drags, arrows and the wheel move all of them, one step to undo; `Ctrl+C` copies the code for all of them |
-| `Ctrl+D` | Makes a node like the selected one, next to it in the same parent: a sprite with its frame, a button with its image (or a `ButtonSprite`'s text), a label with its text and font. Drag it where it goes; its code makes it (`createWithSpriteFrameName`, `CCMenuItemSpriteExtra::create` with your callback instead of `nullptr`, `addChild`) and places it as any node. Undo takes it out |
+| `Ctrl+D` | Makes a node like the selected one, next to it in the same parent: a sprite with its frame, a button with its image (or a `ButtonSprite`'s text), a label with its text and font. Drag it where it goes; its code makes it (`createWithSpriteFrameName`, `CCMenuItemSpriteExtra::create` with your callback instead of `nullptr`, `addChild`) and places it as any node. Undo takes it away. A text button gets `ButtonSprite`'s default look |
 | `L` | Copies the selected nodes of one parent as a row or a column: a new menu (or node) with a `RowLayout`/`ColumnLayout` whose gap, size, position and alignment put them where they are now, and the code that moves them into it. Line them up with `Alt` first; the code says if their gaps differ |
 | `Alt`+`A` `D` `H` / `W` `S` `V` | Aligns the selected nodes' left edges, right edges, centers / tops, bottoms, middles on the screen, as in Figma: several to the box of them all, one to its parent's box (or the screen's). `Alt`+`Shift`+`H` / `V` puts the same gap between three or more |
 | `PgUp`, `PgDn` | The parent, the first child |

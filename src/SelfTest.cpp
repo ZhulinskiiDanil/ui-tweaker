@@ -951,10 +951,11 @@ namespace
             "it goes in the menu, found by its ID");
       auto problem = inspect::checkCode(made, code);
       check(problem.empty(), fmt::format("the code puts the made node where it is: {}", problem));
-      check(editor::undo() && editor::undo() && !made->getParent(), "two Ctrl+Z: the drag, then the node taken out");
-      check(editor::redo() && made->getParent() == menu, "Ctrl+Y put it back in the menu");
+      check(editor::undo() && editor::undo() && !made->isVisible(), "two Ctrl+Z: the drag, then the node hidden away");
+      check(editor::redo() && made->isVisible() && made->getParent() == menu, "Ctrl+Y brought it back in the menu");
       editor::undo();
-      check(!made->getParent(), "and Ctrl+Z took it out again");
+      check(!made->isVisible(), "and Ctrl+Z hid it again");
+      check(editor::codeForAll().find(std::string(made->getID())) == std::string::npos, "an undone node made here has no code");
     }
     // A layer (not a sprite, a button or a label) can't be made so
     editor::select(menu);
@@ -1805,8 +1806,8 @@ namespace
                              laidOut.y, dragged.x, dragged.y));
            // Back as it was: its own options, the drag undone
            node->setLayoutOptions(options.get());
-           check(editor::codeForAll().find("'s setup(), after its nodes are made") != std::string::npos,
-                 "the code for all says the popup's code goes in its setup()");
+           check(editor::codeForAll().find("'s init(), after Popup::init()") != std::string::npos,
+                 "the code for all says the popup's code goes in its init()");
            check(editor::undo(), "the drag in the popup is a step to undo");
            check(inspect::stateOf(node) == buttonBefore, "undo put the popup's button back");
            popup->close();

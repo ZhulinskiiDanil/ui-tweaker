@@ -114,6 +114,7 @@
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
+| 11:30 soak | vanilla | | | `tools/soak.sh 150` (drags, wheel, undo, Ctrl+D and undo, tree and code open): 880 → 908 → 935 → 959 → 977 → 996 → 1011 → 1031 MB; idle 2 min with the edit mode on: +14 MB, off: +15 MB: the game's own rise, the same rate | |
 | 10:10 (v0.10.0) | yours | 18/18 | ok | PASS 164 / play 178 / editor 176 / tour 874 (13 scenes) / reload 174 / session 176 / code 164 / aspect 164 | grid mid-drag, panel above the taskbar |
 | 10:10 (v0.10.0) | vanilla | 18/18 | ok | PASS 166 / 180 / 178 / tour 948 / 178 / 178 / 166 / 166; real input 13/13; restart 6/6 | README screenshots made again |
 | 07:13 | yours | 14/14 | ok | PASS 129 / play 140 / editor 140 / tour 445 / code 129 / aspect 129 | MiSide menu: label selected, distances |
@@ -179,7 +180,25 @@ source or an issue). What's done about each is marked.
 
 ## Not done / known
 
+- Color isn't edited: it isn't layout, and a button's press tints it anyway (backlog 5, a choice).
+- `[` `]` and an undo of a z-order give a node a new arrival order (GD's child index): among same-z siblings in a
+  layout it moves to the end of its row (quirk 4). Not fixable from outside without touching GD's sorting.
+- Ctrl+D makes a text button with `ButtonSprite`'s default font and background, and only plain sprites as a
+  button's image (a circle button with an icon isn't offered).
+- `tools/real-input.sh`'s points are the vanilla main menu's: with your MiSide menu it would click other things,
+  so real input runs in vanilla; the self test runs both ways.
+- The game's memory rises about 7 MB a minute in the vanilla game here, the same with the edit mode on, off, idle
+  or used: not the mod's, noted in case it matters.
+
 ## Proposals
+
+- Geode Index: decide on `reject-vibecoded` first (see "Geode Index"); publish Improved Logger or mark it external.
+- Reorder inside an axis layout by dragging (Figma's auto layout): the code would be `insertBefore` a sibling.
+  Needs the order restored on undo, which GD's child index makes delicate (quirk 4).
+- A "freeze the level" option while editing (pause the scene's schedulers, not the overlay's): still left out, it
+  changes the game's state and fights speedhack mods.
+- Ctrl+D for more kinds: a circle button with its icon (`CircleButtonSprite`), a `ButtonSprite` with its font and
+  background read from the original.
 
 # Run 1 (2026-10-12)
 

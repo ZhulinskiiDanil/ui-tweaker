@@ -132,6 +132,8 @@ namespace history
     }
 
     std::vector<Entry> const& changes() const { return m_undo; }
+    // What redo would do again
+    std::vector<Entry> const& undone() const { return m_redo; }
     bool canUndo() const { return !m_undo.empty(); }
     bool canRedo() const { return !m_redo.empty(); }
 

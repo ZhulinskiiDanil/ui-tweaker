@@ -16,14 +16,19 @@ namespace
 words::Lang ui::language()
 {
   // UI_TWEAKER_LANG=en or ru: for screenshots, whatever the setting says
-  char* forced = nullptr;
-  size_t size = 0;
-  if (_dupenv_s(&forced, &size, "UI_TWEAKER_LANG") == 0 && forced)
+  // Read once: words() asks many times a frame
+  static std::string const forced = []
   {
-    bool russian = std::string(forced) == "ru";
-    std::free(forced);
-    return russian ? words::Lang::Russian : words::Lang::English;
-  }
+    char* text = nullptr;
+    size_t size = 0;
+    std::string out;
+    if (_dupenv_s(&text, &size, "UI_TWEAKER_LANG") == 0 && text)
+      out = text;
+    std::free(text);
+    return out;
+  }();
+  if (!forced.empty())
+    return forced == "ru" ? words::Lang::Russian : words::Lang::English;
   auto setting = Mod::get()->getSettingValue<std::string>("language");
   if (setting == "English")
     return words::Lang::English;

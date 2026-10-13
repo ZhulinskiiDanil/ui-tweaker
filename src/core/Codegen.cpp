@@ -2,6 +2,8 @@
 
 #include "Text.hpp"
 
+#include <algorithm>
+#include <cstdio>
 #include <sstream>
 
 namespace
@@ -26,9 +28,25 @@ namespace
     std::string out = "\"";
     for (char c : text)
     {
-      if (c == '"' || c == '\\')
-        out += '\\';
-      out += c;
+      // A label's text can have line breaks: a raw one in a literal wouldn't compile
+      if (c == '\n')
+        out += "\\n";
+      else if (c == '\r')
+        out += "\\r";
+      else if (c == '\t')
+        out += "\\t";
+      else if (static_cast<unsigned char>(c) < 0x20)
+      {
+        char escaped[8];
+        std::snprintf(escaped, sizeof(escaped), "\\x%02x\"\"", static_cast<unsigned char>(c));
+        out += escaped;
+      }
+      else
+      {
+        if (c == '"' || c == '\\')
+          out += '\\';
+        out += c;
+      }
     }
     return out + "\"";
   }
@@ -384,11 +402,14 @@ std::string codegen::generateAll(std::vector<NodeDesc> const& nodes)
     winSize = winSize || body(node, "").usesWinSize;
   if (winSize)
     out << "auto winSize = CCDirector::get()->getWinSize();\n\n";
-  for (size_t i = 0; i < nodes.size(); i++)
+  // Nodes made in the edit mode last: the others are found before a new sibling is there to count
+  auto ordered = nodes;
+  std::stable_partition(ordered.begin(), ordered.end(), [](NodeDesc const& node) { return node.made.kind.empty(); });
+  for (size_t i = 0; i < ordered.size(); i++)
   {
     if (i > 0)
       out << "\n";
-    out << block(nodes[i], false);
+    out << block(ordered[i], false);
   }
   return out.str();
 }

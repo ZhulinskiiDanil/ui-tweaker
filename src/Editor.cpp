@@ -234,11 +234,10 @@ namespace
     // The same for visibility: only V's is an edit, not the game hiding a tab's buttons
     std::vector<CCNode*> toggled;
     // Nodes made by Ctrl+D, where they go and how they're made, while their scene runs
+    // Undone, one is hidden in its parent rather than taken out, so nothing here holds the parent (often the layer)
     struct Made
     {
       Retained<CCNode> node;
-      Retained<CCNode> parent;
-      int z = 0;
       codegen::NodeDesc::Made made;
     };
     std::vector<Made> made;
@@ -520,7 +519,7 @@ namespace
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
-    std::erase_if(s.made, [&](auto const& entry) { return gone(entry.parent); });
+    std::erase_if(s.made, [&](auto const& entry) { return gone(entry.node); });
     pruneTracked();
     if (s.selected && gone(s.selected))
     {
@@ -2168,6 +2167,33 @@ void editor::duplicate()
   auto clone = inspect::make(*made);
   if (!clone)
     return;
+  // The ones made before that are gone for good: taken out, and no step left that would put them back
+  auto inHistory = [&](CCNode* each)
+  {
+    auto refers = [&](auto const& list)
+    { return std::any_of(list.begin(), list.end(), [&](auto const& change) { return change.target.get() == each; }); };
+    return refers(s.history.changes()) || refers(s.history.undone());
+  };
+  std::erase_if(s.made,
+                [&](auto const& entry)
+                {
+                  if (entry.node->isVisible() || inHistory(entry.node.get()))
+                    return false;
+                  entry.node->removeFromParent();
+                  return true;
+                });
+  // A number no node made before has, in this scene, this run or one kept from an earlier run
+  auto prefix = std::string(Mod::get()->getID()) + "/new-";
+  auto taken = [&](std::string_view id)
+  {
+    if (id.starts_with(prefix))
+      s.madeCount = std::max(s.madeCount, std::atoi(std::string(id.substr(prefix.size())).c_str()));
+  };
+  for (auto const& [layerName, descs] : s.earlier)
+    for (auto const& desc : descs)
+      taken(desc.id);
+  for (auto const& [each, desc] : s.live)
+    taken(desc.id);
   clone->setID(Mod::get()->expandSpriteName(fmt::format("new-{}", ++s.madeCount)));
   clone->setScaleX(node->getScaleX());
   clone->setScaleY(node->getScaleY());
@@ -2179,7 +2205,7 @@ void editor::duplicate()
   parent->addChild(clone, z);
   if (parent->getLayout())
     parent->updateLayout();
-  s.made.push_back({Retained<CCNode>(clone), Retained<CCNode>(parent), z, *made});
+  s.made.push_back({Retained<CCNode>(clone), *made});
   auto before = inspect::stateOf(clone);
   before.present = false;
   record(clone, before, Add, 0);
@@ -2351,7 +2377,9 @@ void editor::typingKey(int key, bool shift)
       auto before = inspect::stateOf(each);
       auto after = before;
       bool all = each == node;
-      auto take = [&](size_t i) { return i < own.size() && own[i] && (all || typed[i]); };
+      // A value this node's parent makes impossible (100 / pw with a parent of no size) isn't taken
+      auto take = [&](size_t i)
+      { return i < own.size() && own[i] && std::isfinite(*own[i]) && std::fabs(*own[i]) <= 1e6f && (all || typed[i]); };
       if (take(0))
         after.position.x = *own[0];
       if (take(1))
@@ -2401,10 +2429,19 @@ bool editor::undo()
       // Made here: undoing it takes it out
       if (change.kind == Add)
       {
-        if (s.selected == node)
-          s.selected.reset();
         std::erase_if(s.also, [&](auto const& other) { return other.get() == node; });
-        node->removeFromParent();
+        if (s.selected == node)
+        {
+          s.selected.reset();
+          if (!s.also.empty())
+          {
+            s.selected = s.also.front();
+            s.also.erase(s.also.begin());
+          }
+        }
+        node->setVisible(false);
+        if (auto parent = node->getParent(); parent && parent->getLayout())
+          parent->updateLayout();
         log::info("Undid making {}", inspect::name(node));
         unmade = true;
         continue;
@@ -2449,13 +2486,11 @@ bool editor::redo()
       // Made here: redoing it puts it back where it was made
       if (change.kind == Add)
       {
-        auto const& made = s.made;
-        auto entry = std::find_if(made.begin(), made.end(), [&](auto const& m) { return m.node.get() == node; });
-        if (entry == made.end() || node->getParent() || !inspect::isIn(entry->parent.get(), runningScene()))
+        if (!inspect::isIn(node, runningScene()))
           continue;
-        entry->parent->addChild(node, entry->z);
-        if (entry->parent->getLayout())
-          entry->parent->updateLayout();
+        node->setVisible(true);
+        if (node->getParent()->getLayout())
+          node->getParent()->updateLayout();
         snapshot(node);
         redone.push_back(node);
         continue;

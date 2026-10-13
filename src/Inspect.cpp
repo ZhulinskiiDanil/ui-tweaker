@@ -144,6 +144,13 @@ namespace
 
   // Which one of the parent's children getChildByType<its class> gives the node as: subclasses count, like
   // typeinfo_cast does. Or, with `any`, which child it is of all
+  // Made by Ctrl+D: its ID is this mod's new-N
+  bool madeHere(CCNode* node)
+  {
+    static std::string const prefix = std::string(Mod::get()->getID()) + "/new-";
+    return std::string_view(node->getID()).starts_with(prefix);
+  }
+
   int childIndex(CCNode* node, bool any)
   {
     auto parent = node->getParent();
@@ -155,7 +162,8 @@ namespace
     {
       if (child == node)
         break;
-      if (any || castable(child, name))
+      // A node made in the edit mode isn't there where the code runs
+      if (!madeHere(child) && (any || castable(child, name)))
         index++;
     }
     return index;
@@ -402,13 +410,26 @@ namespace
     auto frames = CCSpriteFrameCache::get()->m_pSpriteFrames;
     if (!sprite || !frames)
       return "";
-    auto texture = sprite->getTexture();
+    // Every frame by texture and rect, made again when frames come or go (a reload makes them all again): one
+    // look-up a sprite instead of a pass over thousands of frames
+    using Key = std::tuple<void*, float, float, float, float>;
+    static std::map<Key, std::string> names;
+    static unsigned built = ~0u;
+    if (frames->count() != built)
+    {
+      names.clear();
+      // The frame's texture as it is, not getTexture(), which loads a texture not loaded yet
+      for (auto [name, frame] : CCDictionaryExt<std::string_view, CCSpriteFrame*>(frames))
+      {
+        auto rect = frame->getRect();
+        names.try_emplace(Key{frame->m_pobTexture, rect.origin.x, rect.origin.y, rect.size.width, rect.size.height},
+                          std::string(name));
+      }
+      built = frames->count();
+    }
     auto rect = sprite->getTextureRect();
-    // The frame's texture as it is, not getTexture(), which loads a texture not loaded yet
-    for (auto [name, frame] : CCDictionaryExt<std::string_view, CCSpriteFrame*>(frames))
-      if (frame->m_pobTexture == texture && frame->getRect().equals(rect))
-        return std::string(name);
-    return "";
+    auto found = names.find(Key{sprite->getTexture(), rect.origin.x, rect.origin.y, rect.size.width, rect.size.height});
+    return found != names.end() ? found->second : "";
   }
 
   // The same, remembered by texture and rect: the code view describes the selected node every frame, and a path
@@ -562,7 +583,7 @@ namespace
   {
     int seen = 0;
     for (auto child : CCArrayExt<CCNode*>(parent->getChildren()))
-      if (ofClass(child, name) && seen++ == index)
+      if (!madeHere(child) && ofClass(child, name) && seen++ == index)
         return child;
     return nullptr;
   }
@@ -651,7 +672,7 @@ CCNode* inspect::followPath(CCNode* node, codegen::NodeDesc const& desc)
       CCNode* found = nullptr;
       int seen = 0;
       for (auto child : CCArrayExt<CCNode*>(at->getChildren()))
-        if (castable(child, name) && seen++ == step.typeIndex)
+        if (!madeHere(child) && castable(child, name) && seen++ == step.typeIndex)
         {
           found = child;
           break;
@@ -726,7 +747,8 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
       made.text = text->m_label->getString();
       return made;
     }
-    if (auto sprite = typeinfo_cast<CCSprite*>(image))
+    // A plain sprite only: a sprite of its own class (a circle button with an icon) isn't made by its frame
+    if (auto sprite = typeinfo_cast<CCSprite*>(image); sprite && className(image) == "CCSprite")
       made.frame = cachedFrameName(sprite);
     if (made.frame.empty())
       return std::nullopt;
