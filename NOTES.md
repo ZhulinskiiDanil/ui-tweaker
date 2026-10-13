@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 17:02.
+  what the mod does), this file last updated 17:08.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -205,6 +205,7 @@
 - 17:02 the last full run, on the installed release `.geode` of v0.13.1 itself (md5 e3df8dba...): every mode PASS
   both ways (yours: 234 / 248 / 247 / tour 1165 / 244 / 246 / 234 / 234 / 233 / 234 / 238 / 236; vanilla: 236 /
   250 / 249 / tour 1258 / 248 / 248 / 236 / 236 / 235 / 236 / 240 / 238); saved.json's md5 the same.
+- 17:07 on the release's `.geode` too: real input 19/19, restart 6/6, E2E PASS (vanilla); saved.json the same.
 
 ## Checks
 
