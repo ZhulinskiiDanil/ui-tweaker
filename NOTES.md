@@ -185,7 +185,8 @@
 - 16:05 after the release, test-only and docs: the compiled samples have a scaled circle button too (two
   buttons' `image` in one hook compile, fake API and real Geode); the tour again on the installed v0.13.1 `.geode`:
   PASS both ways (1165 yours, 1262 vanilla); READMEs list the `export` mode and say real input and the restart
-  check run in vanilla. CI green.
+  check run in vanilla. CI green. Both scripts now warn when other mods are on (they count the installed mods
+  that load: 59 yours, 2 in vanilla); real input again 19/19 with no warning.
 
 ## Checks
 
