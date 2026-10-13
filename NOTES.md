@@ -182,6 +182,10 @@
 - 15:57 v0.13.1 released (pre-release, the `.geode` CI built from 6c133b2): installed, self test PASS both ways;
   the manager's cache has v0.13.1. Before it: real input 19/19, restart 6/6, E2E PASS, saved.json's md5 the same
   all day (a51c96ed...).
+- 16:05 after the release, test-only and docs: the compiled samples have a scaled circle button too (two
+  buttons' `image` in one hook compile, fake API and real Geode); the tour again on the installed v0.13.1 `.geode`:
+  PASS both ways (1165 yours, 1262 vanilla); READMEs list the `export` mode and say real input and the restart
+  check run in vanilla. CI green.
 
 ## Checks
 
