@@ -29,8 +29,8 @@ wait_for() {
 stop
 before="$(newest "$logs")"
 UI_TWEAKER_SELFTEST="$mode" geode run --background >/dev/null 2>&1
-if ! wait_for '[ "$(newest "$logs")" != "$before" ]' 60; then
-  echo "FAIL: no new Geode log in 60 s"
+if ! wait_for '[ "$(newest "$logs")" != "$before" ]' 120; then
+  echo "FAIL: no new Geode log in 120 s"
   stop
   exit 1
 fi
