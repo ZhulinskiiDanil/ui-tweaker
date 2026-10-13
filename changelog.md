@@ -1,4 +1,4 @@
-# v0.10.0 (not released yet: on main)
+# v0.10.0
 
 - The edits are kept between runs of the game (`session.txt` in the save folder): after a rebuild and a restart, `Ctrl+Shift+C` still has what wasn't pasted yet. `Ctrl+Delete` forgets them
 - *Put edits back* (off by default): while the edit mode is on, a screen made again, or the game started again, gets its kept edits back on the nodes, found as their code finds them, one step to undo; a node already there (its code pasted) is left alone

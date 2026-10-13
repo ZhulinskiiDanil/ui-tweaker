@@ -114,6 +114,8 @@
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
+| 10:10 (v0.10.0) | yours | 18/18 | ok | PASS 164 / play 178 / editor 176 / tour 874 (13 scenes) / reload 174 / session 176 / code 164 / aspect 164 | grid mid-drag, panel above the taskbar |
+| 10:10 (v0.10.0) | vanilla | 18/18 | ok | PASS 166 / 180 / 178 / tour 948 / 178 / 178 / 166 / 166; real input 13/13; restart 6/6 | README screenshots made again |
 | 07:13 | yours | 14/14 | ok | PASS 129 / play 140 / editor 140 / tour 445 / code 129 / aspect 129 | MiSide menu: label selected, distances |
 | 07:13 | vanilla | 14/14 | ok | PASS 131 / 142 / 142 / tour 522 / 131 / 131; real input 9/9 | vanilla menu: Geode button, panel dodged |
 
