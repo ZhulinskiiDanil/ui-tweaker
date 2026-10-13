@@ -15,6 +15,8 @@
 #include "core/Text.hpp"
 #include "core/Tree.hpp"
 
+#include <Geode/binding/PauseLayer.hpp>
+#include <Geode/binding/PlayLayer.hpp>
 #include <Geode/ui/Notification.hpp>
 #include <Geode/ui/OverlayManager.hpp>
 #include <Geode/utils/Keyboard.hpp>
@@ -124,6 +126,9 @@ namespace
     CCPoint panelGrab;
 
     std::optional<CCPoint> pinned;
+    // The cursor a level hid or locked, shown and let go while the edit mode is on, put back after
+    bool rehideCursor = false;
+    bool relockCursor = false;
     // The last hover and where the mouse was for it
     Retained<CCNode> hover;
     CCPoint hoverPoint;
@@ -1394,6 +1399,22 @@ namespace
   {
     auto& s = state();
     forgetOtherScenes();
+    // A level hides the cursor and, with GD's lock cursor option, locks it, which also stops the mouse's position
+    // from changing; the level does it again when it's resumed, so it's undone every frame
+    // Both read first: showing the cursor also lets it go
+    auto view = CCEGLView::get();
+    bool hidden = view->getShouldHideCursor();
+    bool locked = view->getCursorLocked();
+    if (hidden)
+    {
+      view->showCursor(true);
+      s.rehideCursor = true;
+    }
+    if (locked)
+    {
+      view->toggleLockCursor(false);
+      s.relockCursor = true;
+    }
     // Removed, or the scene changed
     std::erase_if(s.also, [](auto const& node) { return !inspect::isIn(node.get(), runningScene()); });
     if (s.selected && !inspect::isIn(s.selected.get(), runningScene()))
@@ -1498,6 +1519,14 @@ void editor::setActive(bool on)
     s.scroll.reset();
     s.keys.reset();
     s.pressed = s.dragging = s.panelDragging = s.leftDown = false;
+    // The cursor as the level had it, if the level is still being played (paused, the game shows it itself)
+    auto running = runningScene();
+    bool playing = PlayLayer::get() && running && !running->getChildByType<PauseLayer>(0);
+    if (s.rehideCursor && playing)
+      CCEGLView::get()->showCursor(false);
+    if (s.relockCursor && playing)
+      CCEGLView::get()->toggleLockCursor(true);
+    s.rehideCursor = s.relockCursor = false;
     s.pinned.reset();
     s.selected.reset();
     if (s.overlay)

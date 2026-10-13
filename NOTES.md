@@ -50,6 +50,9 @@
 - 07:34 quirk 7: F8 in a text field (real input 12/12, and checked to fail without the fix). 07:37 quirk 1, the
   game's reload: harmless, now a self test mode (`reload`). A panel cut at the bottom in the check's screenshots is
   the Windows taskbar over a game window that isn't in front (the check starts it in the background), not the mod.
+- 07:48 quirk 8, the cursor in a level: shown and let go while editing, put back after. The first version of the
+  check passed for nothing (GD locks only with its option on, off here): it now finds out whether the cursor
+  locks at all first; and `showCursor(true)` unlocking too hid the relock. Menu/play/editor PASS both ways.
 
 ## Checks
 
@@ -84,7 +87,10 @@ source or an issue). What's done about each is marked.
 7. **F8 doesn't fire while a text field has the keyboard** (`allow-in-text-inputs` defaults to false). VERIFIED.
    **Done (07:34)**: `allow-in-text-inputs` on the keybind; a real F8 in a focused TextInput turns the edit mode
    on and the field lets go (and without the flag the same F8 did nothing).
-8. **Lock cursor freezes `getMousePos()`** in a level with GD's lock-cursor option. VERIFIED. → to handle.
+8. **Lock cursor freezes `getMousePos()`** in a level with GD's lock-cursor option. VERIFIED. **Done (07:48)**:
+   the edit mode shows a hidden cursor and lets go of a locked one every frame (the level does it again when
+   resumed), and puts them back when it's left while the level is played. Found on the way: `showCursor(true)`
+   also unlocks, so both states are read before either is changed. Self test in a level, both ways.
 9. CCMenu clicks the first item in array order: overlapped buttons are clicked differently than drawn. Known.
 10. CCMenuItemToggler's two inner buttons: picked as the toggler (the outermost whole thing). Known.
 11. TableView cells and the editor's button bar are rebuilt: edits there don't survive; their hooks belong elsewhere.

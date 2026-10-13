@@ -40,6 +40,7 @@ namespace
   int g_checks = 0;
   int g_failed = 0;
   int g_frames = 0;
+  bool g_lockable = false;
 
   void check(bool ok, std::string const& what)
   {
@@ -909,6 +910,32 @@ namespace
                          editor::select(label);
                          editor::pinMouse(std::nullopt);
                          editor::setMeasuring(std::nullopt);
+                         // The cursor hidden and locked as a level does: shown and let go. It locks only with GD's
+                         // lock cursor option on, so that's found out first
+                         auto view = CCEGLView::get();
+                         editor::setActive(false);
+                         view->toggleLockCursor(true);
+                         g_lockable = view->getCursorLocked();
+                         view->toggleLockCursor(false);
+                         editor::setActive(true);
+                         log::info("Self test: the cursor {} locked here", g_lockable ? "can be" : "can't be (GD's option is off)");
+                         view->showCursor(false);
+                         view->toggleLockCursor(true);
+                       }});
+    g_steps.push_back({3,
+                       []
+                       {
+                         auto view = CCEGLView::get();
+                         check(!view->getShouldHideCursor() && !view->getCursorLocked(),
+                               "the edit mode shows and lets go of the cursor a level hid and locked");
+                         editor::setActive(false);
+                         check(view->getShouldHideCursor() && view->getCursorLocked() == g_lockable,
+                               fmt::format("leaving the edit mode in the level hides ({}) and locks ({}) the cursor again",
+                                           view->getShouldHideCursor(), view->getCursorLocked()));
+                         view->showCursor(true);
+                         view->toggleLockCursor(false);
+                         editor::setActive(true);
+                         check(!view->getShouldHideCursor() && !view->getCursorLocked(), "and nothing to put back now");
                        }});
     g_steps.push_back({1,
                        []
