@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 16:41.
+  what the mod does), this file last updated 16:38.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -196,7 +196,7 @@
   is Geode's own at load: "Unable to load setting 'grid' for mod zhulis.ui-tweaker (not found in savedata)": the
   Grid setting is new and the game is killed after each check, so Geode never saved it; the default is used, and it
   goes once the game is closed normally.
-- 16:40 a new user's first start: UI Tweaker's save folder moved aside (no settings, no session, no export), the
+- 16:37 a new user's first start: UI Tweaker's save folder moved aside (no settings, no session, no export), the
   self test in vanilla: PASS (it made only its own `session-selftest.txt`); the folder put back, the same byte for
   byte, saved.json's md5 the same.
 
