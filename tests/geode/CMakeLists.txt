@@ -12,8 +12,12 @@ endif()
 
 project(ui-tweaker-codecheck VERSION 1.0.0)
 
+# By default the generator's output next to this file (CI writes it there)
 if (NOT REAL_INC)
-    message(FATAL_ERROR "REAL_INC: the generated code to compile (generate-samples' third output)")
+    set(REAL_INC "${CMAKE_CURRENT_SOURCE_DIR}/real.inc")
+endif()
+if (NOT EXISTS "${REAL_INC}")
+    message(FATAL_ERROR "REAL_INC: the generated code to compile (generate-samples' third output), ${REAL_INC} isn't there")
 endif()
 add_library(${PROJECT_NAME} SHARED main.cpp)
 target_compile_definitions(${PROJECT_NAME} PRIVATE REAL_INC="${REAL_INC}")

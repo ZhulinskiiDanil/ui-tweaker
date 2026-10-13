@@ -41,6 +41,27 @@ jobs:
           cmake --build build-tests --config Release
           ctest --test-dir build-tests -C Release --output-on-failure
 
+  # The code the mod generates, every kind of it, compiled against the real Geode headers (tools/codecheck.sh)
+  codecheck:
+    name: Generated code against Geode
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate the code
+        shell: bash
+        run: |
+          cmake -S tests -B build-tests
+          cmake --build build-tests --config Release --target generate-samples
+          ./build-tests/Release/generate-samples.exe build-tests/samples.inc build-tests/hooks.inc tests/geode/real.inc
+
+      - name: Compile it in a mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          target: Win64
+          path: tests/geode
+
   build:
     name: Windows
     runs-on: windows-latest

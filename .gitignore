@@ -68,3 +68,5 @@ TASK.md
 .clangd
 # The goal of the autonomous run stays local too
 goal.txt
+# The generated code for tests/geode, made by tools/codecheck.sh or CI
+tests/geode/real.inc
