@@ -8,6 +8,7 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
+#include <Geode/ui/TextInput.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/binding/CreatorLayer.hpp>
 #include <Geode/binding/EditorUI.hpp>
@@ -1292,6 +1293,21 @@ namespace
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "tour")
            {
              tour();
+             return;
+           }
+           // =ime: the edit mode off and a text field with the keyboard, for tools/real-input.sh's F8 in it
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "ime")
+           {
+             editor::setActive(false);
+             auto win = CCDirector::get()->getWinSize();
+             auto input = TextInput::create(160, "UI Tweaker");
+             input->setID("selftest-input"_spr);
+             input->setPosition({win.width / 2, win.height / 2});
+             CCDirector::get()->getRunningScene()->addChild(input, 1000);
+             input->focus();
+             check(CCIMEDispatcher::sharedDispatcher()->hasDelegate(), "a text field has the keyboard");
+             g_frames = 0;
+             finish(false);
              return;
            }
            prepareScreenshot();

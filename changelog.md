@@ -2,6 +2,7 @@
 
 - `Alt`+`A` `D` `H` / `W` `S` `V` align the selected nodes on the screen as in Figma: several to the box of them all, one to its parent's box; `Alt`+`Shift`+`H` / `V` distribute three or more with the same gaps. One step to undo, the code as for any move
 - Undo and redo keep a selection that has every node of the step
+- The edit mode's key works while a text field has the keyboard (Geode's keybinds don't by default), and takes the keyboard from the field
 
 # v0.8.1
 

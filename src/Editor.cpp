@@ -1451,7 +1451,11 @@ void editor::setActive(bool on)
   if (on)
   {
     forgetOtherScenes();
-    unfocusTextFields(runningScene());
+    if (CCIMEDispatcher::sharedDispatcher()->hasDelegate())
+    {
+      unfocusTextFields(runningScene());
+      log::info("A text field had the keyboard: {}", CCIMEDispatcher::sharedDispatcher()->hasDelegate() ? "still" : "let go");
+    }
     s.codeView = Mod::get()->getSavedValue<bool>("code", false);
     s.aspectPreview = Mod::get()->getSavedValue<bool>("aspect", false);
     s.mouse = MouseInputEvent().listen(onMouse, PRIORITY);

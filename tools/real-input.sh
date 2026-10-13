@@ -91,5 +91,23 @@ expect "Edit mode off" "F8 left the edit mode"
 running && echo "the game is running" || echo "FAIL: the game isn't running"
 echo "== the log after the self test"
 fresh | grep -E "UI Tweaker" | cut -c1-170
+stop
+
+# F8 while a text field has the keyboard (the self test's =ime leaves one focused, the edit mode off): the keybind
+# allows text inputs, and the edit mode takes the keyboard from the field
+before="$(newest "$logs")"
+UI_TWEAKER_SELFTEST=ime geode run --background >/dev/null 2>&1
+for _ in $(seq 1 60); do [ "$(newest "$logs")" != "$before" ] && break; sleep 1; done
+log="$logs/$(newest "$logs")"
+for _ in $(seq 1 150); do grep -q "Self test PASS\|Self test FAIL: [0-9]" "$log" && break; sleep 1; done
+grep -E "Self test (PASS|FAIL)" "$log" | cut -c1-120
+start=$(wc -l < "$log")
+sleep 1
+input key f8; sleep 1.5
+expect "Edit mode on" "F8 in a text field turned the edit mode on"
+expect "A text field had the keyboard: let go" "the text field let go of the keyboard"
+shot text-field.png
+echo "== the log after the self test"
+fresh | grep -E "UI Tweaker" | cut -c1-170
 echo "passed $passed, failed $failed"
 stop

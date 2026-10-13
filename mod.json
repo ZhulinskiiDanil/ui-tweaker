@@ -34,7 +34,8 @@
 			"description": "Turns the edit mode on and off. In it, the mouse picks, moves and scales the nodes of the screen instead of pressing them, and <cy>Ctrl+C</c> copies the C++ for the selected one",
 			"type": "keybind",
 			"default": "F8",
-			"category": "universal"
+			"category": "universal",
+			"allow-in-text-inputs": true
 		},
 		"snap": {
 			"name": "Snapping",
