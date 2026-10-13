@@ -103,6 +103,14 @@ if [ "$(fresh | grep -c "Selection: ")" -gt "$boxes" ] && [ "${count:-0}" -ge 3 
 else
   echo "FAIL: a right drag's box selected ${count:-nothing}"; failed=$((failed + 1))
 fi
+# Esc while a box is drawn: no box, the selection as it was
+boxes=$(fresh | grep -c "Selection: ")
+input move 100 235; input rdown; input move 470 105; sleep 0.3; input key esc; input rup; sleep 1.5
+if [ "$(fresh | grep -c "Selection: ")" -eq "$boxes" ]; then
+  echo "ok: Esc dropped a box being drawn"; passed=$((passed + 1))
+else
+  echo "FAIL: a box selected after Esc"; failed=$((failed + 1))
+fi
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

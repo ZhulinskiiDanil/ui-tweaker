@@ -48,7 +48,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Alt`+click | A part of a button or a label, not the whole of it |
 | `Shift`+click | Adds a node to the selection or takes it out. Drags, arrows and the wheel move all of them, one step to undo; `Ctrl+C` copies the code for all of them |
 | `Ctrl+A` | Selects the selected node's siblings with it (shown, with a size): a menu's row of buttons, to align or `L` |
-| Right drag | Selects the nodes wholly inside the box it draws (`Shift`: adds them to the selection); a right click selects nothing |
+| Right drag | Selects the nodes wholly inside the box it draws, outlined while it's drawn (`Shift`: adds them to the selection, `Esc`: no box); a right click selects nothing |
 | `Alt+C` | Copies only the way to the selected node: its lookup (by ID, down a path, through its parent) around an empty block where `node` is it, cast to its class, for code of your own that needs it |
 | `Ctrl+D` | Makes a node like the selected one, next to it in the same parent: a sprite with its frame, a button with its image (or a `ButtonSprite`'s text, or a Geode `CircleButtonSprite` with its icon, base color and size), a label with its text and font. Drag it where it goes; its code makes it (`createWithSpriteFrameName`, `CCMenuItemSpriteExtra::create` with your callback instead of `nullptr`, `addChild`) and places it as any node. Undo takes it away. A text button gets `ButtonSprite`'s default look |
 | `L` | Copies the selected nodes of one parent as a row or a column: a new menu (or node) with a `RowLayout`/`ColumnLayout` whose gap, size, position and alignment put them where they are now, and the code that moves them into it. Line them up with `Alt` first; the code says if their gaps differ |

@@ -201,9 +201,12 @@ namespace
     bool panelDragging = false;
     CCPoint panelGrab;
 
-    // A right drag's box: where it started, and whether it adds to the selection (Shift)
+    // A right drag's box: where it started, and whether it adds to the selection (Shift); the nodes in it now and
+    // where the mouse was for them, outlined while it's drawn
     std::optional<CCPoint> boxFrom;
     bool boxAdd = false;
+    std::vector<Retained<CCNode>> boxNodes;
+    CCPoint boxAt{-1, -1};
 
     std::optional<CCPoint> pinned;
     // The cursor a level hid or locked, shown and let go while the edit mode is on, put back after
@@ -1377,9 +1380,25 @@ namespace
       }
       if (auto from = state().boxFrom)
       {
+        auto& s = state();
         auto to = mousePosition();
         geom::Quad box{{geom::Vec2{from->x, from->y}, {to.x, from->y}, {to.x, to.y}, {from->x, to.y}}};
         drawQuad(box, HOVER_FILL, 0.5f, GUIDE);
+        // What it would select, looked for again only when the mouse moved
+        if (ccpDistance(to, s.boxAt) >= 0.5f)
+        {
+          s.boxAt = to;
+          s.boxNodes.clear();
+          for (auto node : inspect::within(runningScene(), box.bounds()))
+            s.boxNodes.emplace_back(node);
+        }
+        for (auto const& node : s.boxNodes)
+          drawQuad(inspect::worldQuad(node.get()), HOVER_FILL, 0.5f, HOVER);
+      }
+      else if (!state().boxNodes.empty())
+      {
+        state().boxNodes.clear();
+        state().boxAt = CCPoint{-1, -1};
       }
       if (state().gridShown > 0 && state().dragging && selected && selected->getParent())
         drawGrid(selected, static_cast<float>(state().gridShown));
@@ -1498,6 +1517,7 @@ namespace
       {
         // A box from here: on release the nodes in it are selected (a click selects nothing)
         s.boxFrom = mouse;
+        s.boxAt = CCPoint{-1, -1};
         s.boxAdd = hasModifier(data.modifiers, KeyboardModifier::Shift);
       }
     }
@@ -1708,7 +1728,10 @@ namespace
         s.overlay->togglePanel();
       break;
     case KEY_Escape:
-      if (s.selected)
+      // A box being drawn: gone, the selection as it was
+      if (s.boxFrom)
+        s.boxFrom.reset();
+      else if (s.selected)
         editor::select(nullptr);
       else
         Loader::get()->queueInMainThread([] { editor::setActive(false); });
