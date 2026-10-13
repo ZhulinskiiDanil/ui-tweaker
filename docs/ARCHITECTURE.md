@@ -82,6 +82,8 @@ Every edited node's `NodeDesc`, by layer, is written to `session.txt` in the sav
 | `core/Hooks.cpp` | The layers' hooks and wrapping code in them |
 | `core/Words.cpp`, `core/Text.cpp` | Every word in English and Russian; wrapping and filling in the panel's text |
 
+`tools/codecheck.sh` goes one step further than `tests/compile`: the same samples, the layouts' code and "Copy all" with its hooks are compiled against the real Geode headers in `tests/geode`, a mod that's built and never installed, so what a mod developer pastes builds as it is (a fake can agree with the generator and both be wrong).
+
 Everything in `core/` is Geode-free and tested in `tests/`, on Linux with GCC and on Windows with MSVC in CI. `tests/compile` goes further: a generator writes the code for a node of every kind (and hooks, in both styles), which is compiled against `FakeGeode.hpp` (Geode's names and signatures) and run on fake nodes, their positions, scales, anchors, z-orders, sizes, visibility and layout options compared.
 
 ## Checking it in the game

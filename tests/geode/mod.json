@@ -1,0 +1,11 @@
+{
+    "geode": "5.10.1",
+    "gd": {
+        "win": "2.2081"
+    },
+    "id": "zhulis.ui-tweaker-codecheck",
+    "name": "UI Tweaker code check",
+    "version": "v1.0.0",
+    "developer": "Zhulis",
+    "description": "Never installed: the code UI Tweaker generates, compiled against the real Geode headers"
+}

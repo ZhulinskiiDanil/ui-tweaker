@@ -66,5 +66,31 @@ int main(int argc, char** argv)
   hooksOut << hooks::wrap("LevelSelectLayer", codegen::generateAll({all[4]})) << "\n";
   // And one in K&R style
   hooksOut << codegen::toKAndR(hooks::wrap("GJGarageLayer", codegen::generateAll({all[3]}))) << "\n";
+
+  // With a third path: everything for the real Geode headers (tests/geode): each sample's code in a node's method,
+  // the code of all, the layouts', in both styles, and "Copy all" as it's copied, its preamble and hooks included
+  if (argc > 3)
+  {
+    std::ofstream real(argv[3]);
+    real << hooks::preamble() << "\n";
+    size_t n = 0;
+    auto method = [&](std::string const& code)
+    {
+      // `node` for the code of a node with no way to find it, which is for where it's made
+      real << "struct RealSample" << n++ << " : CCNode\n{\n  void run(CCNode* node)\n  {\n    (void)node;\n" << code
+           << "  }\n};\n\n";
+    };
+    for (bool kAndR : {false, true})
+    {
+      auto style = [&](std::string const& code) { return kAndR ? codegen::toKAndR(code) : code; };
+      for (auto const& sample : all)
+        method(style(codegen::generate(sample)));
+      method(style(codegen::generateAll(all)));
+      for (auto const& layout : layoutSamples())
+        method(style(codegen::layoutCode(layout)));
+    }
+    real << hooks::wrap("MenuLayer", codegen::generateAll({all[0], all[1], all[13], all[17]})) << "\n";
+    real << codegen::toKAndR(hooks::wrap("CreatorLayer", codegen::generateAll({all[5], all[14], all[19]}))) << "\n";
+  }
   return 0;
 }

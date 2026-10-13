@@ -1,5 +1,6 @@
 # v0.11.1 (not released yet: on main)
 
+- The generated code is compiled against the real Geode headers too (`tools/codecheck.sh`): every kind of it builds as it's pasted
 - `Ctrl+D` makes Geode's circle buttons too (`CircleButtonSprite` with its icon, its base's color and size, as the Geode button is)
 - The comment for a node in a SimpleAxisLayout says what an `AxisGap` does: it replaces the layout's gap before the node and the whole line is laid out again (a centered row moves), so it stays a suggestion
 
