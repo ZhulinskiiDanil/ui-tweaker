@@ -257,6 +257,8 @@ public:
   void setScaleY(float value) { scaleY = value; }
   void setAnchorPoint(CCPoint const& value) { anchor = value; }
   void setZOrder(int value) { zOrder = value; }
+  float rotation = 0;
+  void setRotation(float value) { rotation = value; }
   void setContentSize(CCSize const& value) { size = value; }
   bool visible = true;
   void setVisible(bool value) { visible = value; }
@@ -276,13 +278,21 @@ public:
   }
 };
 
+class CCRGBAProtocol
+{
+public:
+  virtual ~CCRGBAProtocol() = default;
+  int opacity = 255;
+  virtual void setOpacity(unsigned char value) { opacity = value; }
+};
+
 class CCMenu : public CCNode
 {
 public:
   static CCMenu* create() { return new CCMenu(); }
 };
 
-class CCSprite : public CCNode
+class CCSprite : public CCNode, public CCRGBAProtocol
 {
 public:
   // The frame it shows, for getChildBySpriteFrameName

@@ -14,6 +14,7 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 5 | Rotation (Ctrl+wheel, typed) and opacity (typed), in the code only when the edit mode changed them; no color (not layout; a button's press tints it) | unit test, a compiled sample, self test (an action-turned node not turned in the code, undo leaves the game's turn), real Ctrl+wheel, 13/13 both ways |
 | 4 | Edits kept between runs (`core/Session.cpp`, `session.txt`), *Put edits back* (off by default), `Ctrl+Delete`, `inspect::resolve`, nodes without IDs told apart by their path in "Copy all" | session unit tests (every field round trip, odd input), `UI_TWEAKER_SELFTEST=session` both ways, `tools/session-check.sh`: a real drag, a restart, put back where it was, undone (6/6) |
 | 2 | `L`: a row/column layout from the selection (`core/RowFit.cpp`, `codegen::layoutCode`) | unit tests, two compiled samples (both styles), the self test applying the code with Geode's real RowLayout/ColumnLayout: every node stays put, both ways |
 | 3 | Nodes without IDs: a path from the closest parent with a findable ID or the layer, each step by ID, frame or type; IDs that aren't unique avoided; `inspect::followPath` | unit tests, three new compiled samples (nested ifs, frames, a twin ID), tour both ways: 74 paths in vanilla, 30 through parents without IDs, all lead to their node |
@@ -80,10 +81,13 @@
   the nodes above; vanilla.sh stops if the game doesn't close, the copy is empty or python fails; the keybind's
   description says it works in text fields. Both ways: menu/play/editor/tour PASS, real input 12/12.
 - 08:45 v0.9.0 released (pre-release).
-- 09:00 backlog 4, kept edits. Found on the way: a self test step's frames are the wait after it, so the check
+- 08:57 backlog 4, kept edits. Found on the way: a self test step's frames are the wait after it, so the check
   came before the put back (0.3 s after a scene settles); your MiSide menu puts the Geode button back every frame,
   so its position is checked only where it stays. Both ways: menu/play/editor/tour/reload/session PASS (vanilla
   tour 622); the restart with real input 6/6.
+- 09:25 backlog 5, rotation and opacity. Found on the way: the lists of nodes whose size or visibility the edit
+  mode set were never pruned (a node freed later could share an address with a new one): pruned with the originals
+  now; and whether a rotation or opacity is an edit comes from the steps not undone, not from a list.
 
 ## Checks
 

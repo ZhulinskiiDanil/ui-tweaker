@@ -115,6 +115,10 @@ namespace codegen
     bool sizeChanged = false;
     bool visible = true;
     bool visibleChanged = false;
+    float rotation = 0;
+    bool rotationChanged = false;
+    int opacity = 255;
+    bool opacityChanged = false;
   };
 
   struct Position

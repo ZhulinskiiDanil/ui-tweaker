@@ -63,6 +63,10 @@ sleep 0.3; shot typing.png; input key enter; sleep 1.5
 expect "Typed " "real keys typed the values w/2, h/2"
 fresh | grep "Typed " | tail -1 | cut -c1-160
 input key z ctrl
+# Ctrl+wheel turns it
+input ctrlwheel 1; sleep 1.5
+expect "Turned main-title" "Ctrl+wheel turned the title"
+input key z ctrl
 # The play button selected, its right side dragged by its handle
 input move "$px" "$py"; input down; input up; sleep 0.5
 input drag "$hx" "$hy" "$(python -c "print($hx + 20)")" "$hy"; sleep 1.5

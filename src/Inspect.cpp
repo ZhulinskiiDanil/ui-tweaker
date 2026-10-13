@@ -182,16 +182,17 @@ bool inspect::NodeState::operator==(NodeState const& other) const
   return position.x == other.position.x && position.y == other.position.y && scaleX == other.scaleX &&
          scaleY == other.scaleY && anchor.x == other.anchor.x && anchor.y == other.anchor.y &&
          zOrder == other.zOrder && size.width == other.size.width && size.height == other.size.height &&
-         visible == other.visible;
+         visible == other.visible && rotation == other.rotation && opacity == other.opacity;
 }
 
 inspect::NodeState inspect::stateOf(CCNode* node)
 {
+  auto rgba = typeinfo_cast<CCRGBAProtocol*>(node);
   return {node->getPosition(), node->getScaleX(), node->getScaleY(), node->getAnchorPoint(), node->getZOrder(),
-          node->getContentSize(), node->isVisible()};
+          node->getContentSize(), node->isVisible(), node->getRotation(), rgba ? rgba->getOpacity() : 255};
 }
 
-void inspect::apply(CCNode* node, NodeState const& state, bool size, bool visible)
+void inspect::apply(CCNode* node, NodeState const& state, bool size, bool visible, bool turn, bool fade)
 {
   node->setPosition(state.position);
   node->setScaleX(state.scaleX);
@@ -205,6 +206,11 @@ void inspect::apply(CCNode* node, NodeState const& state, bool size, bool visibl
     node->setZOrder(state.zOrder);
   if (visible && node->isVisible() != state.visible)
     node->setVisible(state.visible);
+  // Set only when it changes: GD's skew is a rotation on each axis, which setRotation would make one
+  if (turn && node->getRotation() != state.rotation)
+    node->setRotation(state.rotation);
+  if (auto rgba = typeinfo_cast<CCRGBAProtocol*>(node); fade && rgba && rgba->getOpacity() != state.opacity)
+    rgba->setOpacity(static_cast<GLubyte>(state.opacity));
   if (size && node->getContentSize() != state.size)
   {
     node->setContentSize(state.size);
@@ -768,6 +774,8 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   desc.size = {state.size.width, state.size.height};
   desc.hasLayout = node->getLayout() != nullptr;
   desc.visible = state.visible;
+  desc.rotation = state.rotation;
+  desc.opacity = state.opacity;
 
   desc.layout = layoutOf(node);
   desc.frame = frameOf(node, desc.layout);
@@ -779,6 +787,8 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
     desc.zOrderChanged = original->zOrder != state.zOrder;
     desc.sizeChanged = original->size != state.size;
     desc.visibleChanged = original->visible != state.visible;
+    desc.rotationChanged = original->rotation != state.rotation;
+    desc.opacityChanged = original->opacity != state.opacity;
   }
   return desc;
 }

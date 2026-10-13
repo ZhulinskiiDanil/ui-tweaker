@@ -10,6 +10,7 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 - <cy>Enter</c>: type exact values: x, y, the scale, the width and the height, numbers or expressions like <cy>w / 2 + 40</c>
 - <cy>Ctrl</c>+arrows: the anchor point, the node staying in place; <cy>[</c> <cy>]</c>: the z-order
 - <cy>Shift</c>+click: several nodes at once, <cy>V</c>: hide one, <cy>R</c>: back to how it was
+- <cy>Ctrl</c>+wheel turns the selected node; <cy>Enter</c> also types its rotation and opacity
 - <cy>L</c>: the selected nodes as a row or a column of a new menu with a RowLayout or ColumnLayout that keeps them where they are
 - <cy>Alt+A</c>, <cy>D</c>, <cy>H</c> / <cy>W</c>, <cy>S</c>, <cy>V</c>: align the selected nodes left, right, center / top, bottom, middle, as in Figma; <cy>Alt+Shift+H</c> / <cy>V</c>: the same gaps between them
 - <cy>Ctrl+Z</c> / <cy>Ctrl+Y</c>: undo and redo

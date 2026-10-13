@@ -54,6 +54,7 @@ namespace
     Visibility = 9,
     Align = 10,
     PutBack = 11,
+    Turn = 12,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -257,6 +258,22 @@ namespace
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
   }
 
+  // Whether a step not undone turned the node, or changed its opacity: a spinning or fading node isn't edited by
+  // the game's actions, and an undone turn isn't one
+  bool turnedHere(CCNode* node)
+  {
+    auto const& changes = state().history.changes();
+    return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
+                       { return change.target == node && change.before.rotation != change.after.rotation; });
+  }
+
+  bool fadedHere(CCNode* node)
+  {
+    auto const& changes = state().history.changes();
+    return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
+                       { return change.target == node && change.before.opacity != change.after.opacity; });
+  }
+
   // The code laid out as the setting says
   std::string styled(std::string code)
   {
@@ -278,6 +295,8 @@ namespace
     desc.sizeChanged = desc.sizeChanged && isSized(node);
     auto const& toggled = state().toggled;
     desc.visibleChanged = desc.visibleChanged && std::find(toggled.begin(), toggled.end(), node) != toggled.end();
+    desc.rotationChanged = desc.rotationChanged && turnedHere(node);
+    desc.opacityChanged = desc.opacityChanged && fadedHere(node);
     return desc;
   }
 
@@ -305,12 +324,13 @@ namespace
     if (kind == Visibility && after.visible != before.visible &&
         std::find(s.toggled.begin(), s.toggled.end(), node) == s.toggled.end())
       s.toggled.push_back(node);
+
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
     s.sessionDirty = true;
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back", "Turned"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -361,6 +381,17 @@ namespace
                   });
   }
 
+  // The nodes whose size, visibility, rotation or opacity the edit mode set: only ones still held (every edited
+  // node's original state holds it), never a node freed since, which a new one could share an address with
+  void pruneTracked()
+  {
+    auto& s = state();
+    auto held = [&](CCNode* node)
+    { return std::any_of(s.originals.begin(), s.originals.end(), [&](auto const& entry) { return entry.first.get() == node; }); };
+    for (auto list : {&s.sized, &s.toggled})
+      std::erase_if(*list, [&](CCNode* node) { return !held(node); });
+  }
+
   // Forgets the nodes of a scene that's gone, so they aren't kept alive by the history
   void forgetOtherScenes()
   {
@@ -378,6 +409,7 @@ namespace
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
+    pruneTracked();
     if (s.selected && gone(s.selected))
     {
       s.selected.reset();
@@ -892,7 +924,9 @@ namespace
                "\n" +
                text::format(w.scale, {number(info.scaleX),
                                       info.scaleX == info.scaleY ? "" : " x " + number(info.scaleY)}) +
-               "   " + text::format(w.rotation, {number(node->getRotation())}) + "\n" +
+               "   " + text::format(w.rotation, {number(node->getRotation())}) +
+               (typeinfo_cast<CCRGBAProtocol*>(node) ? "   " + text::format(w.opacity, {std::to_string(info.opacity)}) : "") +
+               "\n" +
                text::format(w.anchor, {number(info.anchor.x), number(info.anchor.y),
                                        node->isIgnoreAnchorPointForPosition() ? w.ignored : ""}) +
                "   " + text::format(w.size, {number(size.width), number(size.height)}) + "\n" +
@@ -935,11 +969,11 @@ namespace
       if (node && s.typing)
       {
         auto const& w = ui::words();
-        std::string const names[] = {"x", "y", w.scaleField, w.widthField, w.heightField};
+        std::string const names[] = {"x", "y", w.scaleField, w.widthField, w.heightField, w.rotationField, w.opacityField};
         std::string line;
         for (size_t i = 0; i < s.typing->values().size(); i++)
         {
-          auto name = i < 5 ? names[i] : std::string();
+          auto name = i < std::size(names) ? names[i] : std::string();
           bool current = i == s.typing->current();
           line += name + (current ? " [" : " ") + s.typing->values()[i] + (current ? "_]" : "") + "   ";
         }
@@ -1546,7 +1580,10 @@ void editor::setActive(bool on)
             return ListenerResult::Stop;
           }
           bool fine = CCKeyboardDispatcher::get()->getShiftKeyPressed();
-          editor::wheel(static_cast<float>(y), fine);
+          if (CCKeyboardDispatcher::get()->getControlKeyPressed())
+            editor::turn(static_cast<float>(y), fine);
+          else
+            editor::wheel(static_cast<float>(y), fine);
           return ListenerResult::Stop;
         },
         PRIORITY);
@@ -1592,6 +1629,7 @@ void editor::setActive(bool on)
     s.typing.reset();
     s.history.forget([scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); });
     std::erase_if(s.originals, [scene](auto const& entry) { return !inspect::isIn(entry.first.get(), scene); });
+    pruneTracked();
     logger_link::clear();
     log::info("Edit mode off");
   }
@@ -1798,6 +1836,21 @@ void editor::wheel(float notches, bool fine)
           });
 }
 
+void editor::turn(float notches, bool fine)
+{
+  auto& s = state();
+  if (!s.selected || notches == 0 || s.dragging || s.resizing)
+    return;
+  // The wheel up turns counterclockwise, as a knob would; Cocos' rotation goes clockwise
+  editAll(Turn, WHEEL_MERGE,
+          [&](CCNode* each)
+          {
+            auto after = inspect::stateOf(each);
+            after.rotation = std::round((after.rotation - notches * (fine ? 1.f : 15.f)) * 100) / 100;
+            inspect::apply(each, after, false, false);
+          });
+}
+
 void editor::nudge(float dx, float dy)
 {
   auto& s = state();
@@ -1909,9 +1962,9 @@ void editor::reset()
           {
             if (auto original = originalOf(node))
             {
-              auto const& toggled = state().toggled;
-              inspect::apply(node, *original, isSized(node),
-                             std::find(toggled.begin(), toggled.end(), node) != toggled.end());
+              auto const& s = state();
+              auto in = [node](std::vector<CCNode*> const& list) { return std::find(list.begin(), list.end(), node) != list.end(); };
+              inspect::apply(node, *original, isSized(node), in(s.toggled), turnedHere(node), fadedHere(node));
             }
           });
 }
@@ -1959,11 +2012,14 @@ void editor::startTyping()
     return;
   auto info = inspect::stateOf(s.selected.get());
   s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX),
-                             number(info.size.width), number(info.size.height)});
+                             number(info.size.width), number(info.size.height), number(info.rotation),
+                             std::to_string(info.opacity)});
   // What the fields start as, and the exact values behind them: a field left as it was keeps its exact value,
   // not the rounded one it shows
   s.typingStart = s.typing->values();
-  s.typingExact = {info.position.x, info.position.y, info.scaleX, info.size.width, info.size.height};
+  s.typingExact = {info.position.x,  info.position.y, info.scaleX,
+                   info.size.width, info.size.height, info.rotation,
+                   static_cast<float>(info.opacity)};
   s.typingError.clear();
 }
 
@@ -2009,7 +2065,8 @@ void editor::typingKey(int key, bool shift)
         values[i] = s.typingExact[i];
       // A number too big to be one, or a scale the node would vanish at and the wheel couldn't bring back
       bool bad = !values[i] || !std::isfinite(*values[i]) || std::fabs(*values[i]) > 1e6f ||
-                 (i == 2 && std::fabs(*values[2]) < 0.01f) || (i >= 3 && *values[i] < 0);
+                 (i == 2 && std::fabs(*values[2]) < 0.01f) || ((i == 3 || i == 4) && *values[i] < 0) ||
+                 (i == 6 && (*values[6] < 0 || *values[6] > 255));
       if (bad)
       {
         s.typingError = s.typing->values()[i];
@@ -2024,6 +2081,8 @@ void editor::typingKey(int key, bool shift)
     after.scaleX = *values[2];
     after.scaleY = *values[2] * ratio;
     after.size = CCSize(*values[3], *values[4]);
+    after.rotation = *values[5];
+    after.opacity = static_cast<int>(std::round(*values[6]));
     inspect::apply(node, after, true, false);
     record(node, before, Typed, 0);
     s.typing.reset();
@@ -2054,7 +2113,8 @@ bool editor::undo()
         continue;
       }
       inspect::apply(node, change.before, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible);
+                     change.before.visible != change.after.visible, change.before.rotation != change.after.rotation,
+                     change.before.opacity != change.after.opacity);
       snapshot(node);
       undone.push_back(node);
       log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
@@ -2085,7 +2145,8 @@ bool editor::redo()
       if (!inspect::isIn(node, runningScene()))
         continue;
       inspect::apply(node, change.after, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible);
+                     change.before.visible != change.after.visible, change.before.rotation != change.after.rotation,
+                     change.before.opacity != change.after.opacity);
       snapshot(node);
       redone.push_back(node);
       log::info("Redid a step of {}", inspect::name(node));
@@ -2361,7 +2422,12 @@ namespace
                         wanted.visible = desc.visible;
                         s.toggled.push_back(node);
                       }
-                      inspect::apply(node, wanted, desc.sizeChanged, desc.visibleChanged);
+                      if (desc.rotationChanged)
+                        wanted.rotation = desc.rotation;
+                      if (desc.opacityChanged)
+                        wanted.opacity = desc.opacity;
+                      inspect::apply(node, wanted, desc.sizeChanged, desc.visibleChanged, desc.rotationChanged,
+                                     desc.opacityChanged);
                       record(node, before, PutBack, 0, group);
                       // Now this scene's, as live as any edit; kept here too if nothing changed (already in place)
                       if (!hasSteps(node))

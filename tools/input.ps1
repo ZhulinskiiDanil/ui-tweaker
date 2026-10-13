@@ -60,6 +60,11 @@ switch ($action) {
   "rdown" { [Input]::Mouse(0x0008, 0); Start-Sleep -Milliseconds 80 }
   "rup" { [Input]::Mouse(0x0010, 0); Start-Sleep -Milliseconds 80 }
   "wheel" { for ($i = 0; $i -lt [Math]::Abs([int]$a); $i++) { [Input]::Mouse(0x0800, [uint32]([int]([Math]::Sign([int]$a) * 120) -band 0xFFFFFFFF)); Start-Sleep -Milliseconds 80 } }
+  "ctrlwheel" {
+    [Input]::Key($keys['ctrl'], $false); Start-Sleep -Milliseconds 60
+    for ($i = 0; $i -lt [Math]::Abs([int]$a); $i++) { [Input]::Mouse(0x0800, [uint32]([int]([Math]::Sign([int]$a) * 120) -band 0xFFFFFFFF)); Start-Sleep -Milliseconds 80 }
+    [Input]::Key($keys['ctrl'], $true); Start-Sleep -Milliseconds 80
+  }
   "key" {
     $mods = @(); if ($b) { $mods = $b.Split("+") }
     foreach ($m in $mods) { [Input]::Key($keys[$m], $false); Start-Sleep -Milliseconds 30 }

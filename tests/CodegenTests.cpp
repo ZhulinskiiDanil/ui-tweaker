@@ -181,6 +181,19 @@ namespace
     CHECK(has(generate(node), "node->setPosition"));
   }
 
+  void turnedAndFaded()
+  {
+    auto node = onScreen({10, 10});
+    CHECK(!has(generate(node), "setRotation") && !has(generate(node), "setOpacity"));
+    node.rotation = -15;
+    node.rotationChanged = true;
+    node.opacity = 128;
+    node.opacityChanged = true;
+    auto code = generate(node);
+    CHECK(has(code, "  node->setRotation(-15.f);\n"));
+    CHECK(has(code, "  if (auto rgba = typeinfo_cast<CCRGBAProtocol*>(node))\n    rgba->setOpacity(128);\n"));
+  }
+
   void lookups()
   {
     auto node = onScreen({10, 10});
@@ -344,6 +357,7 @@ int main()
   parentEdges();
   anchorLayout();
   axisLayout();
+  turnedAndFaded();
   lookups();
   properties();
   everything();

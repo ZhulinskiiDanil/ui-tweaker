@@ -748,6 +748,68 @@ namespace
     column->removeFromParent();
   }
 
+  // Ctrl+wheel turns a node, typed values give it an opacity: in its code, one step each to undo. A node the game
+  // turns by itself (an action) isn't turned in the code
+  void turning()
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto scene = CCDirector::get()->getRunningScene();
+    auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    if (!sprite)
+      sprite = CCSprite::create();
+    sprite->setID("selftest-turned-sprite"_spr);
+    sprite->setPosition({win.width / 2 + 60, win.height / 2});
+    scene->addChild(sprite, 1000);
+    auto before = inspect::stateOf(sprite);
+    editor::select(sprite);
+    auto steps = editor::historySize();
+    editor::turn(1, false);
+    editor::turn(1, true);
+    check(close(sprite->getRotation(), -16), fmt::format("Ctrl+wheel up turned it by 15 then 1: {}", sprite->getRotation()));
+    check(editor::historySize() == steps + 1, "turns in a row are one step");
+    // Opacity: the seventh field
+    editor::startTyping();
+    for (int i = 0; i < 6; i++)
+      editor::typingKey(KEY_Tab, false);
+    for (int key : {'1', '2', '8'})
+      editor::typingKey(key, false);
+    editor::typingKey(KEY_Enter, false);
+    check(sprite->getOpacity() == 128, fmt::format("typed 128 into the opacity: {}", static_cast<int>(sprite->getOpacity())));
+    auto code = editor::codeFor(sprite);
+    check(code.find("node->setRotation(-16.f);") != std::string::npos &&
+              code.find("rgba->setOpacity(128);") != std::string::npos,
+          "the code turns it and sets its opacity");
+    // 256 can't be an opacity: it stays to be fixed
+    editor::startTyping();
+    for (int i = 0; i < 6; i++)
+      editor::typingKey(KEY_Tab, false);
+    for (int key : {'2', '5', '6'})
+      editor::typingKey(key, false);
+    editor::typingKey(KEY_Enter, false);
+    check(editor::typing() && sprite->getOpacity() == 128, "an opacity over 255 isn't taken");
+    editor::typingKey(KEY_Escape, false);
+    editor::undo();
+    editor::undo();
+    check(inspect::stateOf(sprite) == before, "two Ctrl+Z took the opacity and the turn off");
+
+    // Turned by an action, only dragged here: no rotation in its code, and undo doesn't stop the turn
+    sprite->runAction(CCRepeatForever::create(CCRotateBy::create(1.f, 90.f)));
+    sprite->setRotation(10);
+    auto center = inspect::worldQuad(sprite).center();
+    editor::setSnapping(false);
+    editor::grab(sprite, {center.x, center.y});
+    editor::dragTo(CCPoint{center.x, center.y} + ccp(5, 5));
+    editor::release();
+    editor::setSnapping(std::nullopt);
+    sprite->setRotation(40);
+    check(editor::codeFor(sprite).find("setRotation") == std::string::npos, "a node the game turns isn't turned in the code");
+    editor::undo();
+    check(close(sprite->getRotation(), 40), "undoing its drag leaves the game's turn alone");
+    sprite->stopAllActions();
+    editor::select(nullptr);
+    sprite->removeFromParent();
+  }
+
   void several(CCNode* first, CCNode* second)
   {
     auto a = inspect::stateOf(first);
@@ -872,6 +934,7 @@ namespace
       transforms();
       aligning();
       layouts(layer);
+      turning();
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);

@@ -39,6 +39,8 @@ namespace editor
   void wheel(float notches, bool fine);
   // Moves the selected node by this much in its parent's space
   void nudge(float dx, float dy);
+  // Ctrl+wheel: the selected nodes turned by 15 degrees a notch, or 1 if fine
+  void turn(float notches, bool fine);
   // Ctrl+arrows: the anchor point to the next of 0, 0.5 and 1 that way, the node staying where it is on the screen
   void stepAnchor(int dx, int dy);
   // V: the selected nodes hidden, or shown again (the tree has hidden nodes too)

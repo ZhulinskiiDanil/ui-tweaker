@@ -73,6 +73,9 @@ namespace words
     std::string scaleField;
     std::string widthField;
     std::string heightField;
+    std::string rotationField;
+    std::string opacityField;
+    std::string opacity; // {}: 0 to 255
     std::string typingHint;
     std::string typingError;
     // How many nodes are selected, with Shift+click

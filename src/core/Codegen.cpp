@@ -133,6 +133,12 @@ namespace
       out << indent << "node->setZOrder(" << node.zOrder << ");\n";
     if (node.visibleChanged)
       out << indent << "node->setVisible(" << (node.visible ? "true" : "false") << ");\n";
+    if (node.rotationChanged)
+      out << indent << "node->setRotation(" << expr::number(node.rotation) << ");\n";
+    // Labels have an opacity too without being CCNodeRGBA
+    if (node.opacityChanged)
+      out << indent << "if (auto rgba = typeinfo_cast<CCRGBAProtocol*>(node))\n"
+          << indent << "  rgba->setOpacity(" << node.opacity << ");\n";
     if (node.sizeChanged)
     {
       out << indent << "node->setContentSize({" << expr::number(node.size.width) << ", " << expr::number(node.size.height)

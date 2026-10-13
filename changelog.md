@@ -2,6 +2,7 @@
 
 - The edits are kept between runs of the game (`session.txt` in the save folder): after a rebuild and a restart, `Ctrl+Shift+C` still has what wasn't pasted yet. `Ctrl+Delete` forgets them
 - *Put edits back* (off by default): while the edit mode is on, a screen made again, or the game started again, gets its kept edits back on the nodes, found as their code finds them, one step to undo; a node already there (its code pasted) is left alone
+- `Ctrl`+wheel turns the selected nodes (15 degrees a notch, `Shift`: 1); `Enter` also types the rotation and the opacity. Written in the code only when the edit mode changed them, so a node the game spins or fades isn't turned in the code
 - An edit of a node without an ID made again in a new instance of its layer replaces the older one in "Copy all" (it was there twice)
 
 # v0.9.0

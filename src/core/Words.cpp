@@ -8,7 +8,7 @@ namespace
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
       .help2 = "Enter: type values   Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
                "inside   Shift+click: several   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   R: reset   V: hide   A: other screens   C: code   T: tree   H: panel   "
-               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout   Ctrl+Delete: forget the kept edits",
+               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout   Ctrl+Delete: forget the kept edits   Ctrl+wheel: turn (Shift: by 1)",
       .nothingSelected = "Nothing selected",
       .clickHint = "Click a node to select it, drag to move it",
       .position = "position {}, {}   (screen {}, {})",
@@ -65,6 +65,9 @@ namespace
       .scaleField = "scale",
       .widthField = "width",
       .heightField = "height",
+      .rotationField = "rotation",
+      .opacityField = "opacity",
+      .opacity = "opacity {}",
       .typingHint = "Tab: next   Enter: apply   Esc: cancel   w h: screen, pw ph: parent",
       .typingError = "Can't read {}",
       .selectedCount = "{} selected",
@@ -78,7 +81,7 @@ namespace
                "отменить / вернуть",
       .help2 = "Enter: ввести числа   Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
                "внутрь   Shift+клик: несколько   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   R: сбросить   V: скрыть   A: другие экраны   C: код   T: дерево   H: панель   "
-               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout   Ctrl+Delete: забыть сохранённые правки",
+               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout   Ctrl+Delete: забыть сохранённые правки   Ctrl+колесо: повернуть (Shift: на 1)",
       .nothingSelected = "Ничего не выбрано",
       .clickHint = "Щёлкните по ноде, чтобы выбрать, тащите, чтобы сдвинуть",
       .position = "позиция {}, {}   (на экране {}, {})",
@@ -132,6 +135,9 @@ namespace
       .scaleField = "масштаб",
       .widthField = "ширина",
       .heightField = "высота",
+      .rotationField = "поворот",
+      .opacityField = "непрозрачность",
+      .opacity = "непрозрачность {}",
       .typingHint = "Tab: дальше   Enter: применить   Esc: отмена   w h: экран, pw ph: родитель",
       .typingError = "Не читается {}",
       .selectedCount = "Выбрано: {}",

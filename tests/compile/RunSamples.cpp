@@ -221,6 +221,13 @@ void checkSample(int index)
     CHECK(node->zOrder == desc.zOrder);
   if (desc.visibleChanged)
     CHECK(node->visible == desc.visible);
+  if (desc.rotationChanged)
+    CHECK(close(node->rotation, desc.rotation));
+  if (desc.opacityChanged)
+  {
+    auto rgba = dynamic_cast<CCRGBAProtocol*>(node);
+    CHECK(rgba && rgba->opacity == desc.opacity);
+  }
   if (desc.sizeChanged)
   {
     CHECK(close(node->size.width, desc.size.width) && close(node->size.height, desc.size.height));

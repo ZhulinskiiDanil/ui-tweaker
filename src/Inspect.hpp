@@ -23,13 +23,18 @@ namespace inspect
     int zOrder = 0;
     cocos2d::CCSize size;
     bool visible = true;
+    float rotation = 0;
+    // 255 for a node without one (not a CCRGBAProtocol)
+    int opacity = 255;
 
     bool operator==(NodeState const& other) const;
   };
 
   NodeState stateOf(cocos2d::CCNode* node);
   // `size`: the content size too (not for a node whose size is its own: a label's text)
-  void apply(cocos2d::CCNode* node, NodeState const& state, bool size = true, bool visible = true);
+  // The size, visibility, rotation and opacity only if asked: a game's own changes to them aren't undone
+  void apply(cocos2d::CCNode* node, NodeState const& state, bool size = true, bool visible = true, bool turn = true,
+             bool fade = true);
 
   // The class from RTTI without "class " and "cocos2d::": "CCMenuItemSpriteExtra"
   std::string className(cocos2d::CCObject const* object);

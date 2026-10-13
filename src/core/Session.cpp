@@ -131,6 +131,10 @@ std::string session::write(Groups const& groups)
       out << "sizeChanged " << node.sizeChanged << "\n";
       out << "visible " << node.visible << "\n";
       out << "visibleChanged " << node.visibleChanged << "\n";
+      out << "rotation " << number(node.rotation) << "\n";
+      out << "rotationChanged " << node.rotationChanged << "\n";
+      out << "opacity " << node.opacity << "\n";
+      out << "opacityChanged " << node.opacityChanged << "\n";
       out << "end\n";
     }
   }
@@ -275,6 +279,14 @@ std::optional<session::Groups> session::read(std::string_view text)
       node.visible = value == "1";
     else if (key == "visibleChanged")
       node.visibleChanged = value == "1";
+    else if (key == "rotation")
+      node.rotation = toFloat(value);
+    else if (key == "rotationChanged")
+      node.rotationChanged = value == "1";
+    else if (key == "opacity")
+      node.opacity = toInt(value);
+    else if (key == "opacityChanged")
+      node.opacityChanged = value == "1";
   }
   std::erase_if(groups, [](auto const& group) { return group.second.empty(); });
   return groups;

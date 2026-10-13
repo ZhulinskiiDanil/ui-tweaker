@@ -83,6 +83,7 @@ inline std::vector<codegen::NodeDesc> samples()
   auto twelve = add("s12", "CCMenuItemSpriteExtra", "p12", {50, 50}, screen);
   twelve->visible = false;
   twelve->visibleChanged = true;
+  // 16 (added last): turned and faded
   // 13: no ID on it or its parent: from the layer, its second sprite, then a sprite in it by its frame
   auto thirteen = add("", "CCSprite", "", {120, 40}, screen);
   thirteen->pathFromLayer = true;
@@ -96,6 +97,12 @@ inline std::vector<codegen::NodeDesc> samples()
   fifteen->idUnique = false;
   fifteen->pathRoot = "p15";
   fifteen->path = {{"", "CCSprite", 1, false, ""}};
+  // 16: turned and given an opacity
+  auto sixteen = add("s16", "CCSprite", "p16", {70, 60}, screen);
+  sixteen->rotation = -22.5f;
+  sixteen->rotationChanged = true;
+  sixteen->opacity = 100;
+  sixteen->opacityChanged = true;
   return all;
 }
 
