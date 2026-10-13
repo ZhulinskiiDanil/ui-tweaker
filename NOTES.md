@@ -14,6 +14,7 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 8 | Geode Index readiness: metadata checked against the guidelines, `offline` tag, `_spr` IDs on the overlay's parts; what's left for you below | `geode build`, the Index's tag list (API), self test both ways |
 | 7 | The tour: 13 scenes (+ LevelBrowserLayer of your levels, EditLevelLayer, a quick popup, OptionsLayer, MoreOptionsLayer, ProfilePage) | tour PASS: 947 checks vanilla, 873 yours; no crash, every path leads to its node |
 | 6 | *Grid* setting: the code's offsets in whole steps from the closest edge/center, the grid drawn while dragging (`core/Grid.cpp`) | grid unit tests, self test on the screen and in a turned scaled parent (code read back), screenshot mid-drag (`=grid`): `winSize.width / 2 - 20.f, winSize.height - 40.f` |
 | 5 | Rotation (Ctrl+wheel, typed) and opacity (typed), in the code only when the edit mode changed them; no color (not layout; a button's press tints it) | unit test, a compiled sample, self test (an action-turned node not turned in the code, undo leaves the game's turn), real Ctrl+wheel, 13/13 both ways |
@@ -98,7 +99,7 @@
   important (an undone put back losing the kept edit; an unreadable file written over with nothing at exit; rotation
   and opacity counted from any step, a drag of a spinning node included; a skewed node's skew lost by Ctrl+wheel;
   put back by the raw position, not the code's expression from the edge; Ctrl+Delete one stray key from losing
-  everything). 09:50 all fixed: only the layers in the scene are looked for and a description of another layer
+  everything). 09:48 all fixed: only the layers in the scene are looked for and a description of another layer
   finds nothing; the kept description stays kept when it's put back; the file is written only after an edit this
   run, never if it couldn't be read, through a temporary file, the old one backed up (`.bak`; `.forgotten` before
   Ctrl+Delete, which now wants two presses); rotation and opacity come only from turns, typed values and put backs,
@@ -115,6 +116,24 @@
 | --- | --- | --- | --- | --- | --- |
 | 07:13 | yours | 14/14 | ok | PASS 129 / play 140 / editor 140 / tour 445 / code 129 / aspect 129 | MiSide menu: label selected, distances |
 | 07:13 | vanilla | 14/14 | ok | PASS 131 / 142 / 142 / tour 522 / 131 / 131; real input 9/9 | vanilla menu: Geode button, panel dodged |
+
+## Geode Index: what's ready, what's yours to decide (backlog 8)
+
+Checked against the Index guidelines (geode-sdk/docs `mods/guidelines.md`, read 09:50) and Geode CLI 3.7.3:
+
+- Ready: a proper name, description, icon (logo.png 512x512) and tags (`developer`, `interface`, `offline`,
+  `utility`, all on the Index's list, `offline` added: the mod uses no network); about.md, changelog.md; it hooks
+  nothing and changes nothing while the edit mode is off (no `reject-tradmod` concern); its own nodes have `_spr`
+  IDs (the overlay, and now its boxes, banner, tag, panel and tree too); Windows only (`gd.win`), which the Index
+  allows.
+- **Yours to decide: `reject-vibecoded`.** The guidelines reject a mod "whose codebase entirely or mostly consists
+  of AI-generated code", and also when the developer doesn't seem to understand it. This mod was written by
+  Claude in two autonomous runs. Before submitting, you'd need to own the code: read it, be able to explain and
+  maintain it, and expect the reviewer to ask. docs/ARCHITECTURE.md is the map.
+- `geode build` warns that `zhulis.improved-logger` (the optional dependency) isn't on the Index: publish Improved
+  Logger first, or mark it external (`setup_geode_mod(... EXTERNALS zhulis.improved-logger:>=1.5.0)`), or drop
+  the integration for the Index build.
+- Not done (yours): the submission itself (`geode index` login, the release `.geode`), an index account.
 
 ## Known GD/Cocos/Geode quirks (research, 07:30)
 

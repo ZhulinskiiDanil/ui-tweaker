@@ -649,14 +649,17 @@ namespace
       auto win = CCDirector::get()->getWinSize();
 
       m_draw = CCDrawNode::create();
+      m_draw->setID("boxes"_spr);
       addChild(m_draw);
 
       m_banner = CCLayerColor::create({0, 0, 0, 150}, 10, 10);
       m_bannerText = makeLabel(m_banner, GOLD);
+      m_banner->setID("banner"_spr);
       addChild(m_banner);
 
       m_tag = CCLayerColor::create({0, 0, 0, 190}, 10, 10);
       m_tagText = makeLabel(m_tag);
+      m_tag->setID("tag"_spr);
       addChild(m_tag);
 
       m_panel = CCLayerColor::create({15, 15, 25, 215}, PANEL_WIDTH, 10);
@@ -668,6 +671,7 @@ namespace
       m_code->setAnchorPoint({0, 1});
       m_code->setColor({150, 220, 160});
       m_panel->addChild(m_code);
+      m_panel->setID("panel"_spr);
       addChild(m_panel);
       m_panelTopLeft = ccp(MARGIN, win.height);
 
@@ -699,6 +703,7 @@ namespace
 
       // At the right, under the banner, hidden until T
       m_tree = TreePanel::create();
+      m_tree->setID("tree"_spr);
       m_tree->setPosition({win.width - m_tree->getContentWidth() - MARGIN,
                            win.height - 26 - m_tree->getContentHeight()});
       m_tree->setVisible(Mod::get()->getSavedValue<bool>("tree", false));
