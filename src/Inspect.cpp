@@ -421,7 +421,7 @@ namespace
                                                       rect.size.width, rect.size.height};
     if (auto found = cache.find(key); found != cache.end())
       return found->second;
-    if (cache.size() > 512)
+    if (cache.size() > 4096)
       cache.clear();
     return cache[key] = frameName(sprite);
   }
@@ -479,7 +479,7 @@ std::string inspect::lookOf(CCNode* node)
   if (auto button = typeinfo_cast<CCMenuItemSprite*>(node))
     return button->getNormalImage() ? lookOf(button->getNormalImage()) : "";
   if (auto sprite = typeinfo_cast<CCSprite*>(node))
-    return frameName(sprite);
+    return cachedFrameName(sprite);
   return "";
 }
 

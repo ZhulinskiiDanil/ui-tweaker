@@ -51,7 +51,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Alt`+`A` `D` `H` / `W` `S` `V` | Aligns the selected nodes' left edges, right edges, centers / tops, bottoms, middles on the screen, as in Figma: several to the box of them all, one to its parent's box (or the screen's). `Alt`+`Shift`+`H` / `V` puts the same gap between three or more |
 | `PgUp`, `PgDn` | The parent, the first child |
 | `A` | Other screens: the 16:10, 4:3 and 21:9 screens drawn over this one, the selected node where it would be on each, a red box around every node with an ID that wouldn't fit on one of them. The panel says it too |
-| `T` | The node tree of the scene at the right: every node with its ID and class, the hidden ones grey. A click on a row selects its node, the wheel scrolls it. `/` searches by ID and class (words in any order), `Enter` selects the first match |
+| `T` | The node tree of the scene at the right: every node with its ID and class, the hidden ones grey. A click on a row selects its node, the wheel scrolls it. `/` searches by ID, class and what a node shows, its frame or text (words in any order), `Enter` selects the first match |
 | `H` | Hides the panel. Its title bar drags it |
 | `F1` | Every key in the banner at the top (one line otherwise, out of the way of what's up there) |
 | `Esc` | Unselects, then leaves the edit mode |

@@ -37,7 +37,7 @@ namespace
     return true;
   }
 
-  void collect(CCNode* node, int depth, bool hidden, std::vector<CCNode*>& nodes, std::vector<TreeRow>& rows)
+  void collect(CCNode* node, int depth, bool hidden, bool looks, std::vector<CCNode*>& nodes, std::vector<TreeRow>& rows)
   {
     if (depth > MAX_DEPTH || nodes.size() >= MAX_ROWS)
       return;
@@ -47,13 +47,16 @@ namespace
     row.depth = depth;
     row.id = std::string(node->getID());
     row.className = inspect::className(node);
+    // What it shows, only while searching: a frame's name is looked up in the cache of frames
+    if (looks)
+      row.look = inspect::lookOf(node);
     row.hidden = hidden;
     rows.push_back(std::move(row));
     // A label's letters are sprites of their own: not worth a row each
     if (typeinfo_cast<CCLabelBMFont*>(node))
       return;
     for (auto child : CCArrayExt<CCNode*>(node->getChildren()))
-      collect(child, depth + 1, hidden, nodes, rows);
+      collect(child, depth + 1, hidden, looks, nodes, rows);
   }
 
   UiLabel* label(CCNode* parent, bool ascii)
@@ -113,7 +116,7 @@ void TreePanel::refresh(CCNode* scene, CCNode* selected, CCNode* hovered, std::v
     m_nodes.clear();
     m_rows.clear();
     if (scene)
-      collect(scene, 0, false, m_nodes, m_rows);
+      collect(scene, 0, false, !m_query.empty(), m_nodes, m_rows);
     std::vector<tree::Row> rows(m_rows.begin(), m_rows.end());
     m_shown = tree::filter(rows, m_query);
   }

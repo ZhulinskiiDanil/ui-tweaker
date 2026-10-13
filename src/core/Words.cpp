@@ -37,7 +37,7 @@ namespace
       .forgetAsk = "Ctrl+Delete again to forget the kept edits of {} nodes",
       .column = "column",
       .treeTitle = "Nodes: {} of {}   T: close",
-      .searchHint = "/ to search by ID or class",
+      .searchHint = "/ to search by ID, class, frame or text",
       .search = "search: {}",
       .anchorLayout = "{} has an AnchorLayout: updateLayout() puts the node at its anchor, so the code sets the "
                       "anchor and the offset",
@@ -111,7 +111,7 @@ namespace
       .forgetAsk = "Ещё раз Ctrl+Delete, чтобы забыть сохранённые правки {} нод",
       .column = "столбец",
       .treeTitle = "Ноды: {} из {}   T: закрыть",
-      .searchHint = "/ - поиск по ID или классу",
+      .searchHint = "/ - поиск по ID, классу, кадру или тексту",
       .search = "поиск: {}",
       .anchorLayout = "У {} AnchorLayout: updateLayout() ставит ноду к её якорю, поэтому код задаёт якорь и смещение",
       .axisLayout = "У {} {}: updateLayout() вернёт ноду в ряд, позиция потеряется. Код задаёт вместо неё отступ в "

@@ -1,6 +1,7 @@
 # v0.10.1 (not released yet: on main)
 
 - Values typed with several nodes selected: the fields typed into go to each of them (`pw`, `ph` its own parent's), one step to undo; the others stay each node's own. A scale for a whole row of buttons at once
+- The tree's search finds nodes by what they show too: a sprite's or button's frame, a label's text (`playbtn` finds the play button)
 - "Copy all" says a mod's own Geode Popup's code goes in its `setup()`
 
 # v0.10.0

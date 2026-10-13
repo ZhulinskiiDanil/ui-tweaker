@@ -22,6 +22,13 @@ int main()
   CHECK(!matches(rows[2], "play editor"));
   CHECK(matches(rows[2], ""));
   CHECK(matches(rows[5], "loader/geode"));
+  // What a node shows: a frame's name or a label's text, with its ID or class
+  Row frame{3, "", "CCSprite", "GJ_playBtn_001.png"};
+  CHECK(matches(frame, "playbtn"));
+  CHECK(matches(frame, "sprite playbtn"));
+  CHECK(!matches(frame, "editor"));
+  Row text{3, "", "CCLabelBMFont", "bigFont.fnt: \"Hello\""};
+  CHECK(matches(text, "hello"));
 
   // All rows for nothing typed
   CHECK(filter(rows, "").size() == rows.size());

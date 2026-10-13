@@ -13,9 +13,11 @@ namespace tree
     int depth = 0;
     std::string id;
     std::string className;
+    // What it shows: a sprite's frame, a label's text (filled while searching)
+    std::string look;
   };
 
-  // Whether every word of the query is in the row's ID or class, ignoring case
+  // Whether every word of the query is in the row's ID, class or look, ignoring case
   bool matches(Row const& row, std::string_view query);
 
   // The rows to show for a query: all for an empty one, else the matches and, for context, their ancestors

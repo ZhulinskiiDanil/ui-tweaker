@@ -87,6 +87,9 @@ input key z ctrl
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5
 expect "Selected geode.loader/geode-button" "the tree's search and Enter selected the Geode button"
+# By what a node shows: the play button's frame
+input key slash; input type "playbtn"; sleep 0.3; input key enter; sleep 1.5
+expect "Selected play-button" "the tree found the play button by its frame's name"
 input key t
 # A click in the edit mode doesn't reach the game: the Geode button doesn't open the mods list
 input move "$gx" "$gy"; input down; input up; sleep 1.5; shot click-in-edit-mode.png

@@ -18,6 +18,7 @@ bool tree::matches(Row const& row, std::string_view query)
 {
   auto id = lower(row.id);
   auto className = lower(row.className);
+  auto look = lower(row.look);
   auto words = lower(query);
   size_t at = 0;
   while (at < words.size())
@@ -27,7 +28,8 @@ bool tree::matches(Row const& row, std::string_view query)
     at = space == std::string::npos ? words.size() : space + 1;
     if (word.empty())
       continue;
-    if (id.find(word) == std::string::npos && className.find(word) == std::string::npos)
+    if (id.find(word) == std::string::npos && className.find(word) == std::string::npos &&
+        look.find(word) == std::string::npos)
       return false;
   }
   return true;
