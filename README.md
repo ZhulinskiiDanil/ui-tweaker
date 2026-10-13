@@ -60,6 +60,18 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 
 A button, a label or a 9-slice is picked as a whole: a click on the play button's sprite selects the button.
 
+### Settings
+
+| | |
+| --- | --- |
+| Edit mode | The key that turns it on and off, `F8` by default; it works in text fields too |
+| Snapping | Edges and centers snap to the screen's, the parent's and the siblings' (on) |
+| Grid | A dragged node's code numbers in steps of this many points from the closest edge or center, the grid drawn while dragging (0: none) |
+| Put edits back | While the edit mode is on, a screen made again, or the game started again, gets its kept edits back (off) |
+| Language | Auto, English or Russian |
+| Code style | Braces on their own lines with 2 spaces, or K&R with 4 |
+| Pinned in Improved Logger | The selected node and the count of edits pinned in its console, with Improved Logger |
+
 ![The same in Russian](docs/edit-mode-ru.png)
 
 ![The main menu's three big buttons selected with a click and Shift+clicks, lined up by their tops with Alt+W, undone, by their bottoms with Alt+S, undone, copied as a layout with L](docs/align.gif)
