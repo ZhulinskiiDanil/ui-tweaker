@@ -17,9 +17,13 @@ saves="$LOCALAPPDATA/GeometryDash/geode/mods"
 id="zhulis.ui-tweaker-e2e"
 
 echo "== 1. the edit, exported"
-tools/vanilla.sh tools/check.sh "" 300 export | grep -E "RESULT"
 code="$saves/zhulis.ui-tweaker/e2e-code.cpp"
 expected="$saves/zhulis.ui-tweaker/e2e-expected.txt"
+# An earlier run's files would check old code: only this run's count
+rm -f "$code" "$expected"
+out="$(tools/vanilla.sh tools/check.sh "" 300 export)"
+echo "$out" | grep -E "RESULT|FAIL"
+echo "$out" | grep -q "RESULT: PASS" || { echo "FAIL: the export didn't pass"; exit 1; }
 [ -s "$code" ] && [ -s "$expected" ] || { echo "FAIL: nothing exported"; exit 1; }
 
 echo "== 2. built into a mod"
@@ -36,15 +40,20 @@ if cmake --build build-e2e 2>&1 | grep -E "error|FAILED"; then
 fi
 
 echo "== 3. the game with it"
+running() { tasklist //FI "IMAGENAME eq GeometryDash.exe" 2>/dev/null | grep -q GeometryDash; }
+run="$(mktemp)"
 cleanup() {
   taskkill //IM GeometryDash.exe //F >/dev/null 2>&1
-  sleep 2
-  rm -f "$game/geode/mods/$id.geode"
+  for _ in $(seq 1 30); do running || break; sleep 1; done
+  rm -f "$game/geode/mods/$id.geode" "$run"
   rm -rf "$saves/$id" "$game/geode/unzipped/$id"
+  # Left in the game, it would load with the next normal start: said loudly
+  for left in "$game/geode/mods/$id.geode" "$game/geode/unzipped/$id"; do
+    [ -e "$left" ] && echo "WARNING: $left is still there, take it out by hand"
+  done
 }
 trap cleanup EXIT
 cp "build-e2e/$id.geode" "$game/geode/mods/"
-run="$(mktemp)"
 cat > "$run" <<EOF
 before="\$(ls -t "$logs" | head -1)"
 geode run --background >/dev/null 2>&1
@@ -55,6 +64,5 @@ grep -E "E2E" "\$log" | cut -c1-200
 taskkill //IM GeometryDash.exe //F >/dev/null 2>&1
 EOF
 result="$(VANILLA_ALSO="$id" tools/vanilla.sh bash "$run")"
-rm -f "$run"
 echo "$result" | grep -v "^vanilla:"
 echo "$result" | grep -q "E2E PASS" && echo "RESULT: PASS" || echo "RESULT: FAIL"

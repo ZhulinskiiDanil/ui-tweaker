@@ -129,6 +129,18 @@
   own lines, the dragged node described once a drag, the opacity field only for nodes with one). Both ways: every
   mode PASS (vanilla tour 951), restart 6/6, real input 13/13. Backlog 7: six more scenes in
   the tour, nothing from the servers (your levels, a local level's page, popups over the main menu): all right.
+- 10:00–13:30 (in short; the details are in "What's done", the changelog and the commits): the fourth and fifth
+  reviews fixed; v0.10.0, v0.11.0, v0.12.0 released and each checked both ways; Alt+C, Ctrl+D, typed values for
+  several nodes, the tree's search by frame/text, the history limit, `tools/codecheck.sh` and its CI job,
+  `tools/e2e.sh`, README's settings and GIFs, Ctrl+A.
+- 13:45 A right drag draws a box and selects the nodes wholly inside it (`inspect::within`: not plain
+  containers, a button's part as the button, nothing inside another chosen node; Shift adds; a right click still
+  selects nothing). Self test (three sprites in a box, a box through a sprite leaves it out, Shift keeps the
+  selection, a click) both ways; real input in vanilla: a real right drag around the three big buttons, 3 nodes.
+  Sixth review (3db95b9..07464da): no critical; fixed: `tools/e2e.sh` could pass on an earlier run's export (now
+  deleted first, and step 1 must say PASS), its cleanup waits for the game and warns if the test mod is left; a
+  node made with Ctrl+D and hidden with V (an edit) was taken out by the next Ctrl+D or by the edit mode going off
+  (now only nodes whose steps are all undone go). E2E PASS again, saved.json md5 unchanged.
 
 ## Checks
 

@@ -342,6 +342,43 @@ std::vector<CCNode*> inspect::hitsAt(CCNode* root, CCPoint world, bool deep)
   return hits;
 }
 
+std::vector<CCNode*> inspect::within(CCNode* root, geom::Rect area)
+{
+  std::vector<CCNode*> order;
+  if (root)
+    drawOrder(root, order);
+  auto inside = [&](CCNode* node)
+  {
+    auto box = worldQuad(node).bounds();
+    return box.minX() >= area.minX() && box.maxX() <= area.maxX() && box.minY() >= area.minY() &&
+           box.maxY() <= area.maxY();
+  };
+
+  std::vector<CCNode*> found;
+  for (auto it = order.rbegin(); it != order.rend(); ++it)
+  {
+    auto node = *it;
+    if (node == root || isContainer(node))
+      continue;
+    auto size = node->getContentSize();
+    if (size.width <= 0 || size.height <= 0 || transparent(node))
+      continue;
+    for (auto up = node->getParent(); up && up != root; up = up->getParent())
+      if (isWhole(up))
+        node = up;
+    if (inside(node) && std::find(found.begin(), found.end(), node) == found.end())
+      found.push_back(node);
+  }
+  std::erase_if(found, [&](CCNode* node)
+                {
+                  for (auto up = node->getParent(); up; up = up->getParent())
+                    if (std::find(found.begin(), found.end(), up) != found.end())
+                      return true;
+                  return false;
+                });
+  return found;
+}
+
 std::vector<CCNode*> inspect::shownWithIds(CCNode* root)
 {
   std::vector<CCNode*> order;

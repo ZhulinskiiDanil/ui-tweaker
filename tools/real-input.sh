@@ -93,6 +93,16 @@ expect "Aligned " "Alt+A aligned the two selected nodes"
 fresh | grep "Aligned " | tail -1 | cut -c1-160
 shot aligned.png
 input key z ctrl
+# A right drag's box around the three big buttons selects them
+input key esc
+boxes=$(fresh | grep -c "Selection: ")
+input move 100 235; input rdown; input move 300 170; input move 470 105; sleep 0.3; shot box.png; input rup; sleep 1.5
+count=$(fresh | grep "Selection: " | tail -1 | sed -E 's/.*Selection: ([0-9]+) nodes.*/\1/')
+if [ "$(fresh | grep -c "Selection: ")" -gt "$boxes" ] && [ "${count:-0}" -ge 3 ]; then
+  echo "ok: a right drag's box selected $count nodes"; passed=$((passed + 1))
+else
+  echo "FAIL: a right drag's box selected ${count:-nothing}"; failed=$((failed + 1))
+fi
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

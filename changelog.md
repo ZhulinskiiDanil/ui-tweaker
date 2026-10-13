@@ -1,8 +1,10 @@
 # v0.12.1 (not released yet: on main)
 
 - `Ctrl+A` selects the selected node's siblings with it: a menu's row of buttons at once, to align or turn into a layout
+- A right drag draws a box and selects the nodes wholly inside it (`Shift` adds them to the selection), as in Figma; a right click still selects nothing
 - The whole promise checked end to end (`tools/e2e.sh`): an edit of the main menu, its "Copy all" built into a mod as it's pasted, the game run once with that mod: every node where the edit left it
 - README: GIFs of aligning and of `Ctrl+D`; the self test's modes and tools
+- Fixes from a review: a node made with `Ctrl+D` and hidden with `V` (an edit) isn't taken out by the next `Ctrl+D` or by the edit mode going off
 
 # v0.12.0
 

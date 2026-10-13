@@ -75,6 +75,9 @@ namespace editor
   // Ctrl+A: the selected node and every sibling of it that's shown and has a size (a menu's row of buttons), for
   // aligning them or L
   void selectSiblings();
+  // A right drag from `from` to `to`: the nodes wholly inside the box it made (inspect::within), added to the
+  // selection if `add` (Shift), else in place of it. A box this small is a right click: nothing selected
+  void selectIn(cocos2d::CCPoint from, cocos2d::CCPoint to, bool add);
   // The selected nodes, the one the panel shows first
   std::vector<cocos2d::CCNode*> selection();
   cocos2d::CCNode* selected();

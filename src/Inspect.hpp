@@ -61,6 +61,11 @@ namespace inspect
   // nothing else. Unless `deep`, a hit inside a button, a label or a 9-slice is that button, label or 9-slice
   std::vector<cocos2d::CCNode*> hitsAt(cocos2d::CCNode* root, cocos2d::CCPoint world, bool deep = false);
 
+  // The nodes wholly inside a box on the screen, topmost first: what a right drag selects. Not plain containers (their
+  // children are what's seen), a part of a button, a label or a 9-slice as that, and not a node inside another one of
+  // them (it moves with it)
+  std::vector<cocos2d::CCNode*> within(cocos2d::CCNode* root, geom::Rect area);
+
   // The visible nodes with an ID that draw something, in the order they're drawn: what the aspect preview checks
   std::vector<cocos2d::CCNode*> shownWithIds(cocos2d::CCNode* root);
 

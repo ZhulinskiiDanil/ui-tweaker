@@ -201,6 +201,10 @@ namespace
     bool panelDragging = false;
     CCPoint panelGrab;
 
+    // A right drag's box: where it started, and whether it adds to the selection (Shift)
+    std::optional<CCPoint> boxFrom;
+    bool boxAdd = false;
+
     std::optional<CCPoint> pinned;
     // The cursor a level hid or locked, shown and let go while the edit mode is on, put back after
     bool rehideCursor = false;
@@ -1371,6 +1375,12 @@ namespace
           m_draw->drawPolygon(square, 4, {1, 1, 1, 1}, 0.4f, SELECTED);
         }
       }
+      if (auto from = state().boxFrom)
+      {
+        auto to = mousePosition();
+        geom::Quad box{{geom::Vec2{from->x, from->y}, {to.x, from->y}, {to.x, to.y}, {from->x, to.y}}};
+        drawQuad(box, HOVER_FILL, 0.5f, GUIDE);
+      }
       if (state().gridShown > 0 && state().dragging && selected && selected->getParent())
         drawGrid(selected, static_cast<float>(state().gridShown));
       for (auto const& line : state().snapLines)
@@ -1478,10 +1488,24 @@ namespace
     }
     else if (data.button == Right && data.action == Press)
     {
+      auto tree = s.overlay ? s.overlay->tree() : nullptr;
       if (s.overlay && s.overlay->titleContains(mouse))
         s.overlay->panelUnplaced();
-      else
+      else if ((tree && tree->contains(mouse)) || (s.overlay && s.overlay->panelContains(mouse)) || s.pressed ||
+               s.resizing)
         editor::select(nullptr);
+      else
+      {
+        // A box from here: on release the nodes in it are selected (a click selects nothing)
+        s.boxFrom = mouse;
+        s.boxAdd = hasModifier(data.modifiers, KeyboardModifier::Shift);
+      }
+    }
+    else if (data.button == Right && data.action == Release && s.boxFrom)
+    {
+      auto from = *s.boxFrom;
+      s.boxFrom.reset();
+      editor::selectIn(from, mouse, s.boxAdd);
     }
     return ListenerResult::Stop;
   }
@@ -1737,6 +1761,8 @@ namespace
 
     auto mouse = mousePosition();
     // A release lost to the window losing focus (Geode drops the input queued meanwhile): the drag ends with it
+    if (s.boxFrom && !s.pinned && GetActiveWindow() == nullptr)
+      s.boxFrom.reset();
     if ((s.pressed || s.panelDragging || s.resizing) && !s.pinned && GetActiveWindow() == nullptr)
     {
       s.leftDown = false;
@@ -1830,6 +1856,7 @@ void editor::setActive(bool on)
     s.scroll.reset();
     s.keys.reset();
     s.pressed = s.dragging = s.panelDragging = s.leftDown = false;
+    s.boxFrom.reset();
     s.putBackScene = 0;
     s.sessionDirty = true;
     saveSession(true);
@@ -1846,13 +1873,15 @@ void editor::setActive(bool on)
     s.pinned.reset();
     s.selected.reset();
     s.also.clear();
-    // A made node that was undone (hidden) goes for good: nothing of the edit mode stays in the game unseen
+    // A made node that was undone (hidden, its steps only in the redo list) goes for good: nothing of the edit mode
+    // stays in the game unseen. One hidden with V is an edit, and stays
     std::erase_if(s.made,
                   [&](auto const& entry)
                   {
-                    if (entry.node->isVisible() && inspect::isIn(entry.node.get(), runningScene()))
+                    bool kept = entry.node->isVisible() || hasSteps(entry.node.get());
+                    if (kept && inspect::isIn(entry.node.get(), runningScene()))
                       return false;
-                    if (!entry.node->isVisible())
+                    if (!kept)
                       entry.node->removeFromParent();
                     return true;
                   });
@@ -2259,7 +2288,7 @@ void editor::duplicate()
   {
     auto refers = [&](auto const& list)
     { return std::any_of(list.begin(), list.end(), [&](auto const& change) { return change.target.get() == each; }); };
-    return refers(s.history.changes()) || refers(s.history.undone());
+    return refers(s.history.changes()) || refers(s.history.undone()) || hasSteps(each);
   };
   std::erase_if(s.made,
                 [&](auto const& entry)
@@ -2652,6 +2681,37 @@ void editor::selectSiblings()
   for (auto sibling : CCArrayExt<CCNode*>(node->getParent()->getChildren()))
     if (sibling != node && sibling->isVisible() && sibling->getContentWidth() > 0 && sibling->getContentHeight() > 0)
       s.also.emplace_back(sibling);
+  log::info("Selection: {} nodes", selection().size());
+}
+
+void editor::selectIn(CCPoint from, CCPoint to, bool add)
+{
+  auto& s = state();
+  if (s.pressed || s.resizing)
+    return;
+  // Less than this far: a right click
+  constexpr float CLICK = 4;
+  if (std::fabs(to.x - from.x) < CLICK && std::fabs(to.y - from.y) < CLICK)
+  {
+    if (!add)
+      select(nullptr);
+    return;
+  }
+  geom::Rect area{std::min(from.x, to.x), std::min(from.y, to.y), std::fabs(to.x - from.x), std::fabs(to.y - from.y)};
+  auto nodes = inspect::within(runningScene(), area);
+  if (!add)
+    select(nullptr);
+  s.typing.reset();
+  s.lastGroup = {};
+  for (auto node : nodes)
+  {
+    if (s.selected == node || std::find(s.also.begin(), s.also.end(), node) != s.also.end())
+      continue;
+    if (!s.selected)
+      s.selected = Retained<CCNode>(node);
+    else
+      s.also.emplace_back(node);
+  }
   log::info("Selection: {} nodes", selection().size());
 }
 

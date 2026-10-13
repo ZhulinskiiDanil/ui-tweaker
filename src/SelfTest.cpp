@@ -764,6 +764,39 @@ namespace
     check(code.find("ColumnLayout::create()") != std::string::npos && code.find("CCNode::create()") != std::string::npos &&
               code.find("AxisAlignment::End") != std::string::npos,
           "three sprites lined up at the right are a column of a plain node, aligned at the end");
+    // A right drag's box around the column's three sprites: they're selected, and only what's wholly in the box
+    {
+      auto box = inspect::worldQuad(sprites[0]).bounds();
+      for (auto sprite : sprites)
+      {
+        auto b = inspect::worldQuad(sprite).bounds();
+        auto minX = std::min(box.minX(), b.minX()), minY = std::min(box.minY(), b.minY());
+        auto maxX = std::max(box.maxX(), b.maxX()), maxY = std::max(box.maxY(), b.maxY());
+        box = {minX, minY, maxX - minX, maxY - minY};
+      }
+      editor::select(nullptr);
+      editor::selectIn({box.minX() - 1, box.maxY() + 1}, {box.maxX() + 1, box.minY() - 1}, false);
+      auto chosen = editor::selection();
+      bool all = std::all_of(sprites.begin(), sprites.end(), [&](CCNode* sprite)
+                             { return std::find(chosen.begin(), chosen.end(), sprite) != chosen.end(); });
+      bool onlyInside = std::all_of(chosen.begin(), chosen.end(), [&](CCNode* node)
+                                    {
+                                      auto b = inspect::worldQuad(node).bounds();
+                                      return b.minX() >= box.minX() - 1 && b.maxX() <= box.maxX() + 1 &&
+                                             b.minY() >= box.minY() - 1 && b.maxY() <= box.maxY() + 1;
+                                    });
+      check(all && onlyInside, fmt::format("a right drag's box selected the three sprites in it: {}", chosen.size()));
+      // Shift: the box adds to the selection; a box cutting through a sprite leaves it out
+      editor::select(sprites[0]);
+      auto half = inspect::worldQuad(sprites[2]).bounds();
+      editor::selectIn({half.minX() - 1, half.minY() - 1}, {half.midX(), half.maxY() + 1}, true);
+      auto added = editor::selection();
+      check(editor::selected() == sprites[0] && std::find(added.begin(), added.end(), sprites[2]) == added.end(),
+            "a box cutting through a sprite left it out, and Shift kept the selection");
+      // A right click: nothing selected
+      editor::selectIn({100, 100}, {102, 101}, false);
+      check(editor::selection().empty(), "a right click selected nothing");
+    }
     applyLayout(code, column, sprites, "the column");
 
     // Ctrl+A: one button, then its two siblings with it
@@ -1017,6 +1050,21 @@ namespace
       editor::undo();
       check(!made->isVisible(), "and Ctrl+Z hid it again");
       check(editor::codeForAll().find(std::string(made->getID())) == std::string::npos, "an undone node made here has no code");
+    }
+    // A made node hidden with V is an edit: it stays through the next Ctrl+D (and the edit mode going off, by the
+    // same rule)
+    editor::select(label);
+    editor::duplicate();
+    auto hidden = editor::selected();
+    if (hidden && hidden != label)
+    {
+      editor::toggleVisible();
+      editor::select(label);
+      editor::duplicate();
+      check(hidden->getParent() == menu && !hidden->isVisible(), "a made node hidden with V stayed through a Ctrl+D");
+      editor::undo();
+      editor::undo();
+      editor::undo();
     }
     // A layer (not a sprite, a button or a label) can't be made so
     editor::select(menu);
