@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 17:08.
+  what the mod does), this file last updated 17:28.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -206,6 +206,13 @@
   both ways (yours: 234 / 248 / 247 / tour 1165 / 244 / 246 / 234 / 234 / 233 / 234 / 238 / 236; vanilla: 236 /
   250 / 249 / tour 1258 / 248 / 248 / 236 / 236 / 235 / 236 / 240 / 238); saved.json's md5 the same.
 - 17:07 on the release's `.geode` too: real input 19/19, restart 6/6, E2E PASS (vanilla); saved.json the same.
+- 17:21 **an incident, fixed**: a soak on the release's `.geode` run under my `timeout` (round 20: 889 → 950 MB,
+  the game fine) was cut off while `tools/vanilla.sh` waited for it, and its trap didn't put your Geode
+  `saved.json` back (bash runs it only when the check ends): the md5 changed, 57 mods left off. Found at once by
+  the md5 check; put back from the script's own copy (`/tmp`, the md5 a51c96ed... again; only the 57
+  `should-load-` keys had differed) at 17:22, before any game start. `tools/vanilla.sh` now runs the check in the
+  background and waits: Ctrl+C or a timeout stops it and puts the mods back at once (tested: a 15 s timeout, the
+  md5 the same, no temporary file left; a normal check, real input 19/19 and E2E through it: PASS).
 
 ## Checks
 

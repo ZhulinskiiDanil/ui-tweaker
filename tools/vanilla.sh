@@ -35,6 +35,9 @@ restore() {
   rm -f "$backup"
 }
 trap restore EXIT
+# A signal (Ctrl+C, timeout) while the check runs: the check stopped and the mods put back at once, not when it ends
+child=""
+trap '[ -n "$child" ] && kill "$child" 2>/dev/null; exit 130' INT TERM HUP
 
 ids="$(ls "$mods" | sed -n 's/\.geode$//p')"
 if ! python - "$saved" "$keep" $ids <<'PY'
@@ -53,4 +56,6 @@ then
   exit 1
 fi
 
-"$@"
+"$@" &
+child=$!
+wait "$child"
