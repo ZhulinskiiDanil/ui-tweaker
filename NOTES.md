@@ -65,7 +65,7 @@
   goes bottom to top (`setAxisReverse(true)` for nodes added top to bottom: without it, 215 points off).
 - 08:23 the second review (separate agent, a15c6f0..HEAD): no critical; 4 important (describe searching the whole
   layer every frame, Alt swallowing every key, a null parent in align, the cursor hidden again on the end screen),
-  5 minor. 08:40 all fixed: how a node is found is remembered for half a second per node (and found again for
+  5 minor. 08:35 all fixed: how a node is found is remembered for half a second per node (and found again for
   copied code): describing an editor node with 3000 objects takes 1.2 ms the first time, 0.001 ms a frame after;
   Alt passes every key but its six letters (Alt+arrows nudge again, checked through Geode's own key event); align
   skips nodes not in the scene or inside another selected one; the cursor is put back only in a level being played

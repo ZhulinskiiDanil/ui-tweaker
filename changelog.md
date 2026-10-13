@@ -1,8 +1,7 @@
-# v0.9.0 (not released yet: on main)
+# v0.9.0
 
 - `Alt`+`A` `D` `H` / `W` `S` `V` align the selected nodes on the screen as in Figma: several to the box of them all, one to its parent's box; `Alt`+`Shift`+`H` / `V` distribute three or more with the same gaps. One step to undo, the code as for any move
 - `L` copies the selected nodes of one parent as a row or a column: a new menu with a `RowLayout`/`ColumnLayout` whose gap, size, position and alignment keep them where they are, and the code that moves them into it (checked with Geode's own layouts in the self test)
-- Fixes from a review: holding Alt no longer blocks other keys (Alt+arrows nudge while the distances show); aligning skips a node inside another selected one; the panel no longer searches the whole layer for IDs every frame (a big level dropped frames); the cursor isn't hidden again when the edit mode is left on a level's end screen
 - Undo and redo keep a selection that has every node of the step
 - The edit mode's key works while a text field has the keyboard (Geode's keybinds don't by default), and takes the keyboard from the field
 - In a level, the edit mode shows the cursor the level hid and lets go of one GD's *Lock cursor* option locked (a locked cursor's position doesn't change, so the mouse did nothing); leaving the edit mode puts them back while the level is played
