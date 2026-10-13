@@ -13,6 +13,7 @@ namespace
     node.parentId = "bottom-menu";
     node.parentClass = "CCMenu";
     node.layer = "MenuLayer";
+    node.layerIsPopup = true;
     node.typeIndex = 3;
     node.byIndex = true;
     node.idUnique = false;
@@ -40,7 +41,7 @@ namespace
   bool same(NodeDesc const& a, NodeDesc const& b)
   {
     return a.id == b.id && a.className == b.className && a.parentId == b.parentId && a.parentClass == b.parentClass &&
-           a.layer == b.layer && a.typeIndex == b.typeIndex && a.byIndex == b.byIndex && a.idUnique == b.idUnique &&
+           a.layer == b.layer && a.layerIsPopup == b.layerIsPopup && a.typeIndex == b.typeIndex && a.byIndex == b.byIndex && a.idUnique == b.idUnique &&
            a.pathRoot == b.pathRoot && a.pathFromLayer == b.pathFromLayer && a.path == b.path &&
            a.position == b.position && a.scaleX == b.scaleX && a.scaleY == b.scaleY && a.anchor == b.anchor &&
            a.zOrder == b.zOrder && a.size == b.size && a.hasLayout == b.hasLayout && a.frame.kind == b.frame.kind &&

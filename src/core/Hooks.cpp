@@ -71,9 +71,11 @@ std::string hooks::preamble()
   return "#include <Geode/Geode.hpp>\n\nusing namespace geode::prelude;\n";
 }
 
-std::string hooks::wrap(std::string_view className, std::string const& code)
+std::string hooks::wrap(std::string_view className, std::string const& code, bool popup)
 {
   auto hook = find(className);
+  if (!hook && popup)
+    return "// In " + std::string(className) + "'s setup(), after its nodes are made (`this` being the popup)\n" + code;
   if (!hook)
     return "// In a hook of " + std::string(className) + ", after its interface is made (`this` being it)\n" + code;
 

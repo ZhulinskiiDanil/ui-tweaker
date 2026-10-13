@@ -101,6 +101,7 @@ std::string session::write(Groups const& groups)
       out << "parentId " << escape(node.parentId) << "\n";
       out << "parentClass " << escape(node.parentClass) << "\n";
       out << "hook " << escape(node.layer) << "\n";
+      out << "hookIsPopup " << node.layerIsPopup << "\n";
       out << "typeIndex " << node.typeIndex << "\n";
       out << "byIndex " << node.byIndex << "\n";
       out << "idUnique " << node.idUnique << "\n";
@@ -201,6 +202,8 @@ std::optional<session::Groups> session::read(std::string_view text)
       node.parentClass = unescape(value);
     else if (key == "hook")
       node.layer = unescape(value);
+    else if (key == "hookIsPopup")
+      node.layerIsPopup = value == "1";
     else if (key == "typeIndex")
       node.typeIndex = toInt(value);
     else if (key == "byIndex")

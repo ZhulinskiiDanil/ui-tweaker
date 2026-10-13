@@ -1735,6 +1735,8 @@ namespace
                              laidOut.y, dragged.x, dragged.y));
            // Back as it was: its own options, the drag undone
            node->setLayoutOptions(options.get());
+           check(editor::codeForAll().find("'s setup(), after its nodes are made") != std::string::npos,
+                 "the code for all says the popup's code goes in its setup()");
            check(editor::undo(), "the drag in the popup is a step to undo");
            check(inspect::stateOf(node) == buttonBefore, "undo put the popup's button back");
            popup->close();

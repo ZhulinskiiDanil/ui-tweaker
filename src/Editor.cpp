@@ -2508,7 +2508,10 @@ std::string editor::codeForAll()
   // Geode's header and namespace first, for a file of its own
   std::string code = hooks::preamble();
   for (auto const& [layer, descs] : groups)
-    code += "\n// ! --- In " + layer + " --- !\n\n" + hooks::wrap(layer, codegen::generateAll(descs));
+  {
+    bool popup = std::any_of(descs.begin(), descs.end(), [](auto const& desc) { return desc.layerIsPopup; });
+    code += "\n// ! --- In " + layer + " --- !\n\n" + hooks::wrap(layer, codegen::generateAll(descs), popup);
+  }
   return styled(code);
 }
 

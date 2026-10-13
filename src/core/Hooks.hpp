@@ -25,7 +25,8 @@ namespace hooks
 
   // The code as the body of the class's hook, after the original made the interface. Unknown classes get the code
   // with a comment saying where it goes
-  std::string wrap(std::string_view className, std::string const& code);
+  // A layer that isn't one of them gets a comment saying where the code goes; a Geode Popup (a mod's own) its setup()
+  std::string wrap(std::string_view className, std::string const& code, bool popup = false);
 
   // What the hooks need at the top of the file they're pasted in
   std::string preamble();

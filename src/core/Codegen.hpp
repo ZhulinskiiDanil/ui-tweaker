@@ -68,6 +68,8 @@ namespace codegen
     // The layer whose hook the code goes in: the closest of the node's parents that's a layer mods hook, or the
     // node's top one in the scene
     std::string layer;
+    // That top one is a Geode Popup: a mod's own, whose nodes are made in its setup()
+    bool layerIsPopup = false;
     // Among the parent's children castable to className, which one this is (for getChildByType)
     int typeIndex = 0;
     // A class the code can't name (another mod's, in a namespace): typeIndex is which child it is of all, for

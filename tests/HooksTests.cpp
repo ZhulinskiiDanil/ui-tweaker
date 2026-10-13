@@ -45,5 +45,8 @@ int main()
   code = wrap("SomeModsLayer", "a();\n");
   CHECK(has(code, "// In a hook of SomeModsLayer, after its interface is made"));
   CHECK(has(code, "\na();\n"));
+  // A mod's own popup: its setup()
+  CHECK(hooks::wrap("MyPopup", "x();\n", true).find("// In MyPopup's setup(), after its nodes are made") == 0);
+  CHECK(hooks::wrap("MyPopup", "x();\n").find("// In a hook of MyPopup") == 0);
   return finish("hooks");
 }

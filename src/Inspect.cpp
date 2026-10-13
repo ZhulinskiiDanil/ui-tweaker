@@ -7,6 +7,7 @@
 
 #include <Geode/binding/CCScrollLayerExt.hpp>
 #include <Geode/ui/NineSlice.hpp>
+#include <Geode/ui/Popup.hpp>
 #include <Geode/ui/SimpleAxisLayout.hpp>
 
 #include <algorithm>
@@ -748,6 +749,7 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
   {
     desc.layer = className(top);
     layer = top;
+    desc.layerIsPopup = typeinfo_cast<geode::Popup*>(top) != nullptr;
   }
 
   // How the code finds it: searching the layer for IDs is slow in a level with thousands of objects, and the panel
