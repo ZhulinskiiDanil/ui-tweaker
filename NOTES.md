@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 16:38.
+  what the mod does), this file last updated 16:47.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -199,6 +199,9 @@
 - 16:37 a new user's first start: UI Tweaker's save folder moved aside (no settings, no session, no export), the
   self test in vanilla: PASS (it made only its own `session-selftest.txt`); the folder put back, the same byte for
   byte, saved.json's md5 the same.
+- 16:46 a plain start (no self test, the edit mode never on), with your mods and in vanilla: the mod writes nothing
+  to the log, the game runs. Geode's "setting 'grid' not found in savedata" line again: I don't close the game
+  normally to make Geode save it, as that would save your game's progress too; it goes at your first normal close.
 
 ## Checks
 
