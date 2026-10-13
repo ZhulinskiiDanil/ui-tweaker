@@ -172,6 +172,9 @@ namespace
     if (!node.id.empty() && !node.idUnique && !node.path.empty())
       why = "Another node in the layer has the ID " + literal(node.id) +
             " and getChildByIDRecursive finds that one first: found down from a parent instead";
+    else if (!node.id.empty() && !node.idUnique)
+      why = "Another node in the layer has the ID " + literal(node.id) +
+            " and getChildByIDRecursive finds that one first: give this one an ID of its own";
     else if (conditions.size() > 1)
       why = "No ID on it or its parent: found " +
             (node.pathFromLayer ? std::string("from the layer") : "from " + literal(node.pathRoot)) +

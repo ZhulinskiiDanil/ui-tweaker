@@ -554,6 +554,29 @@ namespace
     editor::undo();
     check(close(inside->getPositionX(), 10) && close(inside->getPositionY(), 12), "two Ctrl+Z put it back");
 
+    // Keys through Geode's own event, as a key press comes: Alt with an arrow still nudges (Alt shows the
+    // distances meanwhile), Alt+H lines up; a menu selected with its child moves alone, the child with it
+    auto press = [](enumKeyCodes key, uint8_t modifiers)
+    {
+      KeyboardInputData data(key, KeyboardInputData::Action::Press, {0, 0}, 0, KeyboardModifier(modifiers));
+      KeyboardInputEvent(key).send(data);
+      KeyboardInputData up(key, KeyboardInputData::Action::Release, {0, 0}, 0, KeyboardModifier(modifiers));
+      KeyboardInputEvent(key).send(up);
+    };
+    editor::select(inside);
+    auto nudgedFrom = inside->getPositionX();
+    press(KEY_Right, KeyboardModifier::Alt);
+    check(close(inside->getPositionX(), nudgedFrom + 1), "Alt+Right nudges as Right does");
+    editor::undo();
+    editor::select(frame);
+    editor::toggleSelect(inside);
+    auto insideBefore = inspect::stateOf(inside);
+    press(KEY_H, KeyboardModifier::Alt);
+    // The parent alone is lined up, to the screen's middle as one node is; the child goes with it
+    check(inspect::stateOf(inside) == insideBefore, "a child selected with its parent isn't aligned on its own");
+    check(close(bounds(frame).midX(), win.width / 2, 0.05f), "Alt+H centered the parent on the screen");
+    editor::undo();
+
     editor::select(nullptr);
     frame->removeFromParent();
     parent->removeFromParent();
@@ -1284,6 +1307,34 @@ namespace
                            inspect::hitsAt(scene, {win.width / 2, win.height / 2});
                          auto millis = (now() - start) * 100;
                          log::info("Self test: the hover in the editor with 3000 objects: {:.2f} ms", millis);
+                         {
+                           // A node of the editor's interface without an ID, described as the panel does every frame
+                           CCNode* unnamed = nullptr;
+                           std::vector<CCNode*> nodes{editor->m_editorUI};
+                           for (size_t i = 0; i < nodes.size() && !unnamed; i++)
+                           {
+                             if (nodes[i] != editor->m_editorUI && nodes[i]->getID().empty() &&
+                                 typeinfo_cast<CCSprite*>(nodes[i]))
+                               unnamed = nodes[i];
+                             for (auto child : CCArrayExt<CCNode*>(nodes[i]->getChildren()))
+                               nodes.push_back(child);
+                           }
+                           if (unnamed)
+                           {
+                             inspect::forgetLookups();
+                             auto first = now();
+                             inspect::describe(unnamed);
+                             auto firstMillis = (now() - first) * 1000;
+                             auto again = now();
+                             for (int i = 0; i < 10; i++)
+                               inspect::describe(unnamed);
+                             auto againMillis = (now() - again) * 100;
+                             log::info("Self test: describing {} in the editor: {:.3f} ms, then {:.3f} ms a frame",
+                                       inspect::name(unnamed), firstMillis, againMillis);
+                             check(againMillis < 0.5, fmt::format("describing a node every frame in the editor takes {:.3f} ms",
+                                                                  againMillis));
+                           }
+                         }
                          check(millis < 10, fmt::format("the hover in the editor takes {:.2f} ms", millis));
 
                          // A button of the editor's interface, with an ID, the mouse can get to

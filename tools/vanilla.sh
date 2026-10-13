@@ -2,7 +2,8 @@
 # Runs a check in a vanilla game: every mod but Geode, node-ids (the IDs the code finds nodes by) and UI Tweaker
 # turned off for the run, then the mods put back as they were, byte for byte, whatever the check did.
 #   tools/vanilla.sh tools/check.sh shot.png 150 tour
-# Geode keeps what's turned on in its loader's saved.json; the game is closed before and after. Git Bash on Windows
+# Geode keeps what's turned on in its loader's saved.json; the game is closed before and after (killed: progress
+# made in it since it was last saved is lost). Git Bash on Windows
 set -u
 
 keep="geode.loader geode.node-ids zhulis.ui-tweaker"
@@ -17,17 +18,25 @@ stop() {
 }
 
 stop
+if running; then
+  echo "vanilla: the game didn't close, nothing changed"
+  exit 1
+fi
 backup="$(mktemp)"
-cp "$saved" "$backup"
+if ! cp "$saved" "$backup" || [ ! -s "$backup" ]; then
+  echo "vanilla: couldn't copy $saved, nothing changed"
+  rm -f "$backup"
+  exit 1
+fi
 restore() {
   stop
-  cp "$backup" "$saved"
+  [ -s "$backup" ] && cp "$backup" "$saved"
   rm -f "$backup"
 }
 trap restore EXIT
 
 ids="$(ls "$mods" | sed -n 's/\.geode$//p')"
-python - "$saved" "$keep" $ids <<'EOF'
+if ! python - "$saved" "$keep" $ids <<'PY'
 import json, sys
 path, keep, ids = sys.argv[1], sys.argv[2].split(), sys.argv[3:]
 with open(path, encoding="utf-8") as f:
@@ -37,6 +46,10 @@ for mod in ids:
 with open(path, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=4)
 print(f"vanilla: {len(keep)} of {len(ids)} mods on")
-EOF
+PY
+then
+  echo "vanilla: couldn't turn the mods off, the check isn't run"
+  exit 1
+fi
 
 "$@"

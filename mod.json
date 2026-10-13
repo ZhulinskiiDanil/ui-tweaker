@@ -31,7 +31,7 @@
 	"settings": {
 		"toggle-key": {
 			"name": "Edit mode",
-			"description": "Turns the edit mode on and off. In it, the mouse picks, moves and scales the nodes of the screen instead of pressing them, and <cy>Ctrl+C</c> copies the C++ for the selected one",
+			"description": "Turns the edit mode on and off. In it, the mouse picks, moves and scales the nodes of the screen instead of pressing them, and <cy>Ctrl+C</c> copies the C++ for the selected one. It works in text fields too, so a letter key would turn it on while typing",
 			"type": "keybind",
 			"default": "F8",
 			"category": "universal",

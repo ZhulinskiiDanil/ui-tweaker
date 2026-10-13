@@ -75,4 +75,6 @@ namespace inspect
   // For the self test: the node a node's path (desc.path) leads to from its layer, with the calls the generated
   // code makes. Null if it leads nowhere or there's no path
   cocos2d::CCNode* followPath(cocos2d::CCNode* node, codegen::NodeDesc const& desc);
+  // describe remembers how a node is found for half a second; code that's copied is made with it found again
+  void forgetLookups();
 } // namespace inspect

@@ -15,6 +15,7 @@
 #include "core/Text.hpp"
 #include "core/Tree.hpp"
 
+#include <Geode/binding/EndLevelLayer.hpp>
 #include <Geode/binding/PauseLayer.hpp>
 #include <Geode/binding/PlayLayer.hpp>
 #include <Geode/ui/Notification.hpp>
@@ -1283,7 +1284,19 @@ namespace
       default:
         break;
       }
-      return ListenerResult::Stop;
+      // Other keys with Alt are what they are without it: Alt+arrows nudge while the distances show
+      switch (data.key)
+      {
+      case KEY_A:
+      case KEY_D:
+      case KEY_H:
+      case KEY_W:
+      case KEY_S:
+      case KEY_V:
+        return ListenerResult::Stop;
+      default:
+        break;
+      }
     }
 
     switch (data.key)
@@ -1524,7 +1537,9 @@ void editor::setActive(bool on)
     s.pressed = s.dragging = s.panelDragging = s.leftDown = false;
     // The cursor as the level had it, if the level is still being played (paused, the game shows it itself)
     auto running = runningScene();
-    bool playing = PlayLayer::get() && running && !running->getChildByType<PauseLayer>(0);
+    auto play = PlayLayer::get();
+    bool playing = play && running && play->getParent() == running && !play->m_levelEndAnimationStarted &&
+                   !running->getChildByType<PauseLayer>(0) && !running->getChildByType<EndLevelLayer>(0);
     if (s.rehideCursor && playing)
       CCEGLView::get()->showCursor(false);
     if (s.relockCursor && playing)
@@ -1761,20 +1776,41 @@ void editor::nudge(float dx, float dy)
 namespace
 {
   // Each selected node moved by its own amount on the screen, through its parent's transform: one step
-  void moveOnScreen(Kind kind, std::vector<geom::Vec2> const& moves)
+  // Each of `nodes` moved by its own amount on the screen, through its parent's transform: one step with the rest of
+  // the selection, which doesn't move
+  void moveOnScreen(Kind kind, std::vector<CCNode*> const& nodes, std::vector<geom::Vec2> const& moves)
   {
-    auto nodes = editor::selection();
-    size_t i = 0;
     editAll(kind, 0,
             [&](CCNode* node)
             {
-              auto move = i < moves.size() ? moves[i] : geom::Vec2{};
-              i++;
+              auto at = std::find(nodes.begin(), nodes.end(), node);
+              if (at == nodes.end() || !node->getParent())
+                return;
+              auto move = moves[at - nodes.begin()];
               if (move.x == 0 && move.y == 0)
                 return;
               auto local = geom::localDelta(inspect::toGeom(node->getParent()->nodeToWorldTransform()), move);
               node->setPosition(node->getPosition() + ccp(local.x, local.y));
             });
+  }
+
+  // The selected nodes an alignment moves: in the scene (a key can come before the frame forgets a removed one), and
+  // not inside another selected one, which carries them along
+  std::vector<CCNode*> alignable()
+  {
+    auto nodes = editor::selection();
+    std::vector<CCNode*> out;
+    for (auto node : nodes)
+    {
+      if (!node->getParent() || !inspect::isIn(node, runningScene()))
+        continue;
+      bool carried = false;
+      for (auto up = node->getParent(); up && !carried; up = up->getParent())
+        carried = std::find(nodes.begin(), nodes.end(), up) != nodes.end();
+      if (!carried)
+        out.push_back(node);
+    }
+    return out;
   }
 
   std::vector<geom::Rect> boxesOf(std::vector<CCNode*> const& nodes)
@@ -1791,7 +1827,9 @@ void editor::alignTo(align::Edge edge)
   auto& s = state();
   if (!s.selected || s.pressed || s.resizing)
     return;
-  auto nodes = selection();
+  auto nodes = alignable();
+  if (nodes.empty())
+    return;
   auto boxes = boxesOf(nodes);
   // Several: to the box of them all. One: to its parent's box, or the screen's if the parent has no size
   geom::Rect target = align::bounds(boxes);
@@ -1803,7 +1841,7 @@ void editor::alignTo(align::Edge edge)
     if (parent && parent != runningScene() && parent->getContentWidth() > 0 && parent->getContentHeight() > 0)
       target = inspect::worldQuad(parent).bounds();
   }
-  moveOnScreen(Align, align::to(boxes, edge, target));
+  moveOnScreen(Align, nodes, align::to(boxes, edge, target));
 }
 
 void editor::distribute(bool horizontal)
@@ -1811,10 +1849,10 @@ void editor::distribute(bool horizontal)
   auto& s = state();
   if (!s.selected || s.pressed || s.resizing)
     return;
-  auto nodes = selection();
+  auto nodes = alignable();
   if (nodes.size() < 3)
     return;
-  moveOnScreen(Align, align::distribute(boxesOf(nodes), horizontal));
+  moveOnScreen(Align, nodes, align::distribute(boxesOf(nodes), horizontal));
 }
 
 void editor::toggleVisible()
@@ -2213,6 +2251,7 @@ std::string editor::layoutCode()
 
 void editor::copyLayout()
 {
+  inspect::forgetLookups();
   auto layout = selectedLayout();
   if (!layout)
   {
@@ -2232,6 +2271,7 @@ void editor::copyLayout()
 
 void editor::copySelected()
 {
+  inspect::forgetLookups();
   auto node = selected();
   if (!node)
   {
@@ -2263,6 +2303,7 @@ void editor::copySelected()
 
 void editor::copyAll()
 {
+  inspect::forgetLookups();
   auto count = editedCount();
   if (count == 0)
   {

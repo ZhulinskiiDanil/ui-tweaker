@@ -10,6 +10,7 @@
 #include <Geode/ui/SimpleAxisLayout.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <tuple>
 #include <cstring>
@@ -541,6 +542,8 @@ CCNode* inspect::followPath(CCNode* node, codegen::NodeDesc const& desc)
   std::vector<CCNode*> chain;
   for (auto up = node; chain.size() < desc.path.size() && up; up = up->getParent())
     chain.insert(chain.begin(), up);
+  if (chain.size() < desc.path.size())
+    return nullptr;
   for (size_t i = 0; at && i < desc.path.size(); i++)
   {
     auto const& step = desc.path[i];
@@ -566,6 +569,61 @@ CCNode* inspect::followPath(CCNode* node, codegen::NodeDesc const& desc)
     }
   }
   return at;
+}
+
+namespace
+{
+  struct Lookup
+  {
+    std::string id;
+    CCNode* parent = nullptr;
+    bool idUnique = true;
+    std::string pathRoot;
+    bool pathFromLayer = false;
+    std::vector<codegen::NodeDesc::PathStep> path;
+    double time = 0;
+  };
+  // By node, checked against its ID and parent; nothing in it is used as a node
+  std::map<CCNode*, Lookup> g_lookups;
+
+  double secondsNow()
+  {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  }
+
+  // An ID getChildByIDRecursive finds from the layer, not another node's that's the same; without an ID (or with
+  // one another node has too) the way down from the closest parent with a findable one, or from the layer (`this` in
+  // its hook; its own ID, which node-ids sets to its class name, isn't among its children)
+  void findLookup(CCNode* node, CCNode* layer, codegen::NodeDesc& desc)
+  {
+    auto findable = [&](CCNode* target)
+    {
+      auto from = layer ? layer : static_cast<CCNode*>(CCDirector::get()->getRunningScene());
+      return !target->getID().empty() && from && from->getChildByIDRecursive(target->getID()) == target;
+    };
+    desc.idUnique = desc.id.empty() || findable(node);
+    if (desc.idUnique && (!desc.id.empty() || !node->getParent()))
+      return;
+    std::vector<CCNode*> chain{node};
+    auto up = node->getParent();
+    while (up && up != layer && !findable(up) && !typeinfo_cast<CCScene*>(up))
+    {
+      chain.push_back(up);
+      up = up->getParent();
+    }
+    if (up && (up == layer || (findable(up) && !typeinfo_cast<CCScene*>(up))))
+    {
+      desc.pathFromLayer = up == layer;
+      desc.pathRoot = desc.pathFromLayer ? "" : std::string(up->getID());
+      for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+        desc.path.push_back(stepTo(*it));
+    }
+  }
+} // namespace
+
+void inspect::forgetLookups()
+{
+  g_lookups.clear();
 }
 
 codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
@@ -604,32 +662,22 @@ codegen::NodeDesc inspect::describe(CCNode* node, NodeState const* original)
     layer = top;
   }
 
-  // An ID getChildByIDRecursive finds from the layer, not another node's that's the same
-  auto findable = [&](CCNode* target)
+  // How the code finds it: searching the layer for IDs is slow in a level with thousands of objects, and the panel
+  // describes nodes every frame, so it's remembered for a while
+  if (auto found = g_lookups.find(node); found != g_lookups.end() && found->second.id == desc.id &&
+                                         found->second.parent == node->getParent() && secondsNow() - found->second.time < 0.5)
   {
-    auto from = layer ? layer : static_cast<CCNode*>(CCDirector::get()->getRunningScene());
-    return !target->getID().empty() && from && from->getChildByIDRecursive(target->getID()) == target;
-  };
-  desc.idUnique = desc.id.empty() || findable(node);
-
-  // Without an ID (or one another node has too): the way down from the closest parent with a findable one, or from
-  // the layer (`this` in its hook; its own ID, which node-ids sets to its class name, isn't among its children)
-  if (!desc.idUnique || (desc.id.empty() && node->getParent()))
+    desc.idUnique = found->second.idUnique;
+    desc.pathRoot = found->second.pathRoot;
+    desc.pathFromLayer = found->second.pathFromLayer;
+    desc.path = found->second.path;
+  }
+  else
   {
-    std::vector<CCNode*> chain{node};
-    auto up = node->getParent();
-    while (up && up != layer && !findable(up) && !typeinfo_cast<CCScene*>(up))
-    {
-      chain.push_back(up);
-      up = up->getParent();
-    }
-    if (up && (up == layer || (findable(up) && !typeinfo_cast<CCScene*>(up))))
-    {
-      desc.pathFromLayer = up == layer;
-      desc.pathRoot = desc.pathFromLayer ? "" : std::string(up->getID());
-      for (auto it = chain.rbegin(); it != chain.rend(); ++it)
-        desc.path.push_back(stepTo(*it));
-    }
+    findLookup(node, layer, desc);
+    if (g_lookups.size() > 256)
+      g_lookups.clear();
+    g_lookups[node] = {desc.id, node->getParent(), desc.idUnique, desc.pathRoot, desc.pathFromLayer, desc.path, secondsNow()};
   }
 
   auto state = stateOf(node);

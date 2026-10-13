@@ -254,6 +254,7 @@ namespace
     // With no way down to it, its ID all the same
     twin.path.clear();
     CHECK(has(generate(twin), "getChildByIDRecursive(\"background\")"));
+    CHECK(has(generate(twin), "give this one an ID of its own"));
 
     // Two without IDs in one block of code: each in braces, so parentSize isn't declared twice
     auto first = inParent({190, 50}, {200, 100});

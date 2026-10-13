@@ -60,12 +60,18 @@
   found the code for a LevelSelectLayer sprite leading nowhere: `getChildByIDRecursive("background")` found
   another `background` first. IDs are now checked for that (the node's own too). The fake scene for the compiled
   samples had two bugs of its own (a CCNode step counts every node; buttons as "others" before a button).
-- 08:30 backlog 2, `L`. The self test does what the code says with Geode's real AxisLayout: it found the column
+- 08:23 backlog 2, `L`. The self test does what the code says with Geode's real AxisLayout: it found the column
   off by half its size (a plain CCNode's anchor is its corner, so the code sets 0.5 now) and that Geode's column
   goes bottom to top (`setAxisReverse(true)` for nodes added top to bottom: without it, 215 points off).
-- 08:30 the second review (separate agent, a15c6f0..HEAD): no critical; 4 important (describe searching the whole
+- 08:23 the second review (separate agent, a15c6f0..HEAD): no critical; 4 important (describe searching the whole
   layer every frame, Alt swallowing every key, a null parent in align, the cursor hidden again on the end screen),
-  5 minor. Fixing them next.
+  5 minor. 08:40 all fixed: how a node is found is remembered for half a second per node (and found again for
+  copied code): describing an editor node with 3000 objects takes 1.2 ms the first time, 0.001 ms a frame after;
+  Alt passes every key but its six letters (Alt+arrows nudge again, checked through Geode's own key event); align
+  skips nodes not in the scene or inside another selected one; the cursor is put back only in a level being played
+  (not ended, not under a transition); a twin ID without a path says so in the code; followPath can't step past
+  the nodes above; vanilla.sh stops if the game doesn't close, the copy is empty or python fails; the keybind's
+  description says it works in text fields. Both ways: menu/play/editor/tour PASS, real input 12/12.
 
 ## Checks
 
