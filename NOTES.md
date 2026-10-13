@@ -1,4 +1,56 @@
-# NOTES — UI Tweaker (zhulis.ui-tweaker), the autonomous run
+# NOTES — UI Tweaker (zhulis.ui-tweaker), the autonomous runs
+
+# Run 2 (2026-10-13)
+
+## Time
+
+- Start: **2026-10-13 06:56:09 +02:00** (the first `date` of the run)
+- Hard stop (11 h): **2026-10-13 17:56 +02:00**; stabilization from ~16:56
+- You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
+  stabilization from **~15:50**
+
+## What's done
+
+| | What | Checked by |
+| --- | --- | --- |
+
+## Decisions
+
+- **Checks both ways**: with your mods as you left them (many, with your MiSide menu) and in a vanilla game
+  (`tools/vanilla.sh`: every mod but `geode.loader`, `geode.node-ids` and UI Tweaker off for one check; Geode's
+  `saved.json` is copied back byte for byte after it, even if the check fails — its md5 checked after each run).
+  `tools/real-input.sh`'s points are the vanilla main menu's, so it runs in vanilla.
+- You allowed installing any Geode mods for tests (07:10).
+- A "don't turn this computer off" banner (you asked at 07:04): a click-through, focus-less, topmost window
+  (PowerShell + WinForms, in the session's scratchpad, not the repository), nearly invisible (6 %) while the game
+  runs, hidden for README media through its `mode.txt`.
+
+## Log
+
+- 06:56 start. Before it (06:49–06:55, while TASK.md was being written): the self test on main failed 1 of 118
+  with your mods on (the MiSide menu is back): the screenshot's distance check pointed the mouse at a label that
+  fills its button exactly, so there was nothing to measure. It now looks for a node the edit mode would hover
+  there that has distances to the selected one. With your mods: menu/play/editor/tour/code PASS
+  (118/129/129/434/118). `tools/vanilla.sh` written for checks in a vanilla game (you asked for both).
+- 06:57 **vanilla found two of the self test's own faults**: without another mod capping the frame rate, 60 frames
+  went by inside a 0.5 s `CCTransitionFade` (the creator layer "wasn't there"): steps now last their frames at
+  60 fps at least and the steps after a scene change wait for the transition to end. And the distance check
+  pointed the mouse at a sibling that the panel then moved over (nothing is hovered under the panel): it now
+  points once the panel has moved. Both ways: menu/play/editor/tour/code/aspect PASS; real input 9/9 (vanilla).
+- 07:10 a background agent researching known GD/Cocos/Geode bugs that could get in this mod's way (you asked).
+
+## Checks
+
+| When | Mods | Tests | geode build | Self test | Screenshot |
+| --- | --- | --- | --- | --- | --- |
+| 07:13 | yours | 14/14 | ok | PASS 129 / play 140 / editor 140 / tour 445 / code 129 / aspect 129 | MiSide menu: label selected, distances |
+| 07:13 | vanilla | 14/14 | ok | PASS 131 / 142 / 142 / tour 522 / 131 / 131; real input 9/9 | vanilla menu: Geode button, panel dodged |
+
+## Not done / known
+
+## Proposals
+
+# Run 1 (2026-10-12)
 
 ## Time
 
