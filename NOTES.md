@@ -114,6 +114,8 @@
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
+| 12:58 (v0.12.0) | yours | 18/18 | ok | PASS 202 / play 216 / editor 214 / tour 1100 / reload 212 / session 214 / code 202 / aspect 202 / grid 201 / ime 202 / limit 202 | |
+| 12:58 (v0.12.0) | vanilla | 18/18 | ok | PASS 204 / 218 / 216 / tour 1200 / 216 / 216 / 204 / 204 / 203 / 204 / 204; real input 16/16; restart 6/6; codecheck against Geode 5.10.1 | |
 | 11:41 (v0.11.0) | yours | 18/18 | ok | PASS 189 / play 203 / editor 201 / tour 899 / reload 199 / session 201 / code 189 / aspect 189 / grid 188 / ime 189 | |
 | 11:41 (v0.11.0) | vanilla | 18/18 | ok | PASS 191 / 205 / 203 / tour 977 / 203 / 203 / 191 / 191 / 190 / 191; real input 15/15; restart 6/6 | |
 | 11:30 soak | vanilla | | | `tools/soak.sh 150` (drags, wheel, undo, Ctrl+D and undo, tree and code open): 880 → 908 → 935 → 959 → 977 → 996 → 1011 → 1031 MB; idle 2 min with the edit mode on: +14 MB, off: +15 MB: the game's own rise, the same rate | |
