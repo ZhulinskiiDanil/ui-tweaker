@@ -22,7 +22,7 @@
   frame or text, the panel kept off the taskbar, F8 in text fields, the cursor in levels; selecting several with
   `Ctrl+A` (siblings) or a right drag's box (outlined while drawn), text buttons made with their font and background, buttons with their image's own scale.
 - **Checked**: every feature in the self test (12 modes, both with your mods and in vanilla: the tour alone is 1258
-  checks in vanilla), real mouse and keyboard (19 steps), an hour-long kind of soak (memory: the game's own rise), a restart with an edit put back, the generated code
+  checks in vanilla), real mouse and keyboard (19 steps), a soak of 60 rounds (memory: the game's own rise), a restart with an edit put back, the generated code
   compiled against the fake API and against the real Geode headers, and **end to end**: an edit's "Copy all" built
   into a mod and run in the game, the nodes exactly where the edit left them (`tools/e2e.sh`).
 - **Reviews**: eight by separate agents, every finding fixed but a few minor left as notes (three critical among
