@@ -525,6 +525,85 @@ explain::Facts inspect::factsOf(CCNode* node)
   return facts;
 }
 
+namespace
+{
+  // Whether the object is of the class or a subclass, by the class's plain name ("CCSprite"), as getChildByType
+  // counts: its RTTI's base classes, ".?AVCCSprite@cocos2d@@" being CCSprite
+  bool ofClass(void const* object, std::string const& name)
+  {
+    using namespace geode::cast;
+    auto vftable = *reinterpret_cast<VftableType const* const*>(object);
+    auto meta = static_cast<MetaPointerType const*>(static_cast<CompleteVftableType const*>(vftable));
+    auto base = reinterpret_cast<uintptr_t>(meta->m_completeLocator) - meta->m_completeLocator->m_locatorOffset;
+    auto classDesc = meta->m_completeLocator->m_classDescriptor.into(base);
+    for (int32_t i = 0; i < classDesc->m_numBaseClasses; ++i)
+    {
+      auto entry = classDesc->m_baseClassArray.into(base)->m_descriptorEntries[i].into(base);
+      std::string_view raw = entry->m_typeDescriptor.into(base)->m_typeDescriptorName;
+      if (raw.starts_with(".?AV") || raw.starts_with(".?AU"))
+        raw.remove_prefix(4);
+      if (raw.substr(0, raw.find('@')) == name)
+        return true;
+    }
+    return false;
+  }
+
+  // The n-th child getChildByType<T> would give, T named
+  CCNode* childOfClass(CCNode* parent, std::string const& name, int index)
+  {
+    int seen = 0;
+    for (auto child : CCArrayExt<CCNode*>(parent->getChildren()))
+      if (ofClass(child, name) && seen++ == index)
+        return child;
+    return nullptr;
+  }
+} // namespace
+
+CCNode* inspect::resolve(CCNode* scene, codegen::NodeDesc const& desc)
+{
+  if (!scene)
+    return nullptr;
+  // The layer the code's hook is in: the first node of its class, breadth first
+  CCNode* layer = nullptr;
+  std::vector<CCNode*> queue{scene};
+  for (size_t i = 0; i < queue.size() && !layer && !desc.layer.empty(); i++)
+  {
+    if (queue[i] != scene && className(queue[i]) == desc.layer)
+      layer = queue[i];
+    for (auto child : CCArrayExt<CCNode*>(queue[i]->getChildren()))
+      queue.push_back(child);
+  }
+  auto from = layer ? layer : scene;
+
+  CCNode* found = nullptr;
+  if (!desc.id.empty() && (desc.idUnique || desc.path.empty()))
+    found = from->getChildByIDRecursive(desc.id);
+  else if (!desc.path.empty())
+  {
+    CCNode* at = desc.pathFromLayer ? layer : from->getChildByIDRecursive(desc.pathRoot);
+    for (size_t i = 0; at && i < desc.path.size(); i++)
+    {
+      auto const& step = desc.path[i];
+      if (!step.id.empty())
+        at = at->getChildByID(step.id);
+      else if (!step.frameName.empty())
+        at = geode::cocos::getChildBySpriteFrameName(at, step.frameName.c_str());
+      else if (step.byIndex)
+        at = at->getChildByIndex(step.typeIndex);
+      else
+        at = childOfClass(at, step.className, step.typeIndex);
+    }
+    found = at;
+  }
+  else if (!desc.parentId.empty())
+  {
+    if (auto parent = from->getChildByIDRecursive(desc.parentId))
+      found = desc.byIndex ? parent->getChildByIndex(desc.typeIndex) : childOfClass(parent, desc.className, desc.typeIndex);
+  }
+  // Of the class it was: a path that leads to something else now leads nowhere
+  return found && className(found) == desc.className ? found : nullptr;
+}
+
 CCNode* inspect::followPath(CCNode* node, codegen::NodeDesc const& desc)
 {
   if (desc.path.empty())

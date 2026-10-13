@@ -14,11 +14,18 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 4 | Edits kept between runs (`core/Session.cpp`, `session.txt`), *Put edits back* (off by default), `Ctrl+Delete`, `inspect::resolve`, nodes without IDs told apart by their path in "Copy all" | session unit tests (every field round trip, odd input), `UI_TWEAKER_SELFTEST=session` both ways, `tools/session-check.sh`: a real drag, a restart, put back where it was, undone (6/6) |
 | 2 | `L`: a row/column layout from the selection (`core/RowFit.cpp`, `codegen::layoutCode`) | unit tests, two compiled samples (both styles), the self test applying the code with Geode's real RowLayout/ColumnLayout: every node stays put, both ways |
 | 3 | Nodes without IDs: a path from the closest parent with a findable ID or the layer, each step by ID, frame or type; IDs that aren't unique avoided; `inspect::followPath` | unit tests, three new compiled samples (nested ifs, frames, a twin ID), tour both ways: 74 paths in vanilla, 30 through parents without IDs, all lead to their node |
 | 1 | Align/distribute (`Alt`+`A` `D` `H` `W` `S` `V`, `Alt`+`Shift`+`H` `V`), `core/Align.cpp` with tests; undo keeps a selection that covers the step | self test (turned/flipped/scaled parent, one node in its parent, code read back) both ways; real Alt+A, 10/10 |
 
 ## Decisions
+
+- **Backlog 4, kept edits**: always kept in the save folder (it only changes what "Copy all" has; nothing is done
+  to the game), put back only with the setting on and the edit mode on. Putting back is a step like any edit:
+  recorded only when a value changes, so after the code is pasted the same values are a no-op; undone with Ctrl+Z.
+  The self test writes `session-selftest.txt`, never the user's file; `tools/session-check.sh` puts the user's
+  settings and session back after it.
 
 - **Checks both ways**: with your mods as you left them (many, with your MiSide menu) and in a vanilla game
   (`tools/vanilla.sh`: every mod but `geode.loader`, `geode.node-ids` and UI Tweaker off for one check; Geode's
@@ -72,6 +79,11 @@
   (not ended, not under a transition); a twin ID without a path says so in the code; followPath can't step past
   the nodes above; vanilla.sh stops if the game doesn't close, the copy is empty or python fails; the keybind's
   description says it works in text fields. Both ways: menu/play/editor/tour PASS, real input 12/12.
+- 08:45 v0.9.0 released (pre-release).
+- 09:00 backlog 4, kept edits. Found on the way: a self test step's frames are the wait after it, so the check
+  came before the put back (0.3 s after a scene settles); your MiSide menu puts the Geode button back every frame,
+  so its position is checked only where it stays. Both ways: menu/play/editor/tour/reload/session PASS (vanilla
+  tour 622); the restart with real input 6/6.
 
 ## Checks
 

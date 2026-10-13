@@ -1,3 +1,9 @@
+# v0.10.0 (not released yet: on main)
+
+- The edits are kept between runs of the game (`session.txt` in the save folder): after a rebuild and a restart, `Ctrl+Shift+C` still has what wasn't pasted yet. `Ctrl+Delete` forgets them
+- *Put edits back* (off by default): while the edit mode is on, a screen made again, or the game started again, gets its kept edits back on the nodes, found as their code finds them, one step to undo; a node already there (its code pasted) is left alone
+- An edit of a node without an ID made again in a new instance of its layer replaces the older one in "Copy all" (it was there twice)
+
 # v0.9.0
 
 - `Alt`+`A` `D` `H` / `W` `S` `V` align the selected nodes on the screen as in Figma: several to the box of them all, one to its parent's box; `Alt`+`Shift`+`H` / `V` distribute three or more with the same gaps. One step to undo, the code as for any move

@@ -77,4 +77,7 @@ namespace inspect
   cocos2d::CCNode* followPath(cocos2d::CCNode* node, codegen::NodeDesc const& desc);
   // describe remembers how a node is found for half a second; code that's copied is made with it found again
   void forgetLookups();
+  // The node a description is of in a scene, found as its code would find it: by its ID, its path or its parent's ID
+  // and index, from the layer of the description's class. Null if there's none of its class there
+  cocos2d::CCNode* resolve(cocos2d::CCNode* scene, codegen::NodeDesc const& desc);
 } // namespace inspect

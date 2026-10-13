@@ -28,6 +28,10 @@ A scene's nodes can't be described once it's gone (their parents are), so every 
 
 The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would make an old scene die a frame late, inside the overlay's update, with whatever GD's destructors do to its globals. A row's node is looked for in the live scene before it's used.
 
+## Kept between runs
+
+Every edited node's `NodeDesc`, by layer, is written to `session.txt` in the save folder (`core/Session.cpp`: a line a field, strings escaped, unknown keys skipped) when it changes (at most every 2 s), when the edit mode is turned off and when the game exits, and read when the mod loads, into what's kept for "Copy all". A node is the same node (`session::sameNode`) by an ID the layer finds, else by its path, so an edit in a layer made again replaces the older one. With *Put edits back* on (off by default: the edit mode changes nothing by itself), once a scene has settled after a change, or when the edit mode is turned on, `putBack` finds each kept node in it as its code would (`inspect::resolve`, the class checked too) and applies its position (and the scale, anchor, z-order, size or visibility that were changed): one step to undo, recorded only if something changed, so a node whose code was pasted since is left alone. The self test keeps its session in a file of its own.
+
 ## The code
 
 `inspect::describe` turns a node into a plain `codegen::NodeDesc`: IDs, class, position, scale, anchor, z-order, the frame to measure in and the parent's layout. `core/Codegen.cpp` writes the C++.
@@ -64,6 +68,7 @@ The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would mak
 | `core/Snap.cpp` | Guides and snapping |
 | `core/Measure.cpp` | Distances between two boxes |
 | `core/Align.cpp` | Lining boxes up and distributing them |
+| `core/Session.cpp` | The kept edits as text and back; whether two descriptions are of the same node |
 | `core/RowFit.cpp` | Which axis, order, gap and cross alignment a set of boxes has, for a layout |
 | `core/Aspect.cpp` | Other screens' shapes and what doesn't fit on them |
 | `core/Explain.cpp` | Why a node doesn't move or show, from facts about it |

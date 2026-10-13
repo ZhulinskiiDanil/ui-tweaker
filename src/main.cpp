@@ -15,6 +15,15 @@ $on_mod(Loaded)
                                    if (down && !repeat)
                                      editor::toggle(); });
 
+  // The edits kept from the last time, for "Copy all" (the self test starts without them, in a file of its own)
+  if (!selftest::requested())
+    editor::loadSession();
+
   if (selftest::requested())
     selftest::start();
+}
+
+$on_game(Exiting)
+{
+  editor::saveSessionNow();
 }

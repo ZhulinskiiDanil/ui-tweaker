@@ -8,7 +8,7 @@ namespace
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
       .help2 = "Enter: type values   Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
                "inside   Shift+click: several   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   R: reset   V: hide   A: other screens   C: code   T: tree   H: panel   "
-               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout",
+               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout   Ctrl+Delete: forget the kept edits",
       .nothingSelected = "Nothing selected",
       .clickHint = "Click a node to select it, drag to move it",
       .position = "position {}, {}   (screen {}, {})",
@@ -32,6 +32,8 @@ namespace
       .layoutNeeds = "Select two or more nodes of one parent (Shift+click) for a layout",
       .copiedLayout = "Copied a layout: a {} of {} nodes",
       .row = "row",
+      .putBack = "Edits put back on {} nodes",
+      .forgotKept = "Forgot the kept edits of {} nodes",
       .column = "column",
       .treeTitle = "Nodes: {} of {}   T: close",
       .searchHint = "/ to search by ID or class",
@@ -76,7 +78,7 @@ namespace
                "отменить / вернуть",
       .help2 = "Enter: ввести числа   Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
                "внутрь   Shift+клик: несколько   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   R: сбросить   V: скрыть   A: другие экраны   C: код   T: дерево   H: панель   "
-               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout",
+               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout   Ctrl+Delete: забыть сохранённые правки",
       .nothingSelected = "Ничего не выбрано",
       .clickHint = "Щёлкните по ноде, чтобы выбрать, тащите, чтобы сдвинуть",
       .position = "позиция {}, {}   (на экране {}, {})",
@@ -100,6 +102,8 @@ namespace
       .layoutNeeds = "Для layout выберите две и больше нод одного родителя (Shift+клик)",
       .copiedLayout = "Layout скопирован: {} из {} нод",
       .row = "ряд",
+      .putBack = "Правки возвращены на {} нод",
+      .forgotKept = "Сохранённые правки {} нод забыты",
       .column = "столбец",
       .treeTitle = "Ноды: {} из {}   T: закрыть",
       .searchHint = "/ - поиск по ID или классу",

@@ -5,6 +5,7 @@
 #include "Retained.hpp"
 #include "core/Expr.hpp"
 #include "core/Measure.hpp"
+#include "core/Session.hpp"
 
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -1233,6 +1234,115 @@ namespace
 
   // The level editor with a new level and 3000 objects: a button of its interface edited, and what the hover
   // costs there
+  bool menuSettled();
+
+  // =session: edits kept and put back. The Geode button and a sprite without an ID (in the play button) moved, the
+  // main menu made again with putting back on: both back where they were moved, one step to undo, one edit each.
+  // The session's file written, read, forgotten and loaded again as after a restart
+  void sessionTest()
+  {
+    struct Kept
+    {
+      inspect::NodeState geode;
+      inspect::NodeState sprite;
+      inspect::NodeState geodeBefore;
+      inspect::NodeState spriteBefore;
+      // Another mod may put the Geode button back every frame (a custom main menu's layout guard)
+      bool geodeStays = true;
+    };
+    static Kept kept;
+    g_steps.push_back({10,
+                       []
+                       {
+                         // Nothing kept from the self test's earlier scenes
+                         while (editor::undo())
+                           ;
+                         editor::forgetKept();
+                         auto scene = CCDirector::get()->getRunningScene();
+                         auto geode = scene->getChildByIDRecursive("geode.loader/geode-button");
+                         auto play = scene->getChildByIDRecursive("play-button");
+                         CCNode* sprite = play ? play->getChildByType<CCSprite>(0) : nullptr;
+                         check(geode && sprite, "the Geode button and the play button's sprite are there");
+                         if (!geode || !sprite)
+                           return;
+                         kept.geodeBefore = inspect::stateOf(geode);
+                         kept.spriteBefore = inspect::stateOf(sprite);
+                         editor::setSnapping(false);
+                         for (auto [node, by] : {std::pair{geode, ccp(-14, 9)}, std::pair{sprite, ccp(6, -4)}})
+                         {
+                           auto center = inspect::worldQuad(node).center();
+                           editor::grab(node, {center.x, center.y});
+                           editor::dragTo(CCPoint{center.x, center.y} + by);
+                           editor::release();
+                         }
+                         editor::setSnapping(std::nullopt);
+                         kept.geode = inspect::stateOf(geode);
+                         kept.sprite = inspect::stateOf(sprite);
+                         check(editor::editedCount() == 2, fmt::format("two nodes edited: {}", editor::editedCount()));
+                       }});
+    g_steps.push_back({60,
+                       []
+                       {
+                         auto geode = CCDirector::get()->getRunningScene()->getChildByIDRecursive("geode.loader/geode-button");
+                         kept.geodeStays = geode && inspect::stateOf(geode).position == kept.geode.position;
+                         if (!kept.geodeStays)
+                           log::info("Self test: another mod puts the Geode button back: its position isn't checked");
+                         editor::setPutBack(true);
+                         CCDirector::get()->replaceScene(MenuLayer::scene(false));
+                       }});
+    g_steps.push_back({10,
+                       []
+                       {
+                         auto scene = CCDirector::get()->getRunningScene();
+                         auto geode = scene->getChildByIDRecursive("geode.loader/geode-button");
+                         auto play = scene->getChildByIDRecursive("play-button");
+                         auto sprite = play ? play->getChildByType<CCSprite>(0) : nullptr;
+                         check(geode && sprite, "the new main menu has them");
+                         if (!geode || !sprite)
+                           return;
+                         check(!kept.geodeStays || inspect::stateOf(geode).position == kept.geode.position,
+                               "the Geode button of the main menu made again is where it was moved");
+                         check(inspect::stateOf(sprite).position == kept.sprite.position,
+                               "the sprite without an ID is put back too, found by its path");
+                         check(editor::editedCount() == 2,
+                               fmt::format("each is one edit, not one kept and one put back: {}", editor::editedCount()));
+                         auto all = editor::codeForAll();
+                         size_t times = 0;
+                         std::string lookup = "getChildByIDRecursive(\"geode.loader/geode-button\")";
+                         for (auto at = all.find(lookup); at != std::string::npos; at = all.find(lookup, at + 1))
+                           times++;
+                         check(times == 1, fmt::format("the Geode button is in the code for all once: {}", times));
+
+                         // Written and read back
+                         editor::saveSessionNow();
+                         auto text = file::readString(std::filesystem::path(editor::sessionFile()));
+                         auto groups = text ? session::read(*text) : std::nullopt;
+                         size_t nodes = 0;
+                         if (groups)
+                           for (auto const& [layer, descs] : *groups)
+                             nodes += descs.size();
+                         check(nodes == 2, fmt::format("the session's file has the two nodes: {}", nodes));
+
+                         // As after a restart: forgotten, the file put back, loaded
+                         editor::undo();
+                         check((!kept.geodeStays || inspect::stateOf(geode).position == kept.geodeBefore.position) &&
+                                   inspect::stateOf(sprite).position == kept.spriteBefore.position,
+                               "one Ctrl+Z took both put back edits off");
+                         editor::forgetKept();
+                         check(editor::editedCount() == 0, "Ctrl+Delete forgot the kept edits");
+                         if (text)
+                           (void)file::writeString(std::filesystem::path(editor::sessionFile()), *text);
+                         editor::loadSession();
+                         check(editor::editedCount() == 2,
+                               fmt::format("the session loaded again has the two edits: {}", editor::editedCount()));
+                         editor::forgetKept();
+                         editor::setPutBack(std::nullopt);
+                         g_frames = 0;
+                         finish(false);
+                       },
+                       menuSettled});
+  }
+
   bool menuSettled()
   {
     auto scene = CCDirector::get()->getRunningScene();
@@ -1616,6 +1726,11 @@ namespace
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "reload")
            {
              reloadGame();
+             return;
+           }
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "session")
+           {
+             sessionTest();
              return;
            }
            // =ime: the edit mode off and a text field with the keyboard, for tools/real-input.sh's F8 in it

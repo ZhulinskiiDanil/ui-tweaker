@@ -78,6 +78,14 @@ namespace editor
   // The edited nodes here and in the scenes left, which "Copy all" has
   size_t editedCount();
   void copySelected();
+  // The edits of every scene, kept in the save folder between runs: read when the mod loads, written as they change
+  // and when the game exits. Ctrl+Delete forgets those of other scenes
+  void loadSession();
+  void saveSessionNow();
+  void forgetKept();
+  // For the self test: where the session is written, and putting edits back whatever the setting says
+  std::string sessionFile();
+  void setPutBack(std::optional<bool> on);
   // L: the selected nodes of one parent as a row or a column of a new menu with an AxisLayout. Empty if they
   // aren't two or more of one parent
   std::string layoutCode();

@@ -40,7 +40,8 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Ctrl+Z`, `Ctrl+Y` | Undo, redo. A turn of the wheel or a run of arrow presses is one step |
 | `Ctrl+C` | Copies the C++ for the selected node |
 | `C` | Shows that code in the panel, as it is now: it changes as you drag |
-| `Ctrl+Shift+C` | Copies the C++ for every node edited, a comment for each: this scene's and the scenes' left before, by the layer whose hook it goes in (the closest parent that's a layer mods hook: `MenuLayer`, `PlayLayer`, `EditorUI`, `PauseLayer`... or the top one, a popup). For those layers it's the whole `$modify` with the right `init` (or `customSetup`), ready to paste. Also written to `export.cpp` in the mod's save folder |
+| `Ctrl+Shift+C` | Copies the C++ for every node edited, a comment for each: this scene's and the scenes' left before, by the layer whose hook it goes in (the closest parent that's a layer mods hook: `MenuLayer`, `PlayLayer`, `EditorUI`, `PauseLayer`... or the top one, a popup). For those layers it's the whole `$modify` with the right `init` (or `customSetup`), ready to paste. Also written to `export.cpp` in the mod's save folder. The edits are kept between runs of the game (`session.txt` in the save folder), so a rebuild and a restart don't lose what isn't pasted yet |
+| `Ctrl+Delete` | Forgets the edits kept from other scenes and earlier runs |
 | `Alt` held | The distances from the selected node to the one under the mouse, as in Figma: the gaps between them, or from the inner one's edges to the outer one's |
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |

@@ -1,6 +1,7 @@
 #include "Editor.hpp"
 
 #include "Inspect.hpp"
+#include "SelfTest.hpp"
 #include "LoggerLink.hpp"
 #include "Retained.hpp"
 #include "TreePanel.hpp"
@@ -11,6 +12,7 @@
 #include "core/History.hpp"
 #include "core/Hooks.hpp"
 #include "core/Measure.hpp"
+#include "core/Session.hpp"
 #include "core/Snap.hpp"
 #include "core/Text.hpp"
 #include "core/Tree.hpp"
@@ -33,6 +35,10 @@ using namespace geode::prelude;
 
 namespace
 {
+  // Further down: the kept edits on disk, and put back on a layer made again
+  void saveSession(bool force);
+  void putBack();
+
   // ! --- State --- !
 
   enum Kind
@@ -47,6 +53,7 @@ namespace
     Reset = 8,
     Visibility = 9,
     Align = 10,
+    PutBack = 11,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -139,6 +146,7 @@ namespace
     std::vector<snap::Guide> guides;
     std::vector<snap::Guide> snapLines;
     std::optional<bool> snapOverride;
+    std::optional<bool> putBackOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
     // C: the selected node's code in the panel
@@ -168,6 +176,12 @@ namespace
     std::string liveLayer;
     // Edits of scenes left, by the layer they were in, for "Copy all"
     std::vector<std::pair<std::string, std::vector<codegen::NodeDesc>>> earlier;
+    // The kept edits changed since they were written to the save folder
+    bool sessionDirty = false;
+    double sessionSaved = 0;
+    // A scene whose layers get their kept edits put back once it has settled, and from when
+    int putBackScene = 0;
+    double putBackAt = 0;
     std::string typingError;
     std::vector<std::string> typingStart;
     std::vector<float> typingExact;
@@ -295,7 +309,8 @@ namespace
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned"};
+    s.sessionDirty = true;
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -315,7 +330,7 @@ namespace
   // The descriptions of nodes into a group, a node with an ID replacing its older code there
   void addTo(std::vector<codegen::NodeDesc>& group, codegen::NodeDesc const& desc)
   {
-    std::erase_if(group, [&](auto const& old) { return !desc.id.empty() && old.id == desc.id && old.parentId == desc.parentId; });
+    std::erase_if(group, [&](auto const& old) { return session::sameNode(old, desc); });
     group.push_back(desc);
   }
 
@@ -357,6 +372,9 @@ namespace
     s.scene = tag;
     // The edits of the scene left, kept by its layer
     fileAway([](CCNode*) { return true; });
+    s.sessionDirty = true;
+    s.putBackScene = tag;
+    s.putBackAt = now() + 0.3;
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
@@ -1386,6 +1404,10 @@ namespace
     case KEY_L:
       editor::copyLayout();
       break;
+    case KEY_Delete:
+      if (control)
+        editor::forgetKept();
+      break;
     case KEY_V:
       // Ctrl+V after Ctrl+C out of habit doesn't hide anything
       if (!control)
@@ -1415,6 +1437,12 @@ namespace
   {
     auto& s = state();
     forgetOtherScenes();
+    if (s.putBackScene == s.scene && now() >= s.putBackAt && !typeinfo_cast<CCTransitionScene*>(runningScene()))
+    {
+      s.putBackScene = 0;
+      putBack();
+    }
+    saveSession(false);
     // A level hides the cursor and, with GD's lock cursor option, locks it, which also stops the mouse's position
     // from changing; the level does it again when it's resumed, so it's undone every frame
     // Both read first: showing the cursor also lets it go
@@ -1488,6 +1516,8 @@ void editor::setActive(bool on)
   if (on)
   {
     forgetOtherScenes();
+    s.putBackScene = s.scene;
+    s.putBackAt = now() + 0.1;
     if (CCIMEDispatcher::sharedDispatcher()->hasDelegate())
     {
       unfocusTextFields(runningScene());
@@ -1535,6 +1565,9 @@ void editor::setActive(bool on)
     s.scroll.reset();
     s.keys.reset();
     s.pressed = s.dragging = s.panelDragging = s.leftDown = false;
+    s.putBackScene = 0;
+    s.sessionDirty = true;
+    saveSession(true);
     // The cursor as the level had it, if the level is still being played (paused, the game shows it itself)
     auto running = runningScene();
     auto play = PlayLayer::get();
@@ -2266,6 +2299,136 @@ void editor::copyLayout()
   auto const& w = ui::words();
   Notification::create(text::format(w.copiedLayout, {layout->fit.row ? w.row : w.column, count}), NotificationIcon::Success,
                        1.5f)
+      ->show();
+}
+
+namespace
+{
+  std::filesystem::path sessionPath()
+  {
+    return Mod::get()->getSaveDir() / (selftest::requested() ? "session-selftest.txt" : "session.txt");
+  }
+
+  // The kept edits written again if they changed, at most every couple of seconds unless `now`
+  void saveSession(bool force)
+  {
+    auto& s = state();
+    if (!s.sessionDirty || (!force && now() - s.sessionSaved < 2))
+      return;
+    s.sessionDirty = false;
+    s.sessionSaved = now();
+    auto written = file::writeString(sessionPath(), session::write(allEdits()));
+    if (!written)
+      log::warn("Couldn't write {}: {}", sessionPath(), written.unwrapErr());
+  }
+
+  // The kept edits of a layer made again put on its nodes, found as their code finds them: one step to undo, a node
+  // already as they say (its code pasted since) has nothing to put back. Only with the setting on
+  void putBack()
+  {
+    auto& s = state();
+    if (!s.putBackOverride.value_or(Mod::get()->getSettingValue<bool>("put-back")))
+      return;
+    auto scene = runningScene();
+    int group = ++s.groups;
+    size_t count = 0;
+    for (auto& [layer, descs] : s.earlier)
+      std::erase_if(descs,
+                    [&](codegen::NodeDesc const& desc)
+                    {
+                      auto node = inspect::resolve(scene, desc);
+                      if (!node || hasSteps(node))
+                        return false;
+                      auto before = inspect::stateOf(node);
+                      auto wanted = before;
+                      wanted.position = CCPoint{desc.position.x, desc.position.y};
+                      if (desc.scaleChanged)
+                      {
+                        wanted.scaleX = desc.scaleX;
+                        wanted.scaleY = desc.scaleY;
+                      }
+                      if (desc.anchorChanged)
+                        wanted.anchor = CCPoint{desc.anchor.x, desc.anchor.y};
+                      if (desc.zOrderChanged)
+                        wanted.zOrder = desc.zOrder;
+                      if (desc.sizeChanged)
+                      {
+                        wanted.size = CCSize{desc.size.width, desc.size.height};
+                        s.sized.push_back(node);
+                      }
+                      if (desc.visibleChanged)
+                      {
+                        wanted.visible = desc.visible;
+                        s.toggled.push_back(node);
+                      }
+                      inspect::apply(node, wanted, desc.sizeChanged, desc.visibleChanged);
+                      record(node, before, PutBack, 0, group);
+                      // Now this scene's, as live as any edit; kept here too if nothing changed (already in place)
+                      if (!hasSteps(node))
+                        return false;
+                      count++;
+                      return true;
+                    });
+    std::erase_if(s.earlier, [](auto const& g) { return g.second.empty(); });
+    if (count > 0)
+    {
+      log::info("Put back the kept edits of {} nodes", count);
+      Notification::create(text::format(ui::words().putBack, {std::to_string(count)}), NotificationIcon::Info, 1.5f)
+          ->show();
+    }
+  }
+} // namespace
+
+void editor::loadSession()
+{
+  auto text = file::readString(sessionPath());
+  if (!text)
+    return;
+  auto groups = session::read(*text);
+  if (!groups)
+  {
+    log::warn("{} isn't a session file", sessionPath());
+    return;
+  }
+  auto& s = state();
+  for (auto const& [layer, descs] : *groups)
+    for (auto const& desc : descs)
+      addTo(groupOf(layer), desc);
+  size_t count = 0;
+  for (auto const& [layer, descs] : *groups)
+    count += descs.size();
+  if (count > 0)
+    log::info("Kept edits of {} nodes from the last time", count);
+  s.sessionDirty = false;
+}
+
+void editor::saveSessionNow()
+{
+  state().sessionDirty = true;
+  saveSession(true);
+}
+
+std::string editor::sessionFile()
+{
+  return sessionPath().string();
+}
+
+void editor::setPutBack(std::optional<bool> on)
+{
+  state().putBackOverride = on;
+}
+
+void editor::forgetKept()
+{
+  auto& s = state();
+  size_t count = 0;
+  for (auto const& [layer, descs] : s.earlier)
+    count += descs.size();
+  s.earlier.clear();
+  s.sessionDirty = true;
+  saveSession(true);
+  log::info("Forgot the kept edits of {} nodes", count);
+  Notification::create(text::format(ui::words().forgotKept, {std::to_string(count)}), NotificationIcon::Info, 1.5f)
       ->show();
 }
 

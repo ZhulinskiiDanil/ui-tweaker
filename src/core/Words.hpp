@@ -41,6 +41,8 @@ namespace words
     std::string layoutNeeds;
     std::string copiedLayout; // {} {}: row or column, how many
     std::string row;
+    std::string putBack;    // {}: how many
+    std::string forgotKept; // {}: how many
     std::string column;
     std::string treeTitle;   // {} {}: shown, all
     std::string searchHint;

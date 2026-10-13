@@ -14,7 +14,7 @@ namespace
   {
     return {&w.banner, &w.helpHint, &w.help1, &w.help2, &w.nothingSelected, &w.clickHint, &w.position, &w.scale, &w.rotation,
             &w.anchor, &w.ignored, &w.size, &w.zOrder, &w.none, &w.copy, &w.copyAll, &w.undo, &w.redo, &w.leave,
-            &w.offScreen, &w.selectFirst, &w.nothingEdited, &w.copiedFor, &w.copiedNodes, &w.layoutNeeds, &w.copiedLayout, &w.row, &w.column, &w.treeTitle,
+            &w.offScreen, &w.selectFirst, &w.nothingEdited, &w.copiedFor, &w.copiedNodes, &w.layoutNeeds, &w.copiedLayout, &w.row, &w.putBack, &w.forgotKept, &w.column, &w.treeTitle,
             &w.searchHint, &w.search, &w.anchorLayout, &w.axisLayout, &w.simpleAxisLayout, &w.otherLayout,
             &w.layoutMoves, &w.action, &w.actions, &w.hidden, &w.itself, &w.transparent, &w.zeroScale, &w.zeroSize,
             &w.ignoresAnchor, &w.clipped, &w.parentTurned, &w.outsideScreen, &w.tag, &w.scaleField, &w.widthField, &w.heightField, &w.typingHint,

@@ -49,6 +49,12 @@
 			"type": "bool",
 			"default": true
 		},
+		"put-back": {
+			"name": "Put edits back",
+			"description": "While the edit mode is on, a screen made again, or the game started again after a rebuild, gets the edits kept for it: its nodes, found as their code finds them, are moved back, one step to undo. A node already there (its code pasted) is left as it is. Off: the edit mode changes nothing by itself. The edits are kept either way, for <cy>Ctrl+Shift+C</c>",
+			"type": "bool",
+			"default": false
+		},
 		"language": {
 			"name": "Language",
 			"description": "The edit mode's language. Auto: Russian on a Russian Windows, English otherwise. The generated code is in English either way",

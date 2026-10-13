@@ -87,6 +87,8 @@ namespace codegen
       // A sprite's or a button's frame that none of the siblings before it has: getChildBySpriteFrameName finds
       // it whatever is added around it
       std::string frameName;
+
+      bool operator==(PathStep const&) const = default;
     };
     std::string pathRoot;
     bool pathFromLayer = false;

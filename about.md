@@ -14,6 +14,7 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 - <cy>Alt+A</c>, <cy>D</c>, <cy>H</c> / <cy>W</c>, <cy>S</c>, <cy>V</c>: align the selected nodes left, right, center / top, bottom, middle, as in Figma; <cy>Alt+Shift+H</c> / <cy>V</c>: the same gaps between them
 - <cy>Ctrl+Z</c> / <cy>Ctrl+Y</c>: undo and redo
 - <cy>Ctrl+C</c>: the C++ for the selected node, <cy>Ctrl+Shift+C</c>: for every node edited, in this scene and the ones left (also saved to export.cpp). <cy>C</c> shows the code in the panel as you drag
+- The edits are kept between runs of the game, for <cy>Ctrl+Shift+C</c> after a rebuild; <cy>Ctrl+Delete</c> forgets them. With <cy>Put edits back</c> on, a screen made again (or the game started again) gets them back while the edit mode is on
 - <cy>Alt</c> held: the distances to the node under the mouse
 - <cy>T</c>: the node tree with a search, <cy>A</c>: how it looks on 16:10, 4:3 and 21:9 screens
 - <cy>Tab</c>: the next node under the mouse, <cy>Alt</c>+click: a part of a button, <cy>PgUp</c>: the parent, <cy>F1</c>: every key

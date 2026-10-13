@@ -28,6 +28,10 @@ add_test(NAME align COMMAND align-tests)
 add_executable(rowfit-tests RowFitTests.cpp ../src/core/RowFit.cpp)
 add_test(NAME rowfit COMMAND rowfit-tests)
 
+add_executable(session-tests SessionTests.cpp ../src/core/Session.cpp ../src/core/Codegen.cpp ../src/core/Expr.cpp
+    ../src/core/Geometry.cpp ../src/core/Words.cpp ../src/core/Text.cpp ../src/core/RowFit.cpp)
+add_test(NAME session COMMAND session-tests)
+
 add_executable(history-tests HistoryTests.cpp)
 add_test(NAME history COMMAND history-tests)
 
