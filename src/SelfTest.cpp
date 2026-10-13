@@ -453,6 +453,107 @@ namespace
   }
 
   // Shift+click: two nodes dragged, nudged and scaled together; each is one step to undo
+  // Alt+A and the like on three nodes of their own, in a turned, flipped and scaled parent: lined up on the
+  // screen, one step to undo, their code right; distributed; one node centered in its parent's box
+  void aligning()
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto scene = CCDirector::get()->getRunningScene();
+    auto parent = CCNode::create();
+    parent->setID("selftest-align-parent"_spr);
+    parent->setPosition({win.width / 2, win.height / 2});
+    parent->setRotation(20);
+    parent->setScaleX(-1.25f);
+    parent->setScaleY(1.25f);
+    scene->addChild(parent, 1000);
+    std::vector<CCNode*> boxes;
+    CCPoint places[] = {{-60, -20}, {10, 30}, {45, -35}};
+    CCSize sizes[] = {{20, 10}, {30, 14}, {12, 24}};
+    for (int i = 0; i < 3; i++)
+    {
+      auto box = CCLayerColor::create({255, 120, 60, 160}, sizes[i].width, sizes[i].height);
+      box->setID(Mod::get()->expandSpriteName(fmt::format("selftest-align-{}", i)));
+      box->setPosition(places[i]);
+      parent->addChild(box);
+      boxes.push_back(box);
+    }
+    std::vector<inspect::NodeState> before;
+    for (auto box : boxes)
+      before.push_back(inspect::stateOf(box));
+    auto bounds = [](CCNode* node) { return inspect::worldQuad(node).bounds(); };
+    auto putBack = [&]
+    {
+      bool all = true;
+      for (size_t i = 0; i < boxes.size(); i++)
+        all = all && inspect::stateOf(boxes[i]) == before[i];
+      return all;
+    };
+
+    editor::select(boxes[0]);
+    editor::toggleSelect(boxes[1]);
+    editor::toggleSelect(boxes[2]);
+    auto steps = editor::historySize();
+
+    float left = std::min({bounds(boxes[0]).minX(), bounds(boxes[1]).minX(), bounds(boxes[2]).minX()});
+    editor::alignTo(align::Edge::Left);
+    check(close(bounds(boxes[0]).minX(), left, 0.05f) && close(bounds(boxes[1]).minX(), left, 0.05f) &&
+              close(bounds(boxes[2]).minX(), left, 0.05f),
+          fmt::format("Alt+A lined up the left edges at {} on the screen: {}, {}, {}", left, bounds(boxes[0]).minX(),
+                      bounds(boxes[1]).minX(), bounds(boxes[2]).minX()));
+    // The leftmost one doesn't move: no change of it in the step
+    check(editor::historySize() == steps + 2,
+          fmt::format("aligning three nodes moved two: {} changes", editor::historySize() - steps));
+    for (auto box : boxes)
+    {
+      auto problem = inspect::checkCode(box, editor::codeFor(box));
+      check(problem.empty(), fmt::format("the code for an aligned node puts it where it is: {}", problem));
+    }
+    check(editor::undo() && putBack(), "one Ctrl+Z put the three aligned nodes back");
+    check(editor::selection().size() == 3, "the three are still selected after Ctrl+Z, the one that didn't move too");
+
+    float top = std::max({bounds(boxes[0]).maxY(), bounds(boxes[1]).maxY(), bounds(boxes[2]).maxY()});
+    editor::alignTo(align::Edge::Top);
+    check(close(bounds(boxes[0]).maxY(), top, 0.05f) && close(bounds(boxes[1]).maxY(), top, 0.05f) &&
+              close(bounds(boxes[2]).maxY(), top, 0.05f),
+          fmt::format("Alt+W lined up the top edges at {}: {}, {}, {} ({} selected)", top, bounds(boxes[0]).maxY(),
+                      bounds(boxes[1]).maxY(), bounds(boxes[2]).maxY(), editor::selection().size()));
+    editor::undo();
+
+    editor::distribute(true);
+    std::vector<geom::Rect> after;
+    for (auto box : boxes)
+      after.push_back(bounds(box));
+    std::sort(after.begin(), after.end(), [](auto const& a, auto const& b) { return a.midX() < b.midX(); });
+    float gap1 = after[1].minX() - after[0].maxX();
+    float gap2 = after[2].minX() - after[1].maxX();
+    check(close(gap1, gap2, 0.05f), fmt::format("Alt+Shift+H made the gaps the same: {} and {}", gap1, gap2));
+    check(editor::undo() && putBack(), "Ctrl+Z put the distributed nodes back");
+
+    // One node: to its parent's box
+    auto frame = CCLayerColor::create({60, 120, 255, 80}, 160, 90);
+    frame->setPosition({40, 40});
+    scene->addChild(frame, 1000);
+    auto inside = CCLayerColor::create({255, 255, 255, 160}, 30, 20);
+    inside->setPosition({10, 12});
+    frame->addChild(inside);
+    editor::select(inside);
+    editor::alignTo(align::Edge::CenterX);
+    editor::alignTo(align::Edge::CenterY);
+    check(close(bounds(inside).midX(), bounds(frame).midX(), 0.05f) &&
+              close(bounds(inside).midY(), bounds(frame).midY(), 0.05f),
+          "Alt+H and Alt+V centered one node in its parent");
+    check(close(inside->getPositionX(), 65, 0.05f) && close(inside->getPositionY(), 35, 0.05f),
+          fmt::format("the centered node is at (65, 35) in its parent: ({}, {})", inside->getPositionX(),
+                      inside->getPositionY()));
+    editor::undo();
+    editor::undo();
+    check(close(inside->getPositionX(), 10) && close(inside->getPositionY(), 12), "two Ctrl+Z put it back");
+
+    editor::select(nullptr);
+    frame->removeFromParent();
+    parent->removeFromParent();
+  }
+
   void several(CCNode* first, CCNode* second)
   {
     auto a = inspect::stateOf(first);
@@ -575,6 +676,7 @@ namespace
       anchorAndOrder(shown[0]);
       typing(shown[0]);
       transforms();
+      aligning();
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);

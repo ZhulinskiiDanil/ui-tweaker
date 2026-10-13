@@ -22,6 +22,9 @@ add_executable(codegen-tests CodegenTests.cpp ../src/core/Codegen.cpp ../src/cor
     ../src/core/Words.cpp ../src/core/Text.cpp)
 add_test(NAME codegen COMMAND codegen-tests)
 
+add_executable(align-tests AlignTests.cpp ../src/core/Align.cpp)
+add_test(NAME align COMMAND align-tests)
+
 add_executable(history-tests HistoryTests.cpp)
 add_test(NAME history COMMAND history-tests)
 

@@ -43,6 +43,7 @@ namespace
     Resize = 7,
     Reset = 8,
     Visibility = 9,
+    Align = 10,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -288,7 +289,7 @@ namespace
       s.originals.emplace_back(Retained<CCNode>(node), before);
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -438,10 +439,15 @@ namespace
     return guides;
   }
 
-  // The nodes of one step selected together, the first shown in the panel
+  // The nodes of one step selected together, the first shown in the panel. A selection that has them all stays:
+  // a node an alignment didn't move has no change in the step, and is still meant to be selected
   void selectAll(std::vector<CCNode*> const& nodes)
   {
     auto& s = state();
+    auto current = editor::selection();
+    if (std::all_of(nodes.begin(), nodes.end(),
+                    [&](CCNode* node) { return std::find(current.begin(), current.end(), node) != current.end(); }))
+      return;
     editor::select(nodes.front());
     for (size_t i = 1; i < nodes.size(); i++)
       s.also.emplace_back(nodes[i]);
@@ -1245,6 +1251,36 @@ namespace
       return ListenerResult::Stop;
     }
 
+    // Alt with a letter lines the selected nodes up, as in Figma; with Shift, H and V distribute them
+    if (hasModifier(data.modifiers, KeyboardModifier::Alt))
+    {
+      using align::Edge;
+      switch (data.key)
+      {
+      case KEY_A:
+        editor::alignTo(Edge::Left);
+        break;
+      case KEY_D:
+        editor::alignTo(Edge::Right);
+        break;
+      case KEY_H:
+        shift ? editor::distribute(true) : editor::alignTo(Edge::CenterX);
+        break;
+      case KEY_W:
+        editor::alignTo(Edge::Top);
+        break;
+      case KEY_S:
+        editor::alignTo(Edge::Bottom);
+        break;
+      case KEY_V:
+        shift ? editor::distribute(false) : editor::alignTo(Edge::CenterY);
+        break;
+      default:
+        break;
+      }
+      return ListenerResult::Stop;
+    }
+
     switch (data.key)
     {
     case KEY_T:
@@ -1684,6 +1720,65 @@ void editor::nudge(float dx, float dy)
   if (!s.selected || s.dragging || s.resizing)
     return;
   editAll(Nudge, NUDGE_MERGE, [&](CCNode* each) { each->setPosition(each->getPosition() + ccp(dx, dy)); });
+}
+
+namespace
+{
+  // Each selected node moved by its own amount on the screen, through its parent's transform: one step
+  void moveOnScreen(Kind kind, std::vector<geom::Vec2> const& moves)
+  {
+    auto nodes = editor::selection();
+    size_t i = 0;
+    editAll(kind, 0,
+            [&](CCNode* node)
+            {
+              auto move = i < moves.size() ? moves[i] : geom::Vec2{};
+              i++;
+              if (move.x == 0 && move.y == 0)
+                return;
+              auto local = geom::localDelta(inspect::toGeom(node->getParent()->nodeToWorldTransform()), move);
+              node->setPosition(node->getPosition() + ccp(local.x, local.y));
+            });
+  }
+
+  std::vector<geom::Rect> boxesOf(std::vector<CCNode*> const& nodes)
+  {
+    std::vector<geom::Rect> boxes;
+    for (auto node : nodes)
+      boxes.push_back(inspect::worldQuad(node).bounds());
+    return boxes;
+  }
+} // namespace
+
+void editor::alignTo(align::Edge edge)
+{
+  auto& s = state();
+  if (!s.selected || s.pressed || s.resizing)
+    return;
+  auto nodes = selection();
+  auto boxes = boxesOf(nodes);
+  // Several: to the box of them all. One: to its parent's box, or the screen's if the parent has no size
+  geom::Rect target = align::bounds(boxes);
+  if (nodes.size() == 1)
+  {
+    auto parent = nodes[0]->getParent();
+    auto win = CCDirector::get()->getWinSize();
+    target = {0, 0, win.width, win.height};
+    if (parent && parent != runningScene() && parent->getContentWidth() > 0 && parent->getContentHeight() > 0)
+      target = inspect::worldQuad(parent).bounds();
+  }
+  moveOnScreen(Align, align::to(boxes, edge, target));
+}
+
+void editor::distribute(bool horizontal)
+{
+  auto& s = state();
+  if (!s.selected || s.pressed || s.resizing)
+    return;
+  auto nodes = selection();
+  if (nodes.size() < 3)
+    return;
+  moveOnScreen(Align, align::distribute(boxesOf(nodes), horizontal));
 }
 
 void editor::toggleVisible()

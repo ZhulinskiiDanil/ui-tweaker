@@ -73,6 +73,12 @@ input key z ctrl
 input shiftclick "$gx" "$gy"; sleep 1.5
 expect "Selection: 2 nodes" "Shift+click selected a second node"
 shot several.png
+# Alt+A lines the two up by their left edges, as in Figma (Alt comes as a system key on Windows)
+input key a alt; sleep 1.5
+expect "Aligned " "Alt+A aligned the two selected nodes"
+fresh | grep "Aligned " | tail -1 | cut -c1-160
+shot aligned.png
+input key z ctrl
 # The tree: T, / and a search, Enter selects the first match
 input key esc; input key t; sleep 0.5; shot tree.png
 input key slash; input type "geode-button"; sleep 0.3; shot tree-search.png; input key enter; sleep 1.5

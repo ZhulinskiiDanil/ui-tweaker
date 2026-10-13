@@ -1,3 +1,8 @@
+# v0.9.0 (not released yet: on main)
+
+- `Alt`+`A` `D` `H` / `W` `S` `V` align the selected nodes on the screen as in Figma: several to the box of them all, one to its parent's box; `Alt`+`Shift`+`H` / `V` distribute three or more with the same gaps. One step to undo, the code as for any move
+- Undo and redo keep a selection that has every node of the step
+
 # v0.8.1
 
 - Russian text in the panel is wrapped as wide as English: lines are counted in letters, not bytes

@@ -2,6 +2,8 @@
 
 // The edit mode: the mouse and the keys move and scale the nodes of the running scene, with undo, and the
 // result is copied as C++. While it's off nothing of it exists: no listeners, no overlay, no node touched
+#include "core/Align.hpp"
+
 #include <Geode/Geode.hpp>
 
 #include <optional>
@@ -41,6 +43,11 @@ namespace editor
   void stepAnchor(int dx, int dy);
   // V: the selected nodes hidden, or shown again (the tree has hidden nodes too)
   void toggleVisible();
+  // The selected nodes' edges or centers lined up on the screen: several to the box of them all, one to its
+  // parent's (Alt+A, D, H, W, S, V as in Figma)
+  void alignTo(align::Edge edge);
+  // The same gap between the selected nodes along one axis, the outermost staying (Alt+Shift+H, V; three or more)
+  void distribute(bool horizontal);
   // R: the selected nodes as they were before their first edit, as a step to undo
   void reset();
   // [ and ]: the z-order down or up by one
