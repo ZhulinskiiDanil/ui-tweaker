@@ -47,6 +47,9 @@
   undo now keeps a selection that has all of the step's nodes. Real `Alt`+`A` reaches the mod (Windows sends Alt
   combinations as system keys; Geode's event has them). Self test 144 (vanilla) / 142 (yours), real input 10/10.
 - 07:30 the research came back (below, "Known GD/Cocos/Geode quirks"); its findings are now in the backlog.
+- 07:34 quirk 7: F8 in a text field (real input 12/12, and checked to fail without the fix). 07:37 quirk 1, the
+  game's reload: harmless, now a self test mode (`reload`). A panel cut at the bottom in the check's screenshots is
+  the Windows taskbar over a game window that isn't in front (the check starts it in the background), not the mod.
 
 ## Checks
 
@@ -62,7 +65,10 @@ source or an issue). What's done about each is marked.
 
 1. **Screen mode / resolution / texture quality reload the whole game** (`GameManager::switchScreenMode` →
    `reloadAll`; Geode sends `GameEvent(TexturesUnloaded)` and purges bitmap fonts). The overlay in OverlayManager
-   survives with stale labels; edited nodes go. VERIFIED. → to check in the game and handle.
+   survives with stale labels; edited nodes go. VERIFIED. **Checked in the game (07:37): harmless.**
+   `UI_TWEAKER_SELFTEST=reload` calls `reloadAll` with the edit mode on and a selection: no crash, the overlay
+   draws its TTF and bitmap labels (panel, tree, code) fine afterwards (labels keep their own textures), nothing of
+   the old scene stays selected, a drag and its undo work in the new menu. GD reopens Video Options over it.
 2. **A mouse release can be lost** (raw input queue cleared while GD isn't in front; only keys get fake key-ups):
    a drag stuck after Alt-Tab. VERIFIED. The edit mode already ends a press when the window isn't active.
 3. **Transitions**: `getRunningScene()` is the `CCTransitionScene`; the old and new scenes are drawn by hand, not
@@ -76,7 +82,8 @@ source or an issue). What's done about each is marked.
    every child, forces ignoreAnchor off; `respectAnchor` shifts children). → backlog 2: a new container, every option
    set explicitly.
 7. **F8 doesn't fire while a text field has the keyboard** (`allow-in-text-inputs` defaults to false). VERIFIED.
-   → to set on the keybind setting.
+   **Done (07:34)**: `allow-in-text-inputs` on the keybind; a real F8 in a focused TextInput turns the edit mode
+   on and the field lets go (and without the flag the same F8 did nothing).
 8. **Lock cursor freezes `getMousePos()`** in a level with GD's lock-cursor option. VERIFIED. → to handle.
 9. CCMenu clicks the first item in array order: overlapped buttons are clicked differently than drawn. Known.
 10. CCMenuItemToggler's two inner buttons: picked as the toggler (the outermost whole thing). Known.

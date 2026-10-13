@@ -15,6 +15,7 @@
 #include <Geode/binding/GJGameLevel.hpp>
 #include <Geode/binding/GJGarageLayer.hpp>
 #include <Geode/binding/GameLevelManager.hpp>
+#include <Geode/binding/GameManager.hpp>
 #include <Geode/binding/LevelSearchLayer.hpp>
 #include <Geode/binding/LevelSelectLayer.hpp>
 #include <Geode/binding/LevelEditorLayer.hpp>
@@ -994,6 +995,57 @@ namespace
 
   // The level editor with a new level and 3000 objects: a button of its interface edited, and what the hover
   // costs there
+  bool menuSettled()
+  {
+    auto scene = CCDirector::get()->getRunningScene();
+    return sceneSettled() && scene->getChildByType<MenuLayer>(0);
+  }
+
+  // The game reloaded as a change of screen mode, resolution or texture quality does it (GameManager::reloadAll:
+  // every texture unloaded, the loading screen, a new main menu) while the edit mode is on with a selection
+  void reloadGame()
+  {
+    g_steps.push_back({30,
+                       []
+                       {
+                         auto scene = CCDirector::get()->getRunningScene();
+                         if (auto node = scene->getChildByIDRecursive("geode.loader/geode-button"))
+                           editor::select(node);
+                         log::info("Self test: reloading the game with the edit mode on");
+                         GameManager::get()->reloadAll(false, false, false);
+                       }});
+    g_steps.push_back({60,
+                       []
+                       {
+                         log::info("Self test: the main menu is back after the reload; the edit mode is {}",
+                                   editor::active() ? "on" : "off");
+                         // Usable again with F8, as a user would turn it on
+                         if (!editor::active())
+                           editor::setActive(true);
+                         check(editor::active(), "the edit mode can be on after the reload");
+                         check(editor::selected() == nullptr, "nothing of the old scene is selected after the reload");
+                         auto scene = CCDirector::get()->getRunningScene();
+                         auto button = scene->getChildByIDRecursive("geode.loader/geode-button");
+                         check(button != nullptr, "the Geode button is in the new main menu");
+                         if (!button)
+                           return;
+                         Case item{Retained<CCNode>(button), {}, {}};
+                         editor::setSnapping(false);
+                         edit(item);
+                         editor::setSnapping(std::nullopt);
+                         while (editor::undo())
+                           ;
+                         check(inspect::stateOf(button) == item.before, "undo works after the reload");
+                         // Every kind of label drawn after the textures were unloaded: the tree's rows, the code
+                         editor::setTreeVisible(true);
+                         editor::setCodeView(true);
+                         prepareScreenshot();
+                         g_frames = 0;
+                         finish(true);
+                       },
+                       menuSettled});
+  }
+
   void openEditor()
   {
     g_steps.push_back({180,
@@ -1293,6 +1345,11 @@ namespace
            if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "tour")
            {
              tour();
+             return;
+           }
+           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "reload")
+           {
+             reloadGame();
              return;
            }
            // =ime: the edit mode off and a text field with the keyboard, for tools/real-input.sh's F8 in it
