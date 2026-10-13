@@ -1042,7 +1042,9 @@ namespace
         editor::select(title);
       if (auto node = editor::selected())
       {
+        // The grid alone, no guides: the code's numbers are whole tens
         editor::setGrid(10);
+        editor::setSnapping(false);
         auto center = inspect::worldQuad(node).center();
         editor::grab(node, {center.x, center.y});
         editor::dragTo(CCPoint{center.x, center.y} + ccp(-23, 11));

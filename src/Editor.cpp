@@ -41,6 +41,61 @@ namespace
   void saveSession(bool force);
   void putBack();
 
+  // How much of the game's window the taskbar covers, in points on each side: a window with a title bar as big as
+  // the screen goes under it (fullscreen covers it). Looked at once a second
+  struct Covered
+  {
+    float top = 0;
+    float bottom = 0;
+  };
+
+  Covered covered()
+  {
+    static Covered last;
+    static double checked = -10;
+    static HWND window = nullptr;
+    auto at = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (at - checked < 1)
+      return last;
+    checked = at;
+    last = {};
+    // The game's own top-level window: GLFW's, in this process
+    if (!window || !IsWindow(window))
+    {
+      window = nullptr;
+      EnumWindows(
+          [](HWND each, LPARAM found) -> BOOL
+          {
+            DWORD process = 0;
+            GetWindowThreadProcessId(each, &process);
+            wchar_t name[16] = {};
+            GetClassNameW(each, name, 16);
+            if (process == GetCurrentProcessId() && std::wstring_view(name) == L"GLFW30" && IsWindowVisible(each))
+            {
+              *reinterpret_cast<HWND*>(found) = each;
+              return FALSE;
+            }
+            return TRUE;
+          },
+          reinterpret_cast<LPARAM>(&window));
+    }
+    if (!window || !(GetWindowLongW(window, GWL_STYLE) & WS_CAPTION))
+      return last;
+    RECT client;
+    if (!GetClientRect(window, &client) || client.bottom <= 0)
+      return last;
+    POINT top{0, 0}, bottom{client.right, client.bottom};
+    ClientToScreen(window, &top);
+    ClientToScreen(window, &bottom);
+    MONITORINFO monitor{sizeof(MONITORINFO)};
+    if (!GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &monitor))
+      return last;
+    float points = CCDirector::get()->getWinSize().height / static_cast<float>(bottom.y - top.y);
+    last.bottom = std::max(0.f, static_cast<float>(bottom.y - monitor.rcWork.bottom)) * points;
+    last.top = std::max(0.f, static_cast<float>(monitor.rcWork.top - top.y)) * points;
+    return last;
+  }
+
   // ! --- State --- !
 
   enum Kind
@@ -754,7 +809,10 @@ namespace
       auto win = CCDirector::get()->getWinSize();
       auto size = m_panel->getContentSize();
       topLeft.x = std::clamp(topLeft.x, 0.f, std::max(0.f, win.width - size.width));
-      topLeft.y = std::clamp(topLeft.y, std::min(size.height, win.height), win.height);
+      // Not under the taskbar: in the part of the window that's seen
+      auto hidden = covered();
+      float lowest = std::min(size.height + hidden.bottom, win.height);
+      topLeft.y = std::clamp(topLeft.y, lowest, std::max(lowest, win.height - hidden.top));
       m_panelTopLeft = topLeft;
       m_panel->setPosition(topLeft - ccp(0, size.height));
     }
@@ -789,7 +847,7 @@ namespace
       bool left = m_panelTopLeft.x < win.width / 2;
       // The tree is at the right: then the panel goes down instead
       CCPoint target = left && m_tree->isVisible()
-                           ? CCPoint{m_panelTopLeft.x, box.size.height + MARGIN}
+                           ? CCPoint{m_panelTopLeft.x, box.size.height + MARGIN + covered().bottom}
                            : CCPoint{left ? win.width - box.size.width - MARGIN : MARGIN, m_panelTopLeft.y};
       // A node as big as the screen is under it anywhere: then it stays, rather than jump every frame
       CCRect there(target.x, target.y - box.size.height, box.size.width, box.size.height);
@@ -1102,7 +1160,7 @@ namespace
       if (step < 4 || !kept)
         return;
       auto const& desc = *kept;
-      ccColor4F const color = {0.55f * 0.14f, 0.75f * 0.14f, 0.14f, 0.14f};
+      ccColor4F const color = {0.55f * 0.22f, 0.75f * 0.22f, 0.22f, 0.22f};
       auto segment = [&](CCPoint from, CCPoint to) { m_draw->drawSegment(convertToNodeSpace(from), convertToNodeSpace(to), 0.25f, color); };
       if (desc.frame.kind == codegen::FrameKind::Screen)
       {

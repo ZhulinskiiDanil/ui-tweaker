@@ -60,6 +60,8 @@ A button, a label or a 9-slice is picked as a whole: a click on the play button'
 
 ![The same in Russian](docs/edit-mode-ru.png)
 
+![The title dragged on a grid of 10: the grid drawn, the code reads winSize.width / 2 - 20.f, winSize.height - 40.f](docs/grid.png)
+
 The edit mode speaks English and Russian (the *Language* setting; Auto follows Windows). GD's bitmap fonts have no Cyrillic, so in Russian its text is drawn with TTF labels, rendered again only when they change. The generated code is English either way.
 
 ## The code

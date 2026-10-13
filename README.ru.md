@@ -10,6 +10,8 @@
 
 ![Режим редактирования в главном меню: выбрана кнопка Geode, её панель и предупреждение про layout](docs/edit-mode-ru.png)
 
+![Заголовок тащат по сетке с шагом 10: сетка видна, в коде winSize.width / 2 - 20.f, winSize.height - 40.f](docs/grid.png)
+
 ## Установка
 
 Скачайте `zhulis.ui-tweaker.geode` из последнего [релиза](https://github.com/ZhulinskiiDanil/ui-tweaker/releases) и положите в папку модов Geode (или **Install from file** на странице модов Geode). Или через [Zhulis Mods Manager](https://github.com/ZhulinskiiDanil/zhulis-mods-manager) с включённой настройкой **Include pre-releases**: мод в бете, его релизы — pre-release.
