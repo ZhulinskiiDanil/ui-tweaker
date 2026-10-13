@@ -161,6 +161,15 @@
   input 19/19; codecheck.
 - 14:36 v0.13.0 released (pre-release, the `.geode` CI built from 8c97f2d): installed, self test PASS both ways;
   Zhulis Mods Manager's cache has v0.13.0.
+- 15:10 Ctrl+D on a button keeps its image's own scale (GD's `sprite->setScale(.7f)` before
+  `CCMenuItemSpriteExtra::create`, which takes the button's size from it then): the code makes the image, scales
+  it, makes the button. Unit tests, a compiled sample (the fake button records the image's scale when it's made),
+  the self test (a button with its image at 0.7 made as big) and the tour comparing the buttons' sizes too, both
+  ways; codecheck.
+- 15:30 memory with the box (the soak went from 1 to ~2.5 MB a round with the box in each round): idle in the edit
+  mode 7–8 MB a minute (the game's own rise, noted before), right drags nonstop 9–10 MB a minute, and the
+  difference doesn't grow with the number of boxes (16 boxes +6 MB, 31 boxes +5 MB over idle): no leak of the
+  box's, the rest is the input itself. Soak with the box: 60 rounds, the game running, 82 drags logged.
 
 ## Checks
 
