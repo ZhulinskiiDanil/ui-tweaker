@@ -14,6 +14,8 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| own | Alt+C (the way to a node), Ctrl+D (sprites, buttons, text and circle buttons, labels), typed values for every selected node, the tree's search by frame or text, a popup's code pointed to its `init()`, nodes back where they were left out of "Copy all" | unit tests, compiled samples, self test both ways, real input 16/16 |
+| own | The generated code compiled against the real Geode headers (`tools/codecheck.sh`), and the whole promise end to end (`tools/e2e.sh`: an edit, its "Copy all" built into a mod, the nodes where the edit left them) | codecheck against Geode 5.10.1; E2E PASS |
 | 8 | Geode Index readiness: metadata checked against the guidelines, `offline` tag, `_spr` IDs on the overlay's parts; what's left for you below | `geode build`, the Index's tag list (API), self test both ways |
 | 7 | The tour: 13 scenes (+ LevelBrowserLayer of your levels, EditLevelLayer, a quick popup, OptionsLayer, MoreOptionsLayer, ProfilePage) | tour PASS: 947 checks vanilla, 873 yours; no crash, every path leads to its node |
 | 6 | *Grid* setting: the code's offsets in whole steps from the closest edge/center, the grid drawn while dragging (`core/Grid.cpp`) | grid unit tests, self test on the screen and in a turned scaled parent (code read back), screenshot mid-drag (`=grid`): `winSize.width / 2 - 20.f, winSize.height - 40.f` |

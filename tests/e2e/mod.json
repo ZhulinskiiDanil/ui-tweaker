@@ -1,0 +1,11 @@
+{
+    "geode": "5.10.1",
+    "gd": {
+        "win": "2.2081"
+    },
+    "id": "zhulis.ui-tweaker-e2e",
+    "name": "UI Tweaker end-to-end check",
+    "version": "v1.0.0",
+    "developer": "Zhulis",
+    "description": "Put in the game for one run by tools/e2e.sh: UI Tweaker's exported code, and a check of where it puts the nodes"
+}

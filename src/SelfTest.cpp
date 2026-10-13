@@ -1549,6 +1549,64 @@ namespace
   // costs there
   bool menuSettled();
 
+  // =export: the main menu edited as a mod developer would (the title dragged and scaled, the player's name nudged,
+  // a new title made with Ctrl+D and dragged), then "Copy all" written to e2e-code.cpp and where each node is now
+  // to e2e-expected.txt in the save folder, for tools/e2e.sh to build into a mod of its own and check in a game
+  // without UI Tweaker's edits
+  void exportTest()
+  {
+    g_steps.push_back({30,
+                       []
+                       {
+                         while (editor::undo())
+                           ;
+                         editor::forgetKept();
+                         auto scene = CCDirector::get()->getRunningScene();
+                         auto title = scene->getChildByIDRecursive("main-title");
+                         auto name = scene->getChildByIDRecursive("player-username");
+                         check(title && name, "the title and the player's name are in the main menu");
+                         if (!title || !name)
+                           return;
+                         editor::setSnapping(false);
+                         auto center = inspect::worldQuad(title).center();
+                         editor::grab(title, {center.x, center.y});
+                         editor::dragTo(CCPoint{center.x, center.y} + ccp(25, -12));
+                         editor::release();
+                         editor::wheel(1, false);
+                         editor::select(name);
+                         editor::nudge(10, 5);
+                         editor::select(title);
+                         editor::duplicate();
+                         auto made = editor::selected();
+                         check(made && made != title, "Ctrl+D made a title like it");
+                         if (made && made != title)
+                         {
+                           auto at = inspect::worldQuad(made).center();
+                           editor::grab(made, {at.x, at.y});
+                           editor::dragTo(CCPoint{at.x, at.y} + ccp(-40, -60));
+                           editor::release();
+                         }
+                         editor::setSnapping(std::nullopt);
+
+                         // Where each one is on the screen, and its scale: "id x y scale" a line
+                         std::string expected;
+                         for (auto node : {title, name, made})
+                         {
+                           if (!node)
+                             continue;
+                           auto world = worldPositionOf(node);
+                           expected += fmt::format("{} {} {} {}\n", node->getID(), world.x, world.y, node->getScaleX());
+                         }
+                         auto dir = Mod::get()->getSaveDir();
+                         auto code = file::writeString(dir / "e2e-code.cpp", editor::codeForAll());
+                         auto where = file::writeString(dir / "e2e-expected.txt", expected);
+                         check(code && where, "the code and where the nodes are written");
+                         log::info("Self test: exported for the end-to-end check:\n{}", expected);
+                         g_frames = 0;
+                         finish(false);
+                       }});
+  }
+
   // =session: edits kept and put back. The Geode button and a sprite without an ID (in the play button) moved, the
   // main menu made again with putting back on: both back where they were moved, one step to undo, one edit each.
   // The session's file written, read, forgotten and loaded again as after a restart
@@ -2064,6 +2122,11 @@ namespace
            if (selftest::mode() == "limit")
            {
              historyLimit();
+             return;
+           }
+           if (selftest::mode() == "export")
+           {
+             exportTest();
              return;
            }
            if (selftest::mode() == "ime")

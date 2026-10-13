@@ -6,7 +6,8 @@
 # made in it since it was last saved is lost). Git Bash on Windows
 set -u
 
-keep="geode.loader geode.node-ids zhulis.ui-tweaker"
+# VANILLA_ALSO: more mods to keep on (tools/e2e.sh's own)
+keep="geode.loader geode.node-ids zhulis.ui-tweaker ${VANILLA_ALSO:-}"
 saved="$LOCALAPPDATA/GeometryDash/geode/mods/geode.loader/saved.json"
 exe="$(geode profile list | grep '^\*' | sed -E 's/.*path = (.*) \]$/\1/')"
 mods="$(cygpath -u "$(dirname "$exe")")/geode/mods"

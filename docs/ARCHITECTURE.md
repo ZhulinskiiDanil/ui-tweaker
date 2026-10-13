@@ -84,6 +84,8 @@ Every edited node's `NodeDesc`, by layer, is written to `session.txt` in the sav
 
 `tools/codecheck.sh` goes one step further than `tests/compile`: the same samples, the layouts' code and "Copy all" with its hooks are compiled against the real Geode headers in `tests/geode`, a mod that's built and never installed, so what a mod developer pastes builds as it is (a fake can agree with the generator and both be wrong).
 
+`tools/e2e.sh` is the whole promise end to end: the self test's `=export` edits the main menu (a drag, the wheel, an arrow, a node made with `Ctrl+D`) and writes "Copy all" and where each node is; `tests/e2e` builds that code, untouched, into a mod with a check; the game runs once with it, UI Tweaker's edit mode never on, and the check compares every node's place on the screen and scale; then that mod is taken out of the game again.
+
 Everything in `core/` is Geode-free and tested in `tests/`, on Linux with GCC and on Windows with MSVC in CI. `tests/compile` goes further: a generator writes the code for a node of every kind (and hooks, in both styles), which is compiled against `FakeGeode.hpp` (Geode's names and signatures) and run on fake nodes, their positions, scales, anchors, z-orders, sizes, visibility and layout options compared.
 
 ## Checking it in the game

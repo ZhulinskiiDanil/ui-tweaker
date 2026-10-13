@@ -1,3 +1,8 @@
+# v0.12.1 (not released yet: on main)
+
+- The whole promise checked end to end (`tools/e2e.sh`): an edit of the main menu, its "Copy all" built into a mod as it's pasted, the game run once with that mod: every node where the edit left it
+- README: GIFs of aligning and of `Ctrl+D`; the self test's modes and tools
+
 # v0.12.0
 
 - `Alt+C` copies only the way to the selected node (its lookup around an empty block, `node` cast to its class), for code of your own that needs a node without an ID
