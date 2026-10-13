@@ -116,4 +116,6 @@ cmake --build build-tests
 ctest --test-dir build-tests
 ```
 
+`tools/codecheck.sh` компилирует весь генерируемый код против настоящих заголовков Geode (CI тоже), а `tools/e2e.sh` проверяет всё в игре: «Код всех» после правки, собранный в отдельный мод, ставит ноды туда, где их оставила правка.
+
 Как это устроено: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

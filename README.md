@@ -118,4 +118,6 @@ cmake --build build-tests
 ctest --test-dir build-tests
 ```
 
+`tools/codecheck.sh` compiles every kind of generated code against the real Geode headers (CI does too), and `tools/e2e.sh` checks the whole thing in the game: an edit's "Copy all" built into a mod of its own, the nodes where the edit left them.
+
 How it works: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
