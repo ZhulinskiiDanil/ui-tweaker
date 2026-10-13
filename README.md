@@ -76,7 +76,7 @@ A button, a label or a 9-slice is picked as a whole: a click on the play button'
 
 ![The same in Russian](docs/edit-mode-ru.png)
 
-![The main menu's three big buttons selected with a click and Shift+clicks, lined up by their tops with Alt+W, undone, by their bottoms with Alt+S, undone, copied as a layout with L](docs/align.gif)
+![The main menu's three big buttons selected with a right drag's box, lined up by their tops with Alt+W, undone, by their bottoms with Alt+S, undone, copied as a layout with L](docs/align.gif)
 
 ![The title selected, Ctrl+D makes another like it next to it, dragged down; the code view shows the code that makes it, adds it to MenuLayer and places it](docs/make.gif)
 

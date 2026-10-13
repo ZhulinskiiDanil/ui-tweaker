@@ -793,6 +793,19 @@ namespace
       auto added = editor::selection();
       check(editor::selected() == sprites[0] && std::find(added.begin(), added.end(), sprites[2]) == added.end(),
             "a box cutting through a sprite left it out, and Shift kept the selection");
+      // A box over the whole screen: interface only, nothing of the menu's flying player or its level
+      auto win = CCDirector::get()->getWinSize();
+      editor::selectIn({0, 0}, {win.width, win.height}, false);
+      auto everything = editor::selection();
+      bool game = std::any_of(everything.begin(), everything.end(), [](CCNode* node)
+                              {
+                                for (auto up = node; up; up = up->getParent())
+                                  if (typeinfo_cast<GameObject*>(up))
+                                    return true;
+                                return false;
+                              });
+      check(!everything.empty() && !game,
+            fmt::format("a box over the whole screen took {} nodes, none of a level's objects", everything.size()));
       // A right click: nothing selected
       editor::selectIn({100, 100}, {102, 101}, false);
       check(editor::selection().empty(), "a right click selected nothing");

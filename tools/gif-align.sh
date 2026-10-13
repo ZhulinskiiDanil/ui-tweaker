@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The README's second GIF: the three big buttons of a vanilla main menu (the icon kit, play, the editor) selected
-# with a click and Shift+clicks, lined up by their tops (Alt+W), undone, by their bottoms (Alt+S), undone, copied as
+# with a right drag's box, lined up by their tops (Alt+W), undone, by their bottoms (Alt+S), undone, copied as
 # a layout (L); frames taken meanwhile, with real mouse and keys.
 #   tools/gif-align.sh <work folder> <out.gif>
 # Run it in a vanilla game (tools/vanilla.sh tools/gif-align.sh ...). SETTLE as in gif.sh
@@ -29,12 +29,13 @@ ps input.ps1 move 300 250
 ps frames.ps1 -out "$(cygpath -w "$work/frames")" -count 120 -every 50 &
 frames=$!
 sleep 0.5
-# The icon kit, then play and the editor with Shift
-ps input.ps1 move 175 170; ps input.ps1 down; ps input.ps1 up
-sleep 0.4
-ps input.ps1 shiftclick 284.5 170
+# A box around the three, drawn with the right button
+ps input.ps1 move 100 235; ps input.ps1 rdown
+for step in 1 2 3 4 5 6; do
+  ps input.ps1 move "$(python -c "print(100 + 370 * $step / 6)")" "$(python -c "print(235 - 130 * $step / 6)")"
+done
 sleep 0.3
-ps input.ps1 shiftclick 394 170
+ps input.ps1 rup
 sleep 0.6
 ps input.ps1 key w alt
 sleep 1.0

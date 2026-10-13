@@ -363,6 +363,13 @@ std::vector<CCNode*> inspect::within(CCNode* root, geom::Rect area)
     auto size = node->getContentSize();
     if (size.width <= 0 || size.height <= 0 || transparent(node))
       continue;
+    // A level's objects and players (the main menu's flying icon among them) aren't interface: a box passing over
+    // them doesn't take them
+    bool game = false;
+    for (auto up = node; up && up != root && !game; up = up->getParent())
+      game = typeinfo_cast<GameObject*>(up) != nullptr;
+    if (game)
+      continue;
     for (auto up = node->getParent(); up && up != root; up = up->getParent())
       if (isWhole(up))
         node = up;
