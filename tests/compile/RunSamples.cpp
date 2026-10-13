@@ -209,7 +209,7 @@ void checkSample(int index)
       auto button = dynamic_cast<CCMenuItemSpriteExtra*>(node);
       auto circle = button ? dynamic_cast<CircleButtonSprite*>(button->image) : nullptr;
       CHECK(circle && circle->top == desc.made.frame && circle->color == CircleBaseColor::DarkPurple &&
-            circle->size == CircleBaseSize::MediumAlt);
+            circle->size == CircleBaseSize::MediumAlt && button->imageScaleMade == desc.made.imageScale);
     }
     if (desc.made.kind == "text button")
     {

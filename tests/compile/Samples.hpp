@@ -124,6 +124,8 @@ inline std::vector<codegen::NodeDesc> samples()
   nineteen->made.frame = "geode.loader/geode-logo-outline-gold.png";
   nineteen->made.baseColor = "DarkPurple";
   nineteen->made.baseSize = "MediumAlt";
+  // Scaled by itself too: two buttons' `image` in one hook, each in its own block
+  nineteen->made.imageScale = 0.8f;
   nineteen->made.like = "geode-button";
   nineteen->made.parent = lookup(NodeDesc{.id = "p19"}, "parent");
   // 20: a text button made in the edit mode, with its font and background
