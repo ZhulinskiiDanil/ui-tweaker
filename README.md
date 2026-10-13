@@ -64,6 +64,8 @@ A button, a label or a 9-slice is picked as a whole: a click on the play button'
 
 ![The main menu's three big buttons selected with a click and Shift+clicks, lined up by their tops with Alt+W, undone, by their bottoms with Alt+S, undone, copied as a layout with L](docs/align.gif)
 
+![The title selected, Ctrl+D makes another like it next to it, dragged down; the code view shows the code that makes it, adds it to MenuLayer and places it](docs/make.gif)
+
 ![The title dragged on a grid of 10: the grid drawn, the code reads winSize.width / 2 - 20.f, winSize.height - 40.f](docs/grid.png)
 
 The edit mode speaks English and Russian (the *Language* setting; Auto follows Windows). GD's bitmap fonts have no Cyrillic, so in Russian its text is drawn with TTF labels, rendered again only when they change. The generated code is English either way.
