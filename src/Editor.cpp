@@ -368,6 +368,17 @@ namespace
                        { return change.target == node && setsOpacity(change); });
   }
 
+  // An edited node that's as it was before its first edit (reset, or moved back by hand): nothing to write. Not a
+  // node made here, which is new whatever its state
+  bool backWhereItWas(CCNode* node)
+  {
+    auto const& s = state();
+    if (std::any_of(s.made.begin(), s.made.end(), [&](auto const& entry) { return entry.node.get() == node; }))
+      return false;
+    auto original = originalOf(node);
+    return original && inspect::stateOf(node) == *original;
+  }
+
   // The code laid out as the setting says
   std::string styled(std::string code)
   {
@@ -485,7 +496,7 @@ namespace
                   {
                     if (!which(entry.first))
                       return false;
-                    if (hasSteps(entry.first))
+                    if (hasSteps(entry.first) && !backWhereItWas(entry.first))
                       addTo(groupOf(entry.second.layer.empty() ? s.liveLayer : entry.second.layer), entry.second);
                     return true;
                   });
@@ -2626,7 +2637,11 @@ namespace
     {
       if (!hasSteps(node))
         continue;
-      auto desc = inspect::isIn(node, runningScene()) ? describeEdited(node) : kept;
+      bool here = inspect::isIn(node, runningScene());
+      // Moved back where it was (R, or by hand): its code would change nothing
+      if (here && backWhereItWas(node))
+        continue;
+      auto desc = here ? describeEdited(node) : kept;
       // By the layer whose hook the code goes in
       auto layer = desc.layer.empty() ? layerName(runningScene()) : desc.layer;
       auto group = std::find_if(groups.begin(), groups.end(), [&](auto const& g) { return g.first == layer; });

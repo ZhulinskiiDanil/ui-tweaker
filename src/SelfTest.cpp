@@ -1515,8 +1515,10 @@ namespace
       inspect::NodeState sprite;
       inspect::NodeState geodeBefore;
       inspect::NodeState spriteBefore;
-      // Another mod may put the Geode button back every frame (a custom main menu's layout guard)
+      // Another mod may put the Geode button back every frame (a custom main menu's layout guard): then its edit
+      // is undone by it and isn't kept, as a node back where it was isn't
       bool geodeStays = true;
+      size_t edits() const { return geodeStays ? 2 : 1; }
     };
     static Kept kept;
     g_steps.push_back({10,
@@ -1572,14 +1574,14 @@ namespace
                                "the Geode button of the main menu made again is where it was moved");
                          check(inspect::stateOf(sprite).position == kept.sprite.position,
                                "the sprite without an ID is put back too, found by its path");
-                         check(editor::editedCount() == 2,
+                         check(editor::editedCount() == kept.edits(),
                                fmt::format("each is one edit, not one kept and one put back: {}", editor::editedCount()));
                          auto all = editor::codeForAll();
                          size_t times = 0;
                          std::string lookup = "getChildByIDRecursive(\"geode.loader/geode-button\")";
                          for (auto at = all.find(lookup); at != std::string::npos; at = all.find(lookup, at + 1))
                            times++;
-                         check(times == 1, fmt::format("the Geode button is in the code for all once: {}", times));
+                         check(times == (kept.geodeStays ? 1u : 0u), fmt::format("the Geode button is in the code for all once: {}", times));
 
                          // Written and read back
                          editor::saveSessionNow();
@@ -1589,14 +1591,14 @@ namespace
                          if (groups)
                            for (auto const& [layer, descs] : *groups)
                              nodes += descs.size();
-                         check(nodes == 2, fmt::format("the session's file has the two nodes: {}", nodes));
+                         check(nodes == kept.edits(), fmt::format("the session's file has the two nodes: {}", nodes));
 
                          // As after a restart: forgotten, the file put back, loaded
                          editor::undo();
                          check((!kept.geodeStays || inspect::stateOf(geode).position == kept.geodeBefore.position) &&
                                    inspect::stateOf(sprite).position == kept.spriteBefore.position,
                                "one Ctrl+Z took both put back edits off");
-                         check(editor::editedCount() == 2,
+                         check(editor::editedCount() == kept.edits(),
                                fmt::format("undoing the put back keeps the edits kept: {}", editor::editedCount()));
                          // Another layer's description with the same ID finds nothing here
                          auto other = inspect::describe(geode);
@@ -1608,7 +1610,7 @@ namespace
                          if (text)
                            (void)file::writeString(std::filesystem::path(editor::sessionFile()), *text);
                          editor::loadSession();
-                         check(editor::editedCount() == 2,
+                         check(editor::editedCount() == kept.edits(),
                                fmt::format("the session loaded again has the two edits: {}", editor::editedCount()));
                          editor::forgetKept();
                          editor::setPutBack(std::nullopt);
@@ -1820,10 +1822,13 @@ namespace
            check(close(laidOut.x, dragged.x) && close(laidOut.y, dragged.y),
                  fmt::format("after updateLayout() it stays where it was dragged: ({}, {}) for ({}, {})", laidOut.x,
                              laidOut.y, dragged.x, dragged.y));
-           // Back as it was: its own options, the drag undone
-           node->setLayoutOptions(options.get());
            check(editor::codeForAll().find("'s init(), after Popup::init()") != std::string::npos,
                  "the code for all says the popup's code goes in its init()");
+           // Back as it was: its own options (the layout puts it back, so it isn't in the code for all any more),
+           // the drag undone
+           node->setLayoutOptions(options.get());
+           check(editor::codeForAll().find("selftest-button") == std::string::npos,
+                 "a node back where it was isn't in the code for all");
            check(editor::undo(), "the drag in the popup is a step to undo");
            check(inspect::stateOf(node) == buttonBefore, "undo put the popup's button back");
            popup->close();

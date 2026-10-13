@@ -1,5 +1,6 @@
 # v0.11.1 (not released yet: on main)
 
+- A node moved back where it was (`R`, by hand, or by another mod that puts it back) isn't in "Copy all" or its count any more: its code would change nothing
 - `Alt+C` copies only the way to the selected node (its lookup around an empty block, `node` cast to its class), for code of your own that needs a node without an ID
 - The generated code is compiled against the real Geode headers too (`tools/codecheck.sh`): every kind of it builds as it's pasted
 - `Ctrl+D` makes Geode's circle buttons too (`CircleButtonSprite` with its icon, its base's color and size, as the Geode button is)
