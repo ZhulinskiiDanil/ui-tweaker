@@ -14,6 +14,9 @@ shot() { powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$her
 running() { tasklist //FI "IMAGENAME eq GeometryDash.exe" 2>/dev/null | grep -q GeometryDash; }
 stop() { taskkill //IM GeometryDash.exe //F >/dev/null 2>&1; for _ in $(seq 1 30); do running || return 0; sleep 1; done; }
 newest() { ls -t "$1" 2>/dev/null | head -1; }
+# Its points are the vanilla main menu's: other mods on (not run through tools/vanilla.sh), said first
+on="$(ls "$(cygpath -u "$(dirname "$exe")")/geode/mods" | sed -n 's/\.geode$//p' | python -c "import json,sys; d=json.load(open(sys.argv[1],encoding='utf-8')); print(sum(1 for m in sys.stdin.read().split() if d.get('should-load-' + m, True)))" "$LOCALAPPDATA/GeometryDash/geode/mods/geode.loader/saved.json" 2>/dev/null)"
+[ "${on:-0}" -gt 4 ] && echo "WARNING: $on mods on; run it as tools/vanilla.sh $0 ... (its points are the vanilla main menu's)"
 
 stop
 before="$(newest "$logs")"
