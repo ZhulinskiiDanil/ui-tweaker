@@ -579,6 +579,9 @@ CCNode* inspect::resolve(CCNode* scene, codegen::NodeDesc const& desc)
     for (auto child : CCArrayExt<CCNode*>(queue[i]->getChildren()))
       queue.push_back(child);
   }
+  // Of a layer that isn't here: nothing (another layer's node with the same ID isn't it)
+  if (!desc.layer.empty() && !layer)
+    return nullptr;
   auto from = layer ? layer : scene;
 
   CCNode* found = nullptr;

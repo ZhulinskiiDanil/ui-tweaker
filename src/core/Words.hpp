@@ -43,6 +43,7 @@ namespace words
     std::string row;
     std::string putBack;    // {}: how many
     std::string forgotKept; // {}: how many
+    std::string forgetAsk;  // {}: how many
     std::string column;
     std::string treeTitle;   // {} {}: shown, all
     std::string searchHint;

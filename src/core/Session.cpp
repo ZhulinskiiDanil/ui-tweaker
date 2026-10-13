@@ -2,6 +2,7 @@
 
 #include <charconv>
 #include <cstdio>
+#include <locale>
 #include <sstream>
 
 namespace
@@ -42,17 +43,23 @@ namespace
     return out;
   }
 
+  // Numbers with a point whatever locale another mod set: "1.5", never "1,5"
   std::string number(float value)
   {
-    char buffer[32];
-    std::snprintf(buffer, sizeof(buffer), "%.9g", value);
-    return buffer;
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out.precision(9);
+    out << value;
+    return out.str();
   }
 
   float toFloat(std::string_view text)
   {
-    // from_chars for floats isn't in every standard library CI builds with
-    return std::strtof(std::string(text).c_str(), nullptr);
+    std::istringstream in{std::string(text)};
+    in.imbue(std::locale::classic());
+    float value = 0;
+    in >> value;
+    return value;
   }
 
   int toInt(std::string_view text)
@@ -301,7 +308,7 @@ bool session::sameNode(codegen::NodeDesc const& a, codegen::NodeDesc const& b)
   if (byIdA || byIdB)
     return byIdA && byIdB && a.id == b.id && a.parentId == b.parentId;
   if (a.path.empty() || b.path.empty())
-    return a.path.empty() && b.path.empty() && a.parentId == b.parentId && !a.parentId.empty() &&
+    return a.path.empty() && b.path.empty() && a.parentId == b.parentId && a.parentClass == b.parentClass &&
            a.className == b.className && a.typeIndex == b.typeIndex && a.byIndex == b.byIndex;
   return a.pathRoot == b.pathRoot && a.pathFromLayer == b.pathFromLayer && a.path == b.path;
 }

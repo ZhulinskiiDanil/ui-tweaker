@@ -93,7 +93,20 @@
 - 09:26 backlog 6, the grid, as a grid for the code's numbers rather than for the screen's points: a modder wants
   `winSize.width / 2 - 20.f`, not a position that's a multiple of 10 on a 569-wide screen. Its lines are drawn per
   anchor (from the edges and the middle out to the quarter points), as the expressions are.
-- 09:30 a third review started (separate agent: session, rotation/opacity, grid). Backlog 7: six more scenes in
+- 09:30 a third review started (separate agent: session, rotation/opacity, grid). It came back at 09:35 with one
+  critical (a kept edit of one layer put on another layer's node with the same ID, and the real edit lost) and six
+  important (an undone put back losing the kept edit; an unreadable file written over with nothing at exit; rotation
+  and opacity counted from any step, a drag of a spinning node included; a skewed node's skew lost by Ctrl+wheel;
+  put back by the raw position, not the code's expression from the edge; Ctrl+Delete one stray key from losing
+  everything). 09:50 all fixed: only the layers in the scene are looked for and a description of another layer
+  finds nothing; the kept description stays kept when it's put back; the file is written only after an edit this
+  run, never if it couldn't be read, through a temporary file, the old one backed up (`.bak`; `.forgotten` before
+  Ctrl+Delete, which now wants two presses); rotation and opacity come only from turns, typed values and put backs,
+  and typing only x doesn't touch them; skewed nodes aren't turned; put back evaluates the code's expressions in
+  the frame as it is now; and the minor ones (tracked sizes marked only after a put back, nodes with no way to find
+  them told apart, numbers with a point whatever the locale, the grid off under a turned parent and per the guides'
+  own lines, the dragged node described once a drag, the opacity field only for nodes with one). Both ways: every
+  mode PASS (vanilla tour 951), restart 6/6, real input 13/13. Backlog 7: six more scenes in
   the tour, nothing from the servers (your levels, a local level's page, popups over the main menu): all right.
 
 ## Checks

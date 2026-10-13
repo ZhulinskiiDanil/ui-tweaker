@@ -21,12 +21,15 @@ newest() { ls -t "$1" 2>/dev/null | head -1; }
 stop
 keep="$(mktemp -d)"
 cp "$saves/settings.json" "$keep/settings.json"
-had_session=0
-[ -f "$saves/session.txt" ] && { cp "$saves/session.txt" "$keep/session.txt"; had_session=1; }
+# The session file and the ones the mod makes next to it (a backup, a temporary one, the forgotten edits)
+names="session.txt session.txt.bak session.txt.tmp session.txt.forgotten"
+for name in $names; do [ -f "$saves/$name" ] && cp "$saves/$name" "$keep/$name"; done
 restore() {
   stop
   cp "$keep/settings.json" "$saves/settings.json"
-  if [ "$had_session" = 1 ]; then cp "$keep/session.txt" "$saves/session.txt"; else rm -f "$saves/session.txt"; fi
+  for name in $names; do
+    if [ -f "$keep/$name" ]; then cp "$keep/$name" "$saves/$name"; else rm -f "$saves/$name"; fi
+  done
   rm -rf "$keep"
 }
 trap restore EXIT

@@ -818,7 +818,7 @@ namespace
   }
 
   // The grid: a node dragged by an odd amount ends where its code's offsets are whole steps, on the screen and in a
-  // turned, scaled parent; its code puts it there
+  // scaled parent; its code puts it there. Under a turned parent, whose axes aren't the screen's, there's no grid
   void gridding()
   {
     auto win = CCDirector::get()->getWinSize();
@@ -833,7 +833,6 @@ namespace
     box->setID("selftest-grid-box"_spr);
     box->ignoreAnchorPointForPosition(false);
     box->setPosition({win.width / 2 - 100, win.height / 2 + 40});
-    box->setRotation(20);
     box->setScale(1.3f);
     scene->addChild(box, 1000);
     auto inBox = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
@@ -861,6 +860,16 @@ namespace
       check(problem.empty(), fmt::format("the code for {} on the grid puts it where it is: {}", name, problem));
       editor::undo();
     }
+    box->setRotation(20);
+    auto worldBefore = worldPositionOf(inBox);
+    auto center = inspect::worldQuad(inBox).center();
+    editor::grab(inBox, {center.x, center.y});
+    editor::dragTo(CCPoint{center.x, center.y} + ccp(13.3f, -7.7f));
+    editor::release();
+    auto moved = worldPositionOf(inBox) - worldBefore;
+    check(close(moved.x, 13.3f, 0.05f) && close(moved.y, -7.7f, 0.05f),
+          fmt::format("under a turned parent the grid leaves the drag as it is: ({}, {})", moved.x, moved.y));
+    editor::undo();
     editor::setGrid(std::nullopt);
     editor::setSnapping(std::nullopt);
     editor::select(nullptr);
@@ -1479,6 +1488,13 @@ namespace
                          check((!kept.geodeStays || inspect::stateOf(geode).position == kept.geodeBefore.position) &&
                                    inspect::stateOf(sprite).position == kept.spriteBefore.position,
                                "one Ctrl+Z took both put back edits off");
+                         check(editor::editedCount() == 2,
+                               fmt::format("undoing the put back keeps the edits kept: {}", editor::editedCount()));
+                         // Another layer's description with the same ID finds nothing here
+                         auto other = inspect::describe(geode);
+                         other.layer = "CreatorLayer";
+                         check(inspect::resolve(scene, other) == nullptr,
+                               "a kept edit of another layer isn't put on a node with its ID here");
                          editor::forgetKept();
                          check(editor::editedCount() == 0, "Ctrl+Delete forgot the kept edits");
                          if (text)

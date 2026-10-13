@@ -31,6 +31,7 @@
 #include <Windows.h>
 #include <cmath>
 #include <functional>
+#include <set>
 
 using namespace geode::prelude;
 
@@ -149,8 +150,9 @@ namespace
     std::vector<snap::Guide> snapLines;
     std::optional<bool> snapOverride;
     std::optional<int> gridOverride;
-    // The grid's step while a drag uses it, for drawing it
+    // The grid's step while a drag uses it, for drawing it, and the dragged node as described when the drag started
     int gridShown = 0;
+    std::optional<codegen::NodeDesc> gridDesc;
     std::optional<bool> putBackOverride;
     // A: the other screens' shapes over this one
     bool aspectPreview = false;
@@ -183,6 +185,13 @@ namespace
     std::vector<std::pair<std::string, std::vector<codegen::NodeDesc>>> earlier;
     // The kept edits changed since they were written to the save folder
     bool sessionDirty = false;
+    // Something was edited or forgotten this run: only then is the file written, never with nothing over it
+    bool sessionTouched = false;
+    // The file was there but couldn't be read (locked, another version): left alone this run
+    bool sessionBlocked = false;
+    bool sessionBackedUp = false;
+    // Ctrl+Delete pressed once, when: a second press within a few seconds forgets
+    double forgetAsked = 0;
     double sessionSaved = 0;
     // A scene whose layers get their kept edits put back once it has settled, and from when
     int putBackScene = 0;
@@ -262,20 +271,35 @@ namespace
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
   }
 
+  // Steps that set a rotation or an opacity: a turn, typed values, a put back. A drag's before and after may differ
+  // in them only because the game spins or fades the node meanwhile
+  template <class Change>
+  bool setsRotation(Change const& change)
+  {
+    return (change.kind == Turn || change.kind == Typed || change.kind == PutBack) &&
+           change.before.rotation != change.after.rotation;
+  }
+
+  template <class Change>
+  bool setsOpacity(Change const& change)
+  {
+    return (change.kind == Typed || change.kind == PutBack) && change.before.opacity != change.after.opacity;
+  }
+
   // Whether a step not undone turned the node, or changed its opacity: a spinning or fading node isn't edited by
   // the game's actions, and an undone turn isn't one
   bool turnedHere(CCNode* node)
   {
     auto const& changes = state().history.changes();
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
-                       { return change.target == node && change.before.rotation != change.after.rotation; });
+                       { return change.target == node && setsRotation(change); });
   }
 
   bool fadedHere(CCNode* node)
   {
     auto const& changes = state().history.changes();
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
-                       { return change.target == node && change.before.opacity != change.after.opacity; });
+                       { return change.target == node && setsOpacity(change); });
   }
 
   // The code laid out as the setting says
@@ -334,6 +358,7 @@ namespace
     s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
     snapshot(node);
     s.sessionDirty = true;
+    s.sessionTouched = true;
     static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back", "Turned"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
@@ -1068,9 +1093,10 @@ namespace
     // through the parent's transform, for one measured in its parent. Faint, and none finer than 4 points
     void drawGrid(CCNode* node, float step)
     {
-      if (step < 4)
+      auto const& kept = state().gridDesc;
+      if (step < 4 || !kept)
         return;
-      auto desc = inspect::describe(node);
+      auto const& desc = *kept;
       ccColor4F const color = {0.55f * 0.14f, 0.75f * 0.14f, 0.14f, 0.14f};
       auto segment = [&](CCPoint from, CCPoint to) { m_draw->drawSegment(convertToNodeSpace(from), convertToNodeSpace(to), 0.25f, color); };
       if (desc.frame.kind == codegen::FrameKind::Screen)
@@ -1707,6 +1733,7 @@ void editor::grab(CCNode* node, CCPoint world)
   {
     s.pressed = true;
     s.dragging = false;
+    s.gridDesc.reset();
     s.pressPoint = world;
     s.dragStart = inspect::stateOf(node);
     s.parentToWorld = inspect::toGeom(node->getParent()->nodeToWorldTransform());
@@ -1746,11 +1773,14 @@ void editor::dragTo(CCPoint world)
   if (free)
     return;
   geom::Vec2 correction;
+  bool guideX = false, guideY = false;
   if (s.snapOverride.value_or(Mod::get()->getSettingValue<bool>("snap")))
   {
     auto bounds = inspect::worldQuad(s.selected.get()).bounds();
     auto result = snap::snap(bounds, s.guides, SNAP_DISTANCE);
-    if (result.correction.x != 0 || result.correction.y != 0)
+    for (auto const& line : result.lines)
+      (line.vertical ? guideX : guideY) = true;
+    if (!result.lines.empty())
     {
       correction = result.correction;
       moveAll(onScreen + correction);
@@ -1762,17 +1792,23 @@ void editor::dragTo(CCPoint world)
   // or center of its frame) rounded to the step. Not for a node an axis layout places
   int step = s.gridOverride.value_or(static_cast<int>(Mod::get()->getSettingValue<int64_t>("grid")));
   auto node = s.selected.get();
-  if (step <= 0 || !node->getParent())
+  // Under a turned parent its axes aren't the screen's: a guide's axis and the grid's would cross
+  auto const& toWorld = s.parentToWorld;
+  if (step <= 0 || !node->getParent() || std::fabs(toWorld.b) > 1e-4f || std::fabs(toWorld.c) > 1e-4f)
     return;
-  auto desc = inspect::describe(node);
+  // Described once a drag: its frame and layout don't change while it moves
+  if (!s.gridDesc)
+    s.gridDesc = inspect::describe(node);
+  auto desc = *s.gridDesc;
   if (desc.layout.kind == codegen::LayoutKind::Axis || desc.layout.kind == codegen::LayoutKind::SimpleAxis)
     return;
+  desc.position = {node->getPositionX(), node->getPositionY()};
   s.gridShown = step;
   auto position = codegen::positionExpressions(desc);
   geom::Vec2 local;
-  if (correction.x == 0)
+  if (!guideX)
     local.x = expr::evaluate(grid::round(position.x, static_cast<float>(step)), desc.frame.extent.width) - desc.position.x;
-  if (correction.y == 0)
+  if (!guideY)
     local.y = expr::evaluate(grid::round(position.y, static_cast<float>(step)), desc.frame.extent.height) - desc.position.y;
   if (local.x == 0 && local.y == 0)
     return;
@@ -1852,6 +1888,7 @@ void editor::release()
   auto& s = state();
   s.snapLines.clear();
   s.gridShown = 0;
+  s.gridDesc.reset();
   if (s.resizing)
   {
     if (s.selected)
@@ -1911,6 +1948,9 @@ void editor::turn(float notches, bool fine)
   editAll(Turn, WHEEL_MERGE,
           [&](CCNode* each)
           {
+            // Skewed (GD turns each axis on its own): setRotation would lose the skew for good
+            if (each->getRotationX() != each->getRotationY())
+              return;
             auto after = inspect::stateOf(each);
             after.rotation = std::round((after.rotation - notches * (fine ? 1.f : 15.f)) * 100) / 100;
             inspect::apply(each, after, false, false);
@@ -2077,15 +2117,19 @@ void editor::startTyping()
   if (!s.selected || s.pressed || s.dragging || s.resizing)
     return;
   auto info = inspect::stateOf(s.selected.get());
-  s.typing = fields::Fields({number(info.position.x), number(info.position.y), number(info.scaleX),
-                             number(info.size.width), number(info.size.height), number(info.rotation),
-                             std::to_string(info.opacity)});
+  std::vector<std::string> values{number(info.position.x), number(info.position.y), number(info.scaleX),
+                                  number(info.size.width), number(info.size.height), number(info.rotation)};
+  // The opacity only for a node that has one
+  bool rgba = typeinfo_cast<CCRGBAProtocol*>(s.selected.get()) != nullptr;
+  if (rgba)
+    values.push_back(std::to_string(info.opacity));
+  s.typing = fields::Fields(values);
   // What the fields start as, and the exact values behind them: a field left as it was keeps its exact value,
   // not the rounded one it shows
   s.typingStart = s.typing->values();
-  s.typingExact = {info.position.x,  info.position.y, info.scaleX,
-                   info.size.width, info.size.height, info.rotation,
-                   static_cast<float>(info.opacity)};
+  s.typingExact = {info.position.x, info.position.y, info.scaleX, info.size.width, info.size.height, info.rotation};
+  if (rgba)
+    s.typingExact.push_back(static_cast<float>(info.opacity));
   s.typingError.clear();
 }
 
@@ -2132,7 +2176,7 @@ void editor::typingKey(int key, bool shift)
       // A number too big to be one, or a scale the node would vanish at and the wheel couldn't bring back
       bool bad = !values[i] || !std::isfinite(*values[i]) || std::fabs(*values[i]) > 1e6f ||
                  (i == 2 && std::fabs(*values[2]) < 0.01f) || ((i == 3 || i == 4) && *values[i] < 0) ||
-                 (i == 6 && (*values[6] < 0 || *values[6] > 255));
+                 (i == 6 && (*values[i] < 0 || *values[i] > 255));
       if (bad)
       {
         s.typingError = s.typing->values()[i];
@@ -2148,8 +2192,9 @@ void editor::typingKey(int key, bool shift)
     after.scaleY = *values[2] * ratio;
     after.size = CCSize(*values[3], *values[4]);
     after.rotation = *values[5];
-    after.opacity = static_cast<int>(std::round(*values[6]));
-    inspect::apply(node, after, true, false);
+    if (values.size() > 6)
+      after.opacity = static_cast<int>(std::round(*values[6]));
+    inspect::apply(node, after, true, false, after.rotation != before.rotation, after.opacity != before.opacity);
     record(node, before, Typed, 0);
     s.typing.reset();
   }
@@ -2179,8 +2224,7 @@ bool editor::undo()
         continue;
       }
       inspect::apply(node, change.before, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible, change.before.rotation != change.after.rotation,
-                     change.before.opacity != change.after.opacity);
+                     change.before.visible != change.after.visible, setsRotation(change), setsOpacity(change));
       snapshot(node);
       undone.push_back(node);
       log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
@@ -2211,8 +2255,7 @@ bool editor::redo()
       if (!inspect::isIn(node, runningScene()))
         continue;
       inspect::apply(node, change.after, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible, change.before.rotation != change.after.rotation,
-                     change.before.opacity != change.after.opacity);
+                     change.before.visible != change.after.visible, setsRotation(change), setsOpacity(change));
       snapshot(node);
       redone.push_back(node);
       log::info("Redid a step of {}", inspect::name(node));
@@ -2440,13 +2483,25 @@ namespace
   void saveSession(bool force)
   {
     auto& s = state();
-    if (!s.sessionDirty || (!force && now() - s.sessionSaved < 2))
+    if (s.sessionBlocked || !s.sessionTouched || !s.sessionDirty || (!force && now() - s.sessionSaved < 2))
       return;
     s.sessionDirty = false;
     s.sessionSaved = now();
-    auto written = file::writeString(sessionPath(), session::write(allEdits()));
-    if (!written)
-      log::warn("Couldn't write {}: {}", sessionPath(), written.unwrapErr());
+    auto path = sessionPath();
+    std::error_code error;
+    // The file as it was when this run started, once
+    if (!s.sessionBackedUp && std::filesystem::exists(path, error))
+    {
+      std::filesystem::copy_file(path, path.string() + ".bak", std::filesystem::copy_options::overwrite_existing, error);
+      s.sessionBackedUp = true;
+    }
+    // Whole or not at all: a game killed while writing leaves the old file
+    auto temporary = std::filesystem::path(path.string() + ".tmp");
+    auto written = file::writeString(temporary, session::write(allEdits()));
+    if (written)
+      std::filesystem::rename(temporary, path, error);
+    if (!written || error)
+      log::warn("Couldn't write {}: {}", path, written ? error.message() : written.unwrapErr());
   }
 
   // The kept edits of a layer made again put on its nodes, found as their code finds them: one step to undo, a node
@@ -2457,18 +2512,38 @@ namespace
     if (!s.putBackOverride.value_or(Mod::get()->getSettingValue<bool>("put-back")))
       return;
     auto scene = runningScene();
+    if (!scene)
+      return;
+    // The layers in this scene: only theirs are looked for
+    std::set<std::string> here;
+    std::vector<CCNode*> queue{scene};
+    for (size_t i = 0; i < queue.size(); i++)
+    {
+      here.insert(inspect::className(queue[i]));
+      // A level's objects aren't layers
+      if (queue[i]->getChildrenCount() < 200)
+        for (auto child : CCArrayExt<CCNode*>(queue[i]->getChildren()))
+          queue.push_back(child);
+    }
     int group = ++s.groups;
     size_t count = 0;
+    // The kept descriptions stay kept: undoing a put back, or the node not being there, doesn't lose them
     for (auto& [layer, descs] : s.earlier)
-      std::erase_if(descs,
-                    [&](codegen::NodeDesc const& desc)
+      for (auto const& desc : descs)
                     {
+                      if (!desc.layer.empty() && !here.contains(desc.layer))
+                        continue;
                       auto node = inspect::resolve(scene, desc);
                       if (!node || hasSteps(node))
-                        return false;
+                        continue;
                       auto before = inspect::stateOf(node);
                       auto wanted = before;
-                      wanted.position = CCPoint{desc.position.x, desc.position.y};
+                      // Where its code puts it now, from the edge or center it's measured from: the screen may be
+                      // another size than when it was edited
+                      auto now = inspect::describe(node);
+                      auto position = codegen::positionExpressions(desc);
+                      wanted.position = CCPoint{expr::evaluate(position.x, now.frame.extent.width),
+                                                expr::evaluate(position.y, now.frame.extent.height)};
                       if (desc.scaleChanged)
                       {
                         wanted.scaleX = desc.scaleX;
@@ -2479,15 +2554,9 @@ namespace
                       if (desc.zOrderChanged)
                         wanted.zOrder = desc.zOrder;
                       if (desc.sizeChanged)
-                      {
                         wanted.size = CCSize{desc.size.width, desc.size.height};
-                        s.sized.push_back(node);
-                      }
                       if (desc.visibleChanged)
-                      {
                         wanted.visible = desc.visible;
-                        s.toggled.push_back(node);
-                      }
                       if (desc.rotationChanged)
                         wanted.rotation = desc.rotation;
                       if (desc.opacityChanged)
@@ -2495,13 +2564,21 @@ namespace
                       inspect::apply(node, wanted, desc.sizeChanged, desc.visibleChanged, desc.rotationChanged,
                                      desc.opacityChanged);
                       record(node, before, PutBack, 0, group);
-                      // Now this scene's, as live as any edit; kept here too if nothing changed (already in place)
+                      // Nothing changed: already in place (its code pasted since)
                       if (!hasSteps(node))
-                        return false;
+                        continue;
+                      // Its size and visibility are the edit mode's now, as if set here
+                      auto mark = [&](std::vector<CCNode*>& list)
+                      {
+                        if (std::find(list.begin(), list.end(), node) == list.end())
+                          list.push_back(node);
+                      };
+                      if (desc.sizeChanged)
+                        mark(s.sized);
+                      if (desc.visibleChanged)
+                        mark(s.toggled);
                       count++;
-                      return true;
-                    });
-    std::erase_if(s.earlier, [](auto const& g) { return g.second.empty(); });
+                    }
     if (count > 0)
     {
       log::info("Put back the kept edits of {} nodes", count);
@@ -2513,16 +2590,19 @@ namespace
 
 void editor::loadSession()
 {
-  auto text = file::readString(sessionPath());
-  if (!text)
+  auto& s = state();
+  std::error_code error;
+  if (!std::filesystem::exists(sessionPath(), error))
     return;
-  auto groups = session::read(*text);
+  auto text = file::readString(sessionPath());
+  auto groups = text ? session::read(*text) : std::nullopt;
   if (!groups)
   {
-    log::warn("{} isn't a session file", sessionPath());
+    // Left as it is: written over, it would lose what's in it
+    s.sessionBlocked = true;
+    log::warn("Couldn't read {}: the edits kept in it are left alone and not written this time", sessionPath());
     return;
   }
-  auto& s = state();
   for (auto const& [layer, descs] : *groups)
     for (auto const& desc : descs)
       addTo(groupOf(layer), desc);
@@ -2556,8 +2636,23 @@ void editor::forgetKept()
   size_t count = 0;
   for (auto const& [layer, descs] : s.earlier)
     count += descs.size();
+  // A second press within a few seconds: one stray key doesn't lose them
+  if (!selftest::requested() && now() - s.forgetAsked > 3)
+  {
+    s.forgetAsked = now();
+    Notification::create(text::format(ui::words().forgetAsk, {std::to_string(count)}), NotificationIcon::Warning, 3.f)
+        ->show();
+    return;
+  }
+  s.forgetAsked = 0;
+  // What they were, next to the file
+  std::error_code error;
+  if (std::filesystem::exists(sessionPath(), error))
+    std::filesystem::copy_file(sessionPath(), sessionPath().string() + ".forgotten",
+                               std::filesystem::copy_options::overwrite_existing, error);
   s.earlier.clear();
   s.sessionDirty = true;
+  s.sessionTouched = true;
   saveSession(true);
   log::info("Forgot the kept edits of {} nodes", count);
   Notification::create(text::format(ui::words().forgotKept, {std::to_string(count)}), NotificationIcon::Info, 1.5f)
