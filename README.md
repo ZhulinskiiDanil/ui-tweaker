@@ -17,7 +17,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 ## How it goes
 
 1. In your mod, add your button or popup anywhere, with an ID (`setID("my-button"_spr)`), and build once
-2. In the game, `F8`, drag it where it belongs, scale it with the wheel, type exact values with `Enter` if you like; line several up with `Alt`+`A`/`D`/`H`/`W`/`S`/`V` or turn them into a row with `L`; `A` shows whether it still fits on a 4:3 or a 21:9 screen. No button yet? `Ctrl+D` makes one like a vanilla one, to place
+2. In the game, `F8`, drag it where it belongs, scale it with the wheel, type exact values with `Enter` if you like; line several (`Shift`+click, a right drag's box or `Ctrl+A`) up with `Alt`+`A`/`D`/`H`/`W`/`S`/`V` or turn them into a row with `L`; `A` shows whether it still fits on a 4:3 or a 21:9 screen. No button yet? `Ctrl+D` makes one like a vanilla one, to place
 3. `Ctrl+Shift+C`: the code for everything you moved or made, as `$modify` hooks of the layers it's in, also in `export.cpp`. Paste the lines into your hook (or the whole hook), build: it's where you put it, on every screen. The edits are kept if you restart the game before pasting
 
 ## Use
