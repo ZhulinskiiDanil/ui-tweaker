@@ -1630,6 +1630,12 @@ namespace
           }
       break;
     case KEY_A:
+      // Ctrl+A: the selected node's siblings with it; A alone the other screens
+      if (control)
+      {
+        editor::selectSiblings();
+        break;
+      }
       s.aspectPreview = !s.aspectPreview;
       if (s.overlay)
         s.overlay->savePrefs();
@@ -2631,6 +2637,21 @@ void editor::toggleSelect(CCNode* node)
     s.selected = Retained<CCNode>(node);
   else
     s.also.emplace_back(node);
+  log::info("Selection: {} nodes", selection().size());
+}
+
+void editor::selectSiblings()
+{
+  auto& s = state();
+  auto node = s.selected.get();
+  if (!node || !node->getParent() || s.pressed || s.resizing)
+    return;
+  s.typing.reset();
+  s.lastGroup = {};
+  s.also.clear();
+  for (auto sibling : CCArrayExt<CCNode*>(node->getParent()->getChildren()))
+    if (sibling != node && sibling->isVisible() && sibling->getContentWidth() > 0 && sibling->getContentHeight() > 0)
+      s.also.emplace_back(sibling);
   log::info("Selection: {} nodes", selection().size());
 }
 

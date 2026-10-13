@@ -72,6 +72,9 @@ namespace editor
   void select(cocos2d::CCNode* node);
   // Shift+click: the node added to the selection, or taken out of it. Drags, arrows and the wheel move all of it
   void toggleSelect(cocos2d::CCNode* node);
+  // Ctrl+A: the selected node and every sibling of it that's shown and has a size (a menu's row of buttons), for
+  // aligning them or L
+  void selectSiblings();
   // The selected nodes, the one the panel shows first
   std::vector<cocos2d::CCNode*> selection();
   cocos2d::CCNode* selected();

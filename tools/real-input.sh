@@ -84,6 +84,9 @@ input key z ctrl
 input shiftclick "$gx" "$gy"; sleep 1.5
 expect "Selection: 2 nodes" "Shift+click selected a second node"
 shot several.png
+# Ctrl+A: the play button's siblings with it (the icon kit and the editor)
+input key a ctrl; sleep 1.5
+expect "Selection: 3 nodes" "Ctrl+A selected the play button's siblings with it"
 # Alt+A lines the two up by their left edges, as in Figma (Alt comes as a system key on Windows)
 input key a alt; sleep 1.5
 expect "Aligned " "Alt+A aligned the two selected nodes"

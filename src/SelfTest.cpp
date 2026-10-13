@@ -766,6 +766,11 @@ namespace
           "three sprites lined up at the right are a column of a plain node, aligned at the end");
     applyLayout(code, column, sprites, "the column");
 
+    // Ctrl+A: one button, then its two siblings with it
+    editor::select(buttons[1]);
+    editor::selectSiblings();
+    check(editor::selection().size() == 3 && editor::selected() == buttons[1],
+          fmt::format("Ctrl+A selected the button's siblings with it: {}", editor::selection().size()));
     // Nodes of different parents: no layout
     editor::select(buttons[0]);
     editor::toggleSelect(sprites[0]);

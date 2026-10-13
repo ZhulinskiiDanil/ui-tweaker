@@ -12,6 +12,7 @@ Press <cy>F8</c> (a setting) in any scene for the edit mode. The game doesn't ge
 - <cy>Shift</c>+click: several nodes at once, <cy>V</c>: hide one, <cy>R</c>: back to how it was
 - The <cy>Grid</c> setting makes the code's numbers round: a dragged node goes in steps from the closest edge or center
 - <cy>Ctrl</c>+wheel turns the selected node; <cy>Enter</c> also types its rotation and opacity
+- <cy>Ctrl+A</c>: the selected node's siblings with it
 - <cy>Alt+C</c>: only the code that finds the selected node, for code of your own
 - <cy>Ctrl+D</c>: a new sprite, button or label like the selected one, to drag where it goes: its code makes it
 - <cy>L</c>: the selected nodes as a row or a column of a new menu with a RowLayout or ColumnLayout that keeps them where they are
