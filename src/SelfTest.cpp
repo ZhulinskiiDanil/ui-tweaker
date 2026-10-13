@@ -1048,13 +1048,13 @@ namespace
       editor::select(label);
 
     // UI_TWEAKER_SELFTEST=aspect: the other screens' shapes on, for a screenshot of them
-    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "aspect")
+    if (selftest::mode() == "aspect")
       editor::setAspectPreview(true);
     // =code: the selected node's code in the panel
-    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "code")
+    if (selftest::mode() == "code")
       editor::setCodeView(true);
     // =grid: in the middle of a drag on a grid of 10, the grid drawn
-    if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "grid")
+    if (selftest::mode() == "grid")
     {
       // A node outside layouts: the title, if the main menu has its own
       if (auto title = scene->getChildByIDRecursive("main-title"); title && visibleInTree(title))
@@ -1080,7 +1080,7 @@ namespace
     auto scene = CCDirector::get()->getRunningScene();
     auto selected = editor::selected();
     // =grid ends in the middle of a drag: nothing is hovered during one
-    if (!selected || std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "grid")
+    if (!selected || selftest::mode() == "grid")
       return false;
     auto measurable = [&](CCNode* node)
     {
@@ -1898,33 +1898,33 @@ namespace
              check(editor::editedCount() == 2, fmt::format("the button edited again is one edit ({})", editor::editedCount()));
              editor::undo();
            }
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "play")
+           if (selftest::mode() == "play")
            {
              playLevel();
              return;
            }
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "editor")
+           if (selftest::mode() == "editor")
            {
              openEditor();
              return;
            }
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "tour")
+           if (selftest::mode() == "tour")
            {
              tour();
              return;
            }
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "reload")
+           if (selftest::mode() == "reload")
            {
              reloadGame();
              return;
            }
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "session")
+           if (selftest::mode() == "session")
            {
              sessionTest();
              return;
            }
            // =ime: the edit mode off and a text field with the keyboard, for tools/real-input.sh's F8 in it
-           if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "ime")
+           if (selftest::mode() == "ime")
            {
              editor::setActive(false);
              auto win = CCDirector::get()->getWinSize();
@@ -1996,10 +1996,25 @@ namespace
   }
 } // namespace
 
+std::string const& selftest::mode()
+{
+  // Read once: _dupenv_s, getenv being deprecated in MSVC's library
+  static std::string const value = []
+  {
+    char* text = nullptr;
+    size_t size = 0;
+    std::string out;
+    if (_dupenv_s(&text, &size, "UI_TWEAKER_SELFTEST") == 0 && text)
+      out = text;
+    std::free(text);
+    return out;
+  }();
+  return value;
+}
+
 bool selftest::requested()
 {
-  auto value = std::getenv("UI_TWEAKER_SELFTEST");
-  return value && *value && std::string(value) != "0";
+  return !mode().empty() && mode() != "0";
 }
 
 void selftest::start()
