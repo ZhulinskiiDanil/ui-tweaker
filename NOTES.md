@@ -11,26 +11,28 @@
 
 ## Summary (for when you're back)
 
-- **Releases today**: v0.8.1, v0.9.0, v0.10.0, v0.11.0, v0.12.0 (pre-releases, `.geode` from CI, each installed and
-  checked both ways; Zhulis Mods Manager in the game fetched v0.12.0). On main after v0.12.0: the end-to-end check,
-  README's settings and GIFs (code-wise: one export mode in the self test).
+- **Releases today**: v0.8.1, v0.9.0, v0.10.0, v0.11.0, v0.12.0, v0.13.0 (pre-releases, `.geode` from CI, each
+  installed and checked both ways; Zhulis Mods Manager in the game fetched v0.13.0).
 - **New for modders**: align/distribute (Alt+letters), `L` a row/column layout from a selection, paths to nodes
   without IDs (and IDs that aren't unique avoided), edits kept between runs and *Put edits back*, rotation and
   opacity, a *Grid* for round numbers in the code, `Ctrl+D` new nodes like existing ones (sprites, buttons, text
   and circle buttons, labels), `Alt+C` the way to a node, typed values for several nodes, the tree's search by
-  frame or text, the panel kept off the taskbar, F8 in text fields, the cursor in levels.
+  frame or text, the panel kept off the taskbar, F8 in text fields, the cursor in levels; selecting several with
+  `Ctrl+A` (siblings) or a right drag's box (outlined while drawn), text buttons made with their font and background.
 - **Checked**: every feature in the self test (11 modes, both with your mods and in vanilla: the tour alone is 1200
   checks in vanilla), real mouse and keyboard (16 steps), a restart with an edit put back, the generated code
   compiled against the fake API and against the real Geode headers, and **end to end**: an edit's "Copy all" built
   into a mod and run in the game, the nodes exactly where the edit left them (`tools/e2e.sh`).
-- **Reviews**: five by separate agents, every finding fixed (two critical among them: a kept edit put on another
-  layer's node; edits falling out after 200 steps).
+- **Reviews**: seven by separate agents, every finding fixed but one minor left as a note (three critical among
+  them: a kept edit put on another layer's node; edits falling out after 200 steps; a mod's button background
+  losing its folder).
 - **Yours to decide**: the Geode Index (`reject-vibecoded`, Improved Logger not on the Index), see "Geode Index".
 
 ## What's done
 
 | | What | Checked by |
 | --- | --- | --- |
+| own | v0.13.0: a right drag's box selects (outlined while drawn, Esc, Shift adds, no level objects), Ctrl+A siblings, Ctrl+D text buttons with their font/background (a mod's resource too), the sixth and seventh reviews fixed | self test both ways (editor: a box over 3000 objects, 2 ms), tour making every text button again, real input 19/19, codecheck, E2E PASS; the release's `.geode` both ways |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
 | own | Alt+C (the way to a node), Ctrl+D (sprites, buttons, text and circle buttons, labels), typed values for every selected node, the tree's search by frame or text, a popup's code pointed to its `init()`, nodes back where they were left out of "Copy all" | unit tests, compiled samples, self test both ways, real input 16/16 |
 | own | The generated code compiled against the real Geode headers (`tools/codecheck.sh`), and the whole promise end to end (`tools/e2e.sh`: an edit, its "Copy all" built into a mod, the nodes where the edit left them) | codecheck against Geode 5.10.1; E2E PASS |
@@ -157,11 +159,15 @@
   ButtonSprite checks every number; `tools/e2e.sh` exits 1 on a failure. Not done: a ButtonSprite's own scale
   and colors (the code would need statements, not an expression). Both ways: 1, limit, tour, editor PASS; real
   input 19/19; codecheck.
+- 14:36 v0.13.0 released (pre-release, the `.geode` CI built from 8c97f2d): installed, self test PASS both ways;
+  Zhulis Mods Manager's cache has v0.13.0.
 
 ## Checks
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
+| 14:35 (v0.13.0) | yours | 18/18 | ok | PASS 1 / play / editor / tour / reload / session / code / aspect / grid / ime / limit / export (the release's `.geode`: PASS) | |
+| 14:35 (v0.13.0) | vanilla | 18/18 | ok | PASS every mode; real input 19/19; E2E PASS; codecheck against Geode 5.10.1 (the release's `.geode`: PASS) | box.png |
 | 12:58 (v0.12.0) | yours | 18/18 | ok | PASS 202 / play 216 / editor 214 / tour 1100 / reload 212 / session 214 / code 202 / aspect 202 / grid 201 / ime 202 / limit 202 | |
 | 12:58 (v0.12.0) | vanilla | 18/18 | ok | PASS 204 / 218 / 216 / tour 1200 / 216 / 216 / 204 / 204 / 203 / 204 / 204; real input 16/16; restart 6/6; codecheck against Geode 5.10.1 | |
 | 11:41 (v0.11.0) | yours | 18/18 | ok | PASS 189 / play 203 / editor 201 / tour 899 / reload 199 / session 201 / code 189 / aspect 189 / grid 188 / ime 189 | |
