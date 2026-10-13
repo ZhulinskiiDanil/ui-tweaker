@@ -3,6 +3,7 @@
 #include "Text.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <sstream>
 
@@ -188,9 +189,22 @@ namespace
   }
 
   // An image scaled by itself is made first, then the button around it
+  bool imageScaled(codegen::NodeDesc::Made const& made);
+
+  // A scale to three places (GD's 0.675f), "0.7f" without the zeros
+  std::string scaleNumber(float value)
+  {
+    char buffer[64];
+    std::snprintf(buffer, sizeof(buffer), "%.3f", std::round(value * 1000) / 1000);
+    std::string text = buffer;
+    while (text.back() == '0')
+      text.pop_back();
+    return text + "f";
+  }
+
   bool imageScaled(codegen::NodeDesc::Made const& made)
   {
-    return !imageMaking(made).empty() && std::fabs(made.imageScale - 1) > 0.001f;
+    return !imageMaking(made).empty() && scaleNumber(made.imageScale) != "1.f";
   }
 
   // The expression that makes a node like the one described
@@ -240,7 +254,7 @@ namespace
     if (imageScaled(made))
     {
       out << inside << "auto image = " << imageMaking(made) << ";\n";
-      out << inside << "image->setScale(" << expr::number(made.imageScale) << ");\n";
+      out << inside << "image->setScale(" << scaleNumber(made.imageScale) << ");\n";
     }
     out << inside << "auto node = " << making(made) << ";\n";
     out << inside << "node->setID(" << literal(id) << "_spr);\n";

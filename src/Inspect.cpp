@@ -823,9 +823,15 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
   if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node))
   {
     auto image = button->getNormalImage();
-    // Its image's own scale (one for both axes)
+    // Its image's own scale (one for both axes), when the button's size came from it: not a pulse caught midway or
+    // a scale set after the button was made
     if (image && image->getScaleX() == image->getScaleY())
-      made.imageScale = image->getScaleX();
+    {
+      auto scaled = image->getScaledContentSize();
+      auto size = button->getContentSize();
+      if (std::fabs(scaled.width - size.width) < 0.5f && std::fabs(scaled.height - size.height) < 0.5f)
+        made.imageScale = image->getScaleX();
+    }
     // A ButtonSprite is a sprite too: its text first
     if (auto text = typeinfo_cast<ButtonSprite*>(image); text && text->m_label)
     {

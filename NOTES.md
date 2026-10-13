@@ -170,6 +170,12 @@
   mode 7–8 MB a minute (the game's own rise, noted before), right drags nonstop 9–10 MB a minute, and the
   difference doesn't grow with the number of boxes (16 boxes +6 MB, 31 boxes +5 MB over idle): no leak of the
   box's, the rest is the input itself. Soak with the box: 60 rounds, the game running, 82 drags logged.
+- 15:45 stabilization. The eighth review (the image's scale): approved, no critical or important; two minor fixed:
+  the image's scale is taken only when the button's size came from it (not a pulse caught midway or a scale set
+  after the button was made), and written to three places (0.675f), none when it prints as 1. The full run before
+  them: every mode PASS both ways (yours: 1 234, play 248, editor 247, tour 1165, reload 244, session 246, code
+  234, aspect 234, grid 233, ime 234, limit 238, export 236; vanilla: 236 / 250 / 249 / 1258 / 248 / 248 / 236 /
+  236 / 235 / 236 / 240 / 238); after them 1 and tour again both ways, unit tests 18/18, codecheck.
 
 ## Checks
 

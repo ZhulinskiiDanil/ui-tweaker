@@ -266,6 +266,11 @@ namespace
       CHECK(has(scaled, "image->setScale(0.7f);\n"));
       CHECK(has(scaled, "auto node = CCMenuItemSpriteExtra::create(image, this, nullptr);"));
       CHECK(scaled.find("image->setScale") < scaled.find("CCMenuItemSpriteExtra::create"));
+      // To three places; a scale that prints as 1 is no scale
+      text.made.imageScale = 0.675f;
+      CHECK(has(generate(text), "image->setScale(0.675f);"));
+      text.made.imageScale = 1.0004f;
+      CHECK(!has(generate(text), "image->setScale"));
     }
     // Line breaks escaped: a raw one in a literal wouldn't compile
     node.made.text = "Level\nComplete";
