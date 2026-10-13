@@ -24,6 +24,8 @@ for i in $(seq 1 "$rounds"); do
   input key z ctrl; input key z ctrl
   # A title like it made and taken out again (SOAK_MAKE=0: not)
   if [ "${SOAK_MAKE:-1}" = 1 ]; then input key d ctrl; input key z ctrl; fi
+  # A right drag's box over the big buttons, its outline looked for as it goes
+  input move 100 235; input rdown; input move 300 170; input move 470 105; input rup
   input move 300 150
   if [ $((i % 20)) -eq 0 ]; then echo "round $i: $(memory) MB"; fi
 done

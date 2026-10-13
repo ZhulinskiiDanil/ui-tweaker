@@ -259,6 +259,13 @@ namespace
       CHECK(has(generate(text), "ButtonSprite::create(\"Okay\", 0, 40, 0.8f, false, \"bigFont.fnt\", \"GJ_button_04.png\", 30.f)"));
       text.made.texture.clear();
       CHECK(has(generate(text), "ButtonSprite::create(\"Okay\"), this, nullptr)"));
+      // Its image scaled by itself: made first, scaled, then the button around it
+      text.made.imageScale = 0.7f;
+      auto scaled = generate(text);
+      CHECK(has(scaled, "auto image = ButtonSprite::create(\"Okay\");\n"));
+      CHECK(has(scaled, "image->setScale(0.7f);\n"));
+      CHECK(has(scaled, "auto node = CCMenuItemSpriteExtra::create(image, this, nullptr);"));
+      CHECK(scaled.find("image->setScale") < scaled.find("CCMenuItemSpriteExtra::create"));
     }
     // Line breaks escaped: a raw one in a literal wouldn't compile
     node.made.text = "Level\nComplete";

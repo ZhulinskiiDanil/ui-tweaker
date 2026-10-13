@@ -1056,6 +1056,9 @@ namespace
     menu->setPosition({win.width / 2, win.height / 2 - 40});
     layer->addChild(menu, 1000);
     auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    // Scaled by itself before the button is made, as GD does
+    if (sprite)
+      sprite->setScale(0.7f);
     auto button = CCMenuItemSpriteExtra::create(sprite ? static_cast<CCNode*>(sprite) : CCSprite::create(), nullptr, nullptr);
     button->setID("selftest-dup-button"_spr);
     button->setPosition({50, 40});
@@ -1110,7 +1113,7 @@ namespace
       auto code = editor::codeFor(made);
       log::info("Self test: the code for a node made like {}:\n{}", name, code);
       std::string wanted =
-          source == button   ? "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\"), this, nullptr)"
+          source == button   ? "auto image = CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\");"
           : source == circle ? "CircleButtonSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\", 1.f, CircleBaseColor::Blue, "
                                "CircleBaseSize::Small)"
           : source == okay   ? "\"bigFont.fnt\", \"GJ_button_04.png\""
@@ -1118,6 +1121,13 @@ namespace
                              : "CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")";
       bool makes = code.find(wanted) != std::string::npos;
       check(makes, fmt::format("the code makes one like {}", name));
+      if (source == button)
+      {
+        auto a = source->getContentSize(), b = made->getContentSize();
+        check(close(a.width, b.width) && close(a.height, b.height) && code.find("image->setScale(0.7f);") != std::string::npos,
+              fmt::format("the button made like one with its image scaled is as big: {} x {} and {} x {}", a.width,
+                          a.height, b.width, b.height));
+      }
       if (source == okay || source == tag)
       {
         // As big as the original: the same font, background and numbers
@@ -1655,9 +1665,15 @@ namespace
           auto image = copy ? copy->getNormalImage() : nullptr;
           auto a = text->getContentSize();
           auto b = image ? image->getContentSize() : CCSize{};
-          check(close(a.width, b.width, 0.5f) && close(a.height, b.height, 0.5f),
-                fmt::format("{}: the text button made like {} ({}, {}) is as big: {} x {} and {} x {}", name,
-                            inspect::name(node), made->font, made->texture, a.width, a.height, b.width, b.height));
+          // And the buttons as big: the image's own scale kept
+          auto outer = node->getContentSize();
+          auto copyOuter = copy ? copy->getContentSize() : CCSize{};
+          check(close(a.width, b.width, 0.5f) && close(a.height, b.height, 0.5f) &&
+                    close(outer.width, copyOuter.width, 0.5f) && close(outer.height, copyOuter.height, 0.5f),
+                fmt::format("{}: the text button made like {} ({}, {}) is as big: {} x {} and {} x {}, the button {} x "
+                            "{} and {} x {}",
+                            name, inspect::name(node), made->font, made->texture, a.width, a.height, b.width, b.height,
+                            outer.width, outer.height, copyOuter.width, copyOuter.height));
         }
       }
       for (auto child : CCArrayExt<CCNode*>(node->getChildren()))

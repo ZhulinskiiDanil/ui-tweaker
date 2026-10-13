@@ -109,6 +109,7 @@ inline std::vector<codegen::NodeDesc> samples()
   seventeen->scaleX = seventeen->scaleY = 1.25f;
   seventeen->made.kind = "button";
   seventeen->made.frame = "GJ_infoIcon_001.png";
+  seventeen->made.imageScale = 0.7f;
   seventeen->made.like = "info-button";
   seventeen->made.parent = lookup(NodeDesc{.id = "p17"}, "parent");
   // 18: a label made in the edit mode, in the layer itself

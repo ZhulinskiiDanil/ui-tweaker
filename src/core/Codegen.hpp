@@ -98,6 +98,9 @@ namespace codegen
       float scale = 1;
       bool absolute = false;
       float height = 0;
+      // A button's image's own scale, set before the button is made (it takes its size from it): GD's
+      // `sprite->setScale(.7f)` before CCMenuItemSpriteExtra::create
+      float imageScale = 1;
     };
     Made made;
     // Among the parent's children castable to className, which one this is (for getChildByType)

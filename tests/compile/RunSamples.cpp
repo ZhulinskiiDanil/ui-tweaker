@@ -202,7 +202,7 @@ void checkSample(int index)
     {
       auto button = dynamic_cast<CCMenuItemSpriteExtra*>(node);
       auto sprite = button ? dynamic_cast<CCSprite*>(button->image) : nullptr;
-      CHECK(sprite && sprite->frame == desc.made.frame);
+      CHECK(sprite && sprite->frame == desc.made.frame && button->imageScaleMade == desc.made.imageScale);
     }
     if (desc.made.kind == "circle button")
     {

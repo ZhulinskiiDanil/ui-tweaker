@@ -36,7 +36,7 @@ namespace
     node.visible = false;
     node.visibleChanged = true;
     node.made = {"circle button", "top.png", "Blue", "Small", "a\ntext", "bigFont.fnt", 12.5f, "geode-button", {"auto parent = this", "auto x = y"},
-                 "GJ_button_04.png", 120, 40, 0.75f, true, 32.5f};
+                 "GJ_button_04.png", 120, 40, 0.75f, true, 32.5f, 0.7f};
     return node;
   }
 
@@ -56,7 +56,8 @@ namespace
            a.made.baseSize == b.made.baseSize && a.made.text == b.made.text && a.made.font == b.made.font &&
            a.made.fontSize == b.made.fontSize && a.made.like == b.made.like && a.made.parent == b.made.parent &&
            a.made.texture == b.made.texture && a.made.width == b.made.width && a.made.minWidth == b.made.minWidth &&
-           a.made.scale == b.made.scale && a.made.absolute == b.made.absolute && a.made.height == b.made.height;
+           a.made.scale == b.made.scale && a.made.absolute == b.made.absolute && a.made.height == b.made.height &&
+           a.made.imageScale == b.made.imageScale;
   }
 } // namespace
 

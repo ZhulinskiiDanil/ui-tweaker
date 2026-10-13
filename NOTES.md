@@ -241,7 +241,7 @@ source or an issue). What's done about each is marked.
 - Color isn't edited: it isn't layout, and a button's press tints it anyway (backlog 5, a choice).
 - `[` `]` and an undo of a z-order give a node a new arrival order (GD's child index): among same-z siblings in a
   layout it moves to the end of its row (quirk 4). Not fixable from outside without touching GD's sorting.
-- Ctrl+D makes a text button with the original's font and background (not its own scale or colors) only when the
+- Ctrl+D makes a text button with the original's font and background (its image's scale too, not its colors) only when the
   background is a file of its own, a mod's resource too (GD's are: 20 of 21 in the tour's scenes with your mods,
   13 of 14 in vanilla); else `ButtonSprite`'s default look; a button's image a plain sprite or Geode's circle
   button (its top sprite's own relative scale, if not 1, isn't kept).

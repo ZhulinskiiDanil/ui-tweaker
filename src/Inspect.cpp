@@ -823,6 +823,9 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
   if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node))
   {
     auto image = button->getNormalImage();
+    // Its image's own scale (one for both axes)
+    if (image && image->getScaleX() == image->getScaleY())
+      made.imageScale = image->getScaleX();
     // A ButtonSprite is a sprite too: its text first
     if (auto text = typeinfo_cast<ButtonSprite*>(image); text && text->m_label)
     {
@@ -900,18 +903,32 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
   return std::nullopt;
 }
 
+namespace
+{
+  // A button's image, its own scale set before the button is made around it
+  CCNode* scaled(CCNode* image, float scale)
+  {
+    if (image)
+      image->setScale(scale);
+    return image;
+  }
+} // namespace
+
 CCNode* inspect::make(codegen::NodeDesc::Made const& made)
 {
   if (made.kind == "sprite")
     return CCSprite::createWithSpriteFrameName(made.frame.c_str());
   if (made.kind == "button")
-    return CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(made.frame.c_str()), nullptr, nullptr);
+    return CCMenuItemSpriteExtra::create(
+        scaled(CCSprite::createWithSpriteFrameName(made.frame.c_str()), made.imageScale), nullptr, nullptr);
   if (made.kind == "text button" && (made.texture.empty() || made.font.empty()))
-    return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str()), nullptr, nullptr);
+    return CCMenuItemSpriteExtra::create(scaled(ButtonSprite::create(made.text.c_str()), made.imageScale), nullptr,
+                                         nullptr);
   if (made.kind == "text button")
-    return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str(), made.width, made.minWidth, made.scale,
-                                                              made.absolute, made.font.c_str(), made.texture.c_str(),
-                                                              made.height),
+    return CCMenuItemSpriteExtra::create(scaled(ButtonSprite::create(made.text.c_str(), made.width, made.minWidth,
+                                                                     made.scale, made.absolute, made.font.c_str(),
+                                                                     made.texture.c_str(), made.height),
+                                                made.imageScale),
                                          nullptr, nullptr);
   if (made.kind == "circle button")
   {
@@ -931,7 +948,7 @@ CCNode* inspect::make(codegen::NodeDesc::Made const& made)
     auto sprite = geode::CircleButtonSprite::createWithSpriteFrameName(made.frame.c_str(), 1.f,
                                                                        static_cast<geode::CircleBaseColor>(color),
                                                                        static_cast<geode::CircleBaseSize>(size));
-    return sprite ? CCMenuItemSpriteExtra::create(sprite, nullptr, nullptr) : nullptr;
+    return sprite ? CCMenuItemSpriteExtra::create(scaled(sprite, made.imageScale), nullptr, nullptr) : nullptr;
   }
   if (made.kind == "label")
     return CCLabelBMFont::create(made.text.c_str(), made.font.c_str());

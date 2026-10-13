@@ -112,6 +112,8 @@ std::string session::write(Groups const& groups)
         out << "madeFont " << escape(node.made.font) << "\n";
         out << "madeFontSize " << number(node.made.fontSize) << "\n";
         out << "madeLike " << escape(node.made.like) << "\n";
+        if (node.made.imageScale != 1)
+          out << "madeImageScale " << number(node.made.imageScale) << "\n";
         if (!node.made.texture.empty())
         {
           out << "madeTexture " << escape(node.made.texture) << "\n";
@@ -242,6 +244,8 @@ std::optional<session::Groups> session::read(std::string_view text)
       node.made.fontSize = toFloat(value);
     else if (key == "madeLike")
       node.made.like = unescape(value);
+    else if (key == "madeImageScale")
+      node.made.imageScale = toFloat(value);
     else if (key == "madeTexture")
       node.made.texture = unescape(value);
     else if (key == "madeWidth")

@@ -317,10 +317,13 @@ class CCMenuItemSpriteExtra : public CCNode
 public:
   float m_baseScale = 1;
   CCNode* image = nullptr;
+  // The image's scale when the button was made (GD's takes its size from it then)
+  float imageScaleMade = 1;
   static CCMenuItemSpriteExtra* create(CCNode* sprite, CCNode*, SEL_MenuHandler)
   {
     auto button = new CCMenuItemSpriteExtra();
     button->image = sprite;
+    button->imageScaleMade = sprite->scaleX;
     button->addChild(sprite);
     return button;
   }

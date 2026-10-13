@@ -1,3 +1,8 @@
+# v0.13.1 (not released yet: on main)
+
+- `Ctrl+D` on a button keeps its image's own scale (GD's `sprite->setScale(.7f)` before `CCMenuItemSpriteExtra::create`): the code makes the image, scales it, then the button around it, so the button comes out as big
+- A right drag's box is part of the soak check (`tools/soak.sh`)
+
 # v0.13.0
 
 - `Ctrl+A` selects the selected node's siblings with it: a menu's row of buttons at once, to align or turn into a layout

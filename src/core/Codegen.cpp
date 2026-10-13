@@ -170,24 +170,36 @@ namespace
     return result;
   }
 
+  // The expression that makes a button's image; empty for a node that isn't a button
+  std::string imageMaking(codegen::NodeDesc::Made const& made)
+  {
+    if (made.kind == "button")
+      return "CCSprite::createWithSpriteFrameName(" + literal(made.frame) + ")";
+    if (made.kind == "text button" && (made.texture.empty() || made.font.empty()))
+      return "ButtonSprite::create(" + literal(made.text) + ")";
+    if (made.kind == "text button")
+      return "ButtonSprite::create(" + literal(made.text) + ", " + std::to_string(made.width) + ", " +
+             std::to_string(made.minWidth) + ", " + expr::number(made.scale) + ", " + (made.absolute ? "true" : "false") +
+             ", " + literal(made.font) + ", " + literal(made.texture) + ", " + expr::number(made.height) + ")";
+    if (made.kind == "circle button")
+      return "CircleButtonSprite::createWithSpriteFrameName(" + literal(made.frame) + ", 1.f, CircleBaseColor::" +
+             made.baseColor + ", CircleBaseSize::" + made.baseSize + ")";
+    return "";
+  }
+
+  // An image scaled by itself is made first, then the button around it
+  bool imageScaled(codegen::NodeDesc::Made const& made)
+  {
+    return !imageMaking(made).empty() && std::fabs(made.imageScale - 1) > 0.001f;
+  }
+
   // The expression that makes a node like the one described
   std::string making(codegen::NodeDesc::Made const& made)
   {
     if (made.kind == "sprite")
       return "CCSprite::createWithSpriteFrameName(" + literal(made.frame) + ")";
-    if (made.kind == "button")
-      return "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(" + literal(made.frame) +
-             "), this, nullptr)";
-    if (made.kind == "text button" && (made.texture.empty() || made.font.empty()))
-      return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + "), this, nullptr)";
-    if (made.kind == "text button")
-      return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + ", " +
-             std::to_string(made.width) + ", " + std::to_string(made.minWidth) + ", " + expr::number(made.scale) + ", " +
-             (made.absolute ? "true" : "false") + ", " + literal(made.font) + ", " + literal(made.texture) + ", " +
-             expr::number(made.height) + "), this, nullptr)";
-    if (made.kind == "circle button")
-      return "CCMenuItemSpriteExtra::create(CircleButtonSprite::createWithSpriteFrameName(" + literal(made.frame) +
-             ", 1.f, CircleBaseColor::" + made.baseColor + ", CircleBaseSize::" + made.baseSize + "), this, nullptr)";
+    if (auto image = imageMaking(made); !image.empty())
+      return "CCMenuItemSpriteExtra::create(" + (imageScaled(made) ? std::string("image") : image) + ", this, nullptr)";
     if (made.kind == "label")
       return "CCLabelBMFont::create(" + literal(made.text) + ", " + literal(made.font) + ")";
     if (made.kind == "ttf")
@@ -225,6 +237,11 @@ namespace
     out << indent << "{\n";
     if (inner.usesWinSize && declareWinSize)
       out << inside << "auto winSize = CCDirector::get()->getWinSize();\n";
+    if (imageScaled(made))
+    {
+      out << inside << "auto image = " << imageMaking(made) << ";\n";
+      out << inside << "image->setScale(" << expr::number(made.imageScale) << ");\n";
+    }
     out << inside << "auto node = " << making(made) << ";\n";
     out << inside << "node->setID(" << literal(id) << "_spr);\n";
     out << inside << "parent->addChild(node, " << node.zOrder << ");\n";
