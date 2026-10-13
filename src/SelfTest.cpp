@@ -1951,6 +1951,27 @@ namespace
                            }
                          }
                          check(millis < 10, fmt::format("the hover in the editor takes {:.2f} ms", millis));
+                         {
+                           // A box over the whole editor, as its outline is looked for while the mouse moves: the
+                           // interface only, none of the 3000 objects, quick
+                           auto boxStart = now();
+                           std::vector<CCNode*> inBox;
+                           for (int i = 0; i < 10; i++)
+                             inBox = inspect::within(scene, {0, 0, win.width, win.height});
+                           auto boxMillis = (now() - boxStart) * 100;
+                           bool objects = std::any_of(inBox.begin(), inBox.end(), [](CCNode* node)
+                                                      {
+                                                        for (auto up = node; up; up = up->getParent())
+                                                          if (typeinfo_cast<GameObject*>(up))
+                                                            return true;
+                                                        return false;
+                                                      });
+                           log::info("Self test: a box over the editor with 3000 objects: {} nodes, {:.2f} ms",
+                                     inBox.size(), boxMillis);
+                           check(!inBox.empty() && !objects && boxMillis < 10,
+                                 fmt::format("a box over the editor: {} nodes, objects {}, {:.2f} ms", inBox.size(),
+                                             objects, boxMillis));
+                         }
 
                          // A button of the editor's interface, with an ID, the mouse can get to
                          CCNode* button = nullptr;

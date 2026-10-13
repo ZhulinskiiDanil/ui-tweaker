@@ -145,7 +145,7 @@
   absolute, height) and its 9-slice's texture file (the texture cache's key without folder and -uhd; not when a
   sprite frame shares the texture, a sheet). Unit tests, a compiled sample (fake API and real Geode headers), the
   self test (a "GJ_button_04"/bigFont button made as big), and the tour making again every text button of 13 real
-  scenes: 20 of 21 with their look, all as big as the game's, both ways.
+  scenes: 20 of 21 with their look with your mods, 13 of 14 in vanilla, all as big as the game's.
 
 ## Checks
 
@@ -225,7 +225,7 @@ source or an issue). What's done about each is marked.
 - `[` `]` and an undo of a z-order give a node a new arrival order (GD's child index): among same-z siblings in a
   layout it moves to the end of its row (quirk 4). Not fixable from outside without touching GD's sorting.
 - Ctrl+D makes a text button with the original's font and background only when the background is a texture of
-  its own (GD's are: 20 of 21 in the tour's scenes); else `ButtonSprite`'s default look; a button's image a plain
+  its own (GD's are: 20 of 21 in the tour's scenes with your mods, 13 of 14 in vanilla); else `ButtonSprite`'s default look; a button's image a plain
   sprite or Geode's circle button (its top sprite's own relative scale, if not 1, isn't kept).
 - `tools/real-input.sh`'s points are the vanilla main menu's: with your MiSide menu it would click other things,
   so real input runs in vanilla; the self test runs both ways.
