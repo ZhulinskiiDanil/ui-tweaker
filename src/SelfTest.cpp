@@ -4,6 +4,7 @@
 #include "Inspect.hpp"
 #include "Retained.hpp"
 #include "core/Expr.hpp"
+#include "core/Measure.hpp"
 
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -29,7 +30,7 @@ using namespace geode::prelude;
 
 namespace
 {
-  // Frames in the main menu before the test, for it to settle
+  // Frames in the main menu before the test, for it to settle, and as long as they'd last at 60 fps
   constexpr int SETTLE_FRAMES = 90;
   constexpr float DRAG_X = 30.f;
   constexpr float DRAG_Y = -20.f;
@@ -215,7 +216,7 @@ namespace
 
   // A drag that ends with the node's center a point off the screen's middle ends right on it; without snapping
   // it doesn't. One step to undo either way
-  void finish(bool measurable);
+  void finish(bool measure);
   void edgeCases();
 
   void snapping(CCNode* node)
@@ -590,35 +591,14 @@ namespace
     edgeCases();
   }
 
-  // For the screenshot: the Geode button selected, the mouse over a visible sibling of it (the panel covers the
-  // top left) or over a label. Whether there's something to measure the distance to
-  bool prepareScreenshot()
+  // For the screenshot: the Geode button (or a label) selected
+  void prepareScreenshot()
   {
     auto scene = CCDirector::get()->getRunningScene();
-    std::vector<CCNode*> shown;
     if (auto node = scene->getChildByIDRecursive("geode.loader/geode-button"); node && visibleInTree(node))
-      shown.push_back(node);
-    if (auto label = findLabel(scene))
-      shown.push_back(label);
-    if (!shown.empty())
-      editor::select(shown[0]);
-    // The mouse over a visible sibling of the selected one if there is one (the panel covers the top left), or
-    // over the next node
-    CCNode* other = nullptr;
-    if (!shown.empty())
-      for (auto sibling : CCArrayExt<CCNode*>(shown[0]->getParent()->getChildren()))
-        if (sibling != shown[0] && visibleInTree(sibling) && sibling->getContentWidth() > 0 && reachable(sibling))
-        {
-          other = sibling;
-          break;
-        }
-    if (!other && shown.size() > 1)
-      other = shown[1];
-    if (other)
-    {
-      auto center = inspect::worldQuad(other).center();
-      editor::pinMouse(CCPoint{center.x, center.y});
-    }
+      editor::select(node);
+    else if (auto label = findLabel(scene))
+      editor::select(label);
 
     // UI_TWEAKER_SELFTEST=aspect: the other screens' shapes on, for a screenshot of them
     if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "aspect")
@@ -626,11 +606,56 @@ namespace
     // =code: the selected node's code in the panel
     if (std::string(std::getenv("UI_TWEAKER_SELFTEST")) == "code")
       editor::setCodeView(true);
+  }
 
-    // The distances as with Alt held, from the selected node to the one under the mouse: the overlay measures
-    // them when it draws, so the result is a few frames away
+  // The mouse over a node the edit mode would hover there, not under the panel (so a few frames after the
+  // selection, the panel having moved out of its way), and that has distances to the selected one: a sibling of
+  // it if there is one, else a label, else anything on the screen. A label filling its button exactly has none to
+  // it (another mod's menu has such buttons). Whether there's one
+  bool pointAtMeasurable()
+  {
+    auto scene = CCDirector::get()->getRunningScene();
+    auto selected = editor::selected();
+    if (!selected)
+      return false;
+    auto measurable = [&](CCNode* node)
+    {
+      if (node == selected || !visibleInTree(node) || node->getContentWidth() <= 0)
+        return false;
+      auto center = inspect::worldQuad(node).center();
+      if (editor::overPanel({center.x, center.y}))
+        return false;
+      auto hits = inspect::hitsAt(scene, {center.x, center.y});
+      if (hits.empty() || hits[0] != node)
+        return false;
+      return !measure::between(inspect::worldQuad(selected).bounds(), inspect::worldQuad(node).bounds()).empty();
+    };
+    std::vector<CCNode*> first;
+    for (auto sibling : CCArrayExt<CCNode*>(selected->getParent()->getChildren()))
+      first.push_back(sibling);
+    if (auto label = findLabel(scene))
+      first.push_back(label);
+    CCNode* other = nullptr;
+    for (auto node : first)
+      if (!other && measurable(node))
+        other = node;
+    // Then the whole scene, breadth first
+    std::vector<CCNode*> queue{scene};
+    for (size_t i = 0; !other && i < queue.size(); i++)
+    {
+      if (measurable(queue[i]))
+        other = queue[i];
+      for (auto child : CCArrayExt<CCNode*>(queue[i]->getChildren()))
+        if (child->isVisible())
+          queue.push_back(child);
+    }
+    if (!other)
+      return false;
+    auto center = inspect::worldQuad(other).center();
+    editor::pinMouse(CCPoint{center.x, center.y});
+    // The distances as with Alt held: the overlay measures them when it draws, so the result is a few frames away
     editor::setMeasuring(true);
-    return other != nullptr;
+    return true;
   }
 
   // ! --- Over several frames --- !
@@ -703,25 +728,51 @@ namespace
   {
     int frames;
     std::function<void()> run;
+    // What the step waits for before it runs, up to 15 s more
+    std::function<bool()> ready = nullptr;
   };
+
+  // The running scene isn't a transition anymore
+  bool sceneSettled()
+  {
+    auto scene = CCDirector::get()->getRunningScene();
+    return scene && !typeinfo_cast<CCTransitionScene*>(scene);
+  }
 
   std::vector<Step> g_steps;
   size_t g_next = 0;
   int g_wait = 0;
+  double g_until = 0;
 
+  // A step's frames are also as long as they'd last at 60 fps: a game without a frame limit draws hundreds a
+  // second, and a scene's transition takes its time whatever the frame rate
   void tick()
   {
-    if (g_wait > 0)
+    if (g_wait > 0 || now() < g_until)
     {
-      g_wait--;
+      if (g_wait > 0)
+        g_wait--;
       Loader::get()->queueInMainThread(tick);
       return;
     }
     if (g_next >= g_steps.size())
       return;
+    static double waited = 0;
+    if (auto& ready = g_steps[g_next].ready; ready && !ready())
+    {
+      if (waited == 0)
+        waited = now();
+      if (now() - waited < 15)
+      {
+        Loader::get()->queueInMainThread(tick);
+        return;
+      }
+    }
+    waited = 0;
     auto step = g_steps[g_next++];
     step.run();
     g_wait = step.frames;
+    g_until = now() + step.frames / 60.0;
     Loader::get()->queueInMainThread(tick);
   }
 
@@ -832,9 +883,9 @@ namespace
     g_steps.push_back({1,
                        []
                        {
-                         auto measurable = prepareScreenshot();
+                         prepareScreenshot();
                          g_frames = 0;
-                         finish(measurable);
+                         finish(true);
                        }});
   }
 
@@ -1087,7 +1138,8 @@ namespace
            check(editor::historySize() >= 1, "an edit in the new scene is in the history");
            log::info("Self test: picked {} in the creator layer", picked ? inspect::name(picked) : "nothing");
            CCDirector::get()->replaceScene(CCTransitionFade::create(0.5f, MenuLayer::scene(false)));
-         }},
+         },
+         sceneSettled},
         {120,
          []
          {
@@ -1140,21 +1192,27 @@ namespace
              tour();
              return;
            }
-           auto measurable = prepareScreenshot();
+           prepareScreenshot();
            g_frames = 0;
-           finish(measurable);
-         }},
+           finish(true);
+         },
+         sceneSettled},
     };
     g_next = 0;
     g_wait = 0;
     tick();
   }
 
-  void finish(bool measurable)
+  // The end: with `measure`, the distances to a node pointed at once the panel has moved out of the way
+  void finish(bool measure)
   {
-    if (++g_frames < 5)
+    static bool measurable = false;
+    ++g_frames;
+    if (g_frames == 3)
+      measurable = measure && pointAtMeasurable();
+    if (g_frames < 8)
     {
-      Loader::get()->queueInMainThread([measurable] { finish(measurable); });
+      Loader::get()->queueInMainThread([measure] { finish(measure); });
       return;
     }
     if (measurable)
@@ -1178,9 +1236,12 @@ namespace
   {
     auto scene = CCDirector::get()->getRunningScene();
     auto layer = scene ? scene->getChildByType<MenuLayer>(0) : nullptr;
+    static double since = 0;
     if (!layer)
       g_frames = 0;
-    else if (++g_frames >= SETTLE_FRAMES)
+    else if (++g_frames == 1)
+      since = now();
+    else if (g_frames >= SETTLE_FRAMES && now() - since >= SETTLE_FRAMES / 60.0)
     {
       run(layer);
       return;

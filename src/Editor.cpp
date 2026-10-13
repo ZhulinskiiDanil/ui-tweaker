@@ -2133,6 +2133,12 @@ void editor::pinMouse(std::optional<CCPoint> world)
   state().pinned = world;
 }
 
+bool editor::overPanel(CCPoint world)
+{
+  auto& s = state();
+  return s.overlay && s.overlay->panelContains(world);
+}
+
 bool editor::swallowsClick()
 {
   using enum MouseInputData::Action;

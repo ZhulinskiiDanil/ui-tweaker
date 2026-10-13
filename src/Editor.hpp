@@ -89,6 +89,8 @@ namespace editor
 
   // For the self test: the mouse is here, not where the real one is, until the real one moves
   void pinMouse(std::optional<cocos2d::CCPoint> world);
+  // Whether the panel is at a point of the screen: nothing is hovered under it
+  bool overPanel(cocos2d::CCPoint world);
   // What the edit mode does to a click before the game sees it: true if it keeps it from the game
   bool swallowsClick();
 } // namespace editor
