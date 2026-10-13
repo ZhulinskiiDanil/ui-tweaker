@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 17:28.
+  what the mod does), this file last updated 17:33.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -303,6 +303,9 @@ source or an issue). What's done about each is marked.
   so real input runs in vanilla; the self test runs both ways.
 - The game's memory rises about 7 MB a minute in the vanilla game here, the same with the edit mode on, off, idle
   or used: not the mod's, noted in case it matters.
+- `tools/e2e.sh` stopped by Ctrl+C mid-run takes its test mod out only when the step it was in ends (bash waits
+  for it); `tools/vanilla.sh` under it puts your mods back at once now. If you stop it, check that
+  `zhulis.ui-tweaker-e2e.geode` isn't left in the game's mods folder.
 
 ## Proposals
 
