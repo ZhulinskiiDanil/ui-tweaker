@@ -18,6 +18,13 @@
 #include <Geode/binding/GameLevelManager.hpp>
 #include <Geode/binding/GameManager.hpp>
 #include <Geode/binding/LevelSearchLayer.hpp>
+#include <Geode/binding/EditLevelLayer.hpp>
+#include <Geode/binding/GJAccountManager.hpp>
+#include <Geode/binding/GJSearchObject.hpp>
+#include <Geode/binding/LevelBrowserLayer.hpp>
+#include <Geode/binding/MoreOptionsLayer.hpp>
+#include <Geode/binding/OptionsLayer.hpp>
+#include <Geode/binding/ProfilePage.hpp>
 #include <Geode/binding/LevelSelectLayer.hpp>
 #include <Geode/binding/LevelEditorLayer.hpp>
 #include <Geode/binding/MenuLayer.hpp>
@@ -1343,6 +1350,20 @@ namespace
     visit("GJGarageLayer", [] { return GJGarageLayer::scene(); });
     visit("LevelSelectLayer", [] { return LevelSelectLayer::scene(0); });
     visit("LevelSearchLayer", [] { return LevelSearchLayer::scene(0); });
+    // The player's own levels (a list of TableView cells) and one of them, nothing from the servers
+    visit("LevelBrowserLayer", [] { return LevelBrowserLayer::scene(GJSearchObject::create(SearchType::MyLevels)); });
+    visit("EditLevelLayer", [] { return EditLevelLayer::scene(GJGameLevel::create()); });
+    // Popups over the main menu, as a mod's own would be: Geode's quick popup, the settings, the player's profile
+    auto popup = [](std::string name, std::function<void()> open)
+    {
+      g_steps.push_back({90, [] { CCDirector::get()->replaceScene(MenuLayer::scene(false)); }});
+      g_steps.push_back({60, [open] { open(); }, sceneSettled});
+      g_steps.push_back({2, [name] { tourScene(name); }});
+    };
+    popup("FLAlertLayer", [] { createQuickPopup("UI Tweaker", "A popup like a mod's own", "OK", nullptr, nullptr); });
+    popup("OptionsLayer", [] { OptionsLayer::create()->showLayer(true); });
+    popup("MoreOptionsLayer", [] { MoreOptionsLayer::create()->show(); });
+    popup("ProfilePage", [] { ProfilePage::create(GJAccountManager::get()->m_accountID, true)->show(); });
     visit("PlayLayer", [] { return PlayLayer::scene(GameLevelManager::get()->getMainLevel(1, false), false, false); });
     // Paused in the level: the pause menu's nodes
     g_steps.push_back({60,

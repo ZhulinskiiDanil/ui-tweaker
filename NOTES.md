@@ -14,6 +14,7 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 7 | The tour: 13 scenes (+ LevelBrowserLayer of your levels, EditLevelLayer, a quick popup, OptionsLayer, MoreOptionsLayer, ProfilePage) | tour PASS: 947 checks vanilla, 873 yours; no crash, every path leads to its node |
 | 6 | *Grid* setting: the code's offsets in whole steps from the closest edge/center, the grid drawn while dragging (`core/Grid.cpp`) | grid unit tests, self test on the screen and in a turned scaled parent (code read back), screenshot mid-drag (`=grid`): `winSize.width / 2 - 20.f, winSize.height - 40.f` |
 | 5 | Rotation (Ctrl+wheel, typed) and opacity (typed), in the code only when the edit mode changed them; no color (not layout; a button's press tints it) | unit test, a compiled sample, self test (an action-turned node not turned in the code, undo leaves the game's turn), real Ctrl+wheel, 13/13 both ways |
 | 4 | Edits kept between runs (`core/Session.cpp`, `session.txt`), *Put edits back* (off by default), `Ctrl+Delete`, `inspect::resolve`, nodes without IDs told apart by their path in "Copy all" | session unit tests (every field round trip, odd input), `UI_TWEAKER_SELFTEST=session` both ways, `tools/session-check.sh`: a real drag, a restart, put back where it was, undone (6/6) |
@@ -89,9 +90,11 @@
 - 09:17 backlog 5, rotation and opacity. Found on the way: the lists of nodes whose size or visibility the edit
   mode set were never pruned (a node freed later could share an address with a new one): pruned with the originals
   now; and whether a rotation or opacity is an edit comes from the steps not undone, not from a list.
-- 09:35 backlog 6, the grid, as a grid for the code's numbers rather than for the screen's points: a modder wants
+- 09:26 backlog 6, the grid, as a grid for the code's numbers rather than for the screen's points: a modder wants
   `winSize.width / 2 - 20.f`, not a position that's a multiple of 10 on a 569-wide screen. Its lines are drawn per
   anchor (from the edges and the middle out to the quarter points), as the expressions are.
+- 09:30 a third review started (separate agent: session, rotation/opacity, grid). Backlog 7: six more scenes in
+  the tour, nothing from the servers (your levels, a local level's page, popups over the main menu): all right.
 
 ## Checks
 
