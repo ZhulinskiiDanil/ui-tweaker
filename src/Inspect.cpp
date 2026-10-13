@@ -8,6 +8,7 @@
 #include <Geode/binding/ButtonSprite.hpp>
 #include <Geode/binding/CCMenuItemSpriteExtra.hpp>
 #include <Geode/binding/CCScrollLayerExt.hpp>
+#include <Geode/ui/BasedButtonSprite.hpp>
 #include <Geode/ui/NineSlice.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/SimpleAxisLayout.hpp>
@@ -747,6 +748,28 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
       made.text = text->m_label->getString();
       return made;
     }
+    // Geode's circle button: its base's frame is geode.loader/baseCircle_<size>_<color>.png, named after the enums;
+    // its top a plain sprite
+    if (auto circle = typeinfo_cast<geode::CircleButtonSprite*>(image))
+    {
+      auto base = cachedFrameName(circle);
+      auto top = typeinfo_cast<CCSprite*>(circle->getTopNode());
+      auto at = base.find("baseCircle_");
+      if (at == std::string::npos || !top || className(top) != "CCSprite")
+        return std::nullopt;
+      auto names = base.substr(at + std::string_view("baseCircle_").size());
+      names = names.substr(0, names.rfind(".png"));
+      auto split = names.find('_');
+      if (split == std::string::npos)
+        return std::nullopt;
+      made.baseSize = names.substr(0, split);
+      made.baseColor = names.substr(split + 1);
+      made.frame = cachedFrameName(top);
+      if (made.frame.empty())
+        return std::nullopt;
+      made.kind = "circle button";
+      return made;
+    }
     // A plain sprite only: a sprite of its own class (a circle button with an icon) isn't made by its frame
     if (auto sprite = typeinfo_cast<CCSprite*>(image); sprite && className(image) == "CCSprite")
       made.frame = cachedFrameName(sprite);
@@ -790,6 +813,26 @@ CCNode* inspect::make(codegen::NodeDesc::Made const& made)
     return CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(made.frame.c_str()), nullptr, nullptr);
   if (made.kind == "text button")
     return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str()), nullptr, nullptr);
+  if (made.kind == "circle button")
+  {
+    // The enums by their names, in their order
+    static char const* const sizes[] = {"Tiny", "Small", "SmallAlt", "Medium", "MediumAlt", "Big", "BigAlt", "Large"};
+    static char const* const colors[] = {"Green", "Pink", "Gray", "Blue", "Cyan", "DarkPurple", "DarkAqua", "Red"};
+    auto index = [](auto const& names, std::string const& name)
+    {
+      for (size_t i = 0; i < std::size(names); i++)
+        if (name == names[i])
+          return static_cast<int>(i);
+      return -1;
+    };
+    int size = index(sizes, made.baseSize), color = index(colors, made.baseColor);
+    if (size < 0 || color < 0)
+      return nullptr;
+    auto sprite = geode::CircleButtonSprite::createWithSpriteFrameName(made.frame.c_str(), 1.f,
+                                                                       static_cast<geode::CircleBaseColor>(color),
+                                                                       static_cast<geode::CircleBaseSize>(size));
+    return sprite ? CCMenuItemSpriteExtra::create(sprite, nullptr, nullptr) : nullptr;
+  }
   if (made.kind == "label")
     return CCLabelBMFont::create(made.text.c_str(), made.font.c_str());
   if (made.kind == "ttf")

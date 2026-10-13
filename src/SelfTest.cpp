@@ -8,6 +8,7 @@
 #include "core/Session.hpp"
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/BasedButtonSprite.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
 #include <Geode/binding/ButtonSprite.hpp>
@@ -914,13 +915,20 @@ namespace
     button->setScale(1.2f);
     button->m_baseScale = 1.2f;
     menu->addChild(button);
+    auto circleSprite = geode::CircleButtonSprite::createWithSpriteFrameName("GJ_infoIcon_001.png", 1.f,
+                                                                              geode::CircleBaseColor::Blue,
+                                                                              geode::CircleBaseSize::Small);
+    auto circle = CCMenuItemSpriteExtra::create(circleSprite, nullptr, nullptr);
+    circle->setID("selftest-dup-circle"_spr);
+    circle->setPosition({95, 40});
+    menu->addChild(circle);
     auto label = CCLabelBMFont::create("Hello", "bigFont.fnt");
     label->setID("selftest-dup-label"_spr);
     label->setPosition({140, 40});
     label->setScale(0.5f);
     menu->addChild(label);
 
-    for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(label)})
+    for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(circle), static_cast<CCNode*>(label)})
     {
       auto name = inspect::name(source);
       editor::select(source);
@@ -942,9 +950,12 @@ namespace
       editor::setSnapping(std::nullopt);
       auto code = editor::codeFor(made);
       log::info("Self test: the code for a node made like {}:\n{}", name, code);
-      bool makes = source == button
-                       ? code.find("CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\"), this, nullptr)") != std::string::npos
-                       : code.find("CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")") != std::string::npos;
+      std::string wanted =
+          source == button   ? "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\"), this, nullptr)"
+          : source == circle ? "CircleButtonSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\", 1.f, CircleBaseColor::Blue, "
+                               "CircleBaseSize::Small)"
+                             : "CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")";
+      bool makes = code.find(wanted) != std::string::npos;
       check(makes, fmt::format("the code makes one like {}", name));
       check(code.find("getChildByIDRecursive(\"zhulis.ui-tweaker/selftest-dup-menu\")") != std::string::npos &&
                 code.find("parent->addChild(node, 0);") != std::string::npos,

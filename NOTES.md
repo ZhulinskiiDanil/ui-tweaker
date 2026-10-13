@@ -185,8 +185,8 @@ source or an issue). What's done about each is marked.
 - Color isn't edited: it isn't layout, and a button's press tints it anyway (backlog 5, a choice).
 - `[` `]` and an undo of a z-order give a node a new arrival order (GD's child index): among same-z siblings in a
   layout it moves to the end of its row (quirk 4). Not fixable from outside without touching GD's sorting.
-- Ctrl+D makes a text button with `ButtonSprite`'s default font and background, and only plain sprites as a
-  button's image (a circle button with an icon isn't offered).
+- Ctrl+D makes a text button with `ButtonSprite`'s default font and background; a button's image a plain
+  sprite or Geode's circle button (its top sprite's own relative scale, if not 1, isn't kept).
 - `tools/real-input.sh`'s points are the vanilla main menu's: with your MiSide menu it would click other things,
   so real input runs in vanilla; the self test runs both ways.
 - The game's memory rises about 7 MB a minute in the vanilla game here, the same with the edit mode on, off, idle
@@ -199,8 +199,7 @@ source or an issue). What's done about each is marked.
   Needs the order restored on undo, which GD's child index makes delicate (quirk 4).
 - A "freeze the level" option while editing (pause the scene's schedulers, not the overlay's): still left out, it
   changes the game's state and fights speedhack mods.
-- Ctrl+D for more kinds: a circle button with its icon (`CircleButtonSprite`), a `ButtonSprite` with its font and
-  background read from the original.
+- Ctrl+D for a `ButtonSprite` with its font and background read from the original.
 
 # Run 1 (2026-10-12)
 

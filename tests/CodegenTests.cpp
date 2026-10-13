@@ -224,6 +224,21 @@ namespace
     code = generate(node);
     CHECK(has(code, "if (auto parent = static_cast<CCNode*>(this))"));
     CHECK(has(code, "CCLabelBMFont::create(\"Hi \\\"you\\\"\", \"bigFont.fnt\")"));
+    // Geode's circle button: its base's color and size by their enums' names
+    {
+      auto circle = node;
+      circle.layout = {};
+      circle.made = {};
+      circle.made.kind = "circle button";
+      circle.made.frame = "GJ_infoIcon_001.png";
+      circle.made.baseColor = "Green";
+      circle.made.baseSize = "MediumAlt";
+      circle.made.like = "geode-button";
+      auto made = generate(circle);
+      CHECK(has(made, "CircleButtonSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\", 1.f, CircleBaseColor::Green, "
+                      "CircleBaseSize::MediumAlt), this, nullptr)"));
+      CHECK(has(made, "menu_selector"));
+    }
     // Line breaks escaped: a raw one in a literal wouldn't compile
     node.made.text = "Level\nComplete";
     CHECK(has(generate(node), "CCLabelBMFont::create(\"Level\\nComplete\", \"bigFont.fnt\")"));

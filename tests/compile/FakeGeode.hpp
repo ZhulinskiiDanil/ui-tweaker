@@ -326,6 +326,46 @@ public:
   }
 };
 
+enum class CircleBaseColor
+{
+  Green,
+  Pink,
+  Gray,
+  Blue,
+  Cyan,
+  DarkPurple,
+  DarkAqua,
+  Red,
+};
+
+enum class CircleBaseSize
+{
+  Tiny,
+  Small,
+  SmallAlt,
+  Medium,
+  MediumAlt,
+  Big,
+  BigAlt,
+  Large,
+};
+
+class CircleButtonSprite : public CCNode
+{
+public:
+  std::string top;
+  CircleBaseColor color = CircleBaseColor::Green;
+  CircleBaseSize size = CircleBaseSize::Medium;
+  static CircleButtonSprite* createWithSpriteFrameName(char const* name, float, CircleBaseColor color, CircleBaseSize size)
+  {
+    auto sprite = new CircleButtonSprite();
+    sprite->top = name;
+    sprite->color = color;
+    sprite->size = size;
+    return sprite;
+  }
+};
+
 class ButtonSprite : public CCNode
 {
 public:

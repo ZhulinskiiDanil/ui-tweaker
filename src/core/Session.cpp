@@ -106,6 +106,8 @@ std::string session::write(Groups const& groups)
       {
         out << "madeKind " << escape(node.made.kind) << "\n";
         out << "madeFrame " << escape(node.made.frame) << "\n";
+        out << "madeBaseColor " << escape(node.made.baseColor) << "\n";
+        out << "madeBaseSize " << escape(node.made.baseSize) << "\n";
         out << "madeText " << escape(node.made.text) << "\n";
         out << "madeFont " << escape(node.made.font) << "\n";
         out << "madeFontSize " << number(node.made.fontSize) << "\n";
@@ -219,6 +221,10 @@ std::optional<session::Groups> session::read(std::string_view text)
       node.made.kind = unescape(value);
     else if (key == "madeFrame")
       node.made.frame = unescape(value);
+    else if (key == "madeBaseColor")
+      node.made.baseColor = unescape(value);
+    else if (key == "madeBaseSize")
+      node.made.baseSize = unescape(value);
     else if (key == "madeText")
       node.made.text = unescape(value);
     else if (key == "madeFont")

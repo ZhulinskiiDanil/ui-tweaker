@@ -74,10 +74,15 @@ namespace codegen
     // A node made in the edit mode (Ctrl+D), like another: the code makes it instead of finding it
     struct Made
     {
-      // "sprite", "button" (a sprite in a CCMenuItemSpriteExtra), "text button" (a ButtonSprite in one), "label"
-      // (CCLabelBMFont), "ttf" (CCLabelTTF); empty: not made here
+      // "sprite", "button" (a sprite in a CCMenuItemSpriteExtra), "text button" (a ButtonSprite in one), "circle
+      // button" (Geode's CircleButtonSprite in one), "label" (CCLabelBMFont), "ttf" (CCLabelTTF); empty: not made
+      // here
       std::string kind;
+      // A sprite's frame; a circle button's top sprite's
       std::string frame;
+      // A circle button's base, as CircleBaseColor's and CircleBaseSize's names: "Green", "MediumAlt"
+      std::string baseColor;
+      std::string baseSize;
       std::string text;
       std::string font;
       float fontSize = 0;

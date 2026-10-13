@@ -117,6 +117,14 @@ inline std::vector<codegen::NodeDesc> samples()
   eighteen->made.text = "Hello\nthere \"you\"";
   eighteen->made.font = "bigFont.fnt";
   eighteen->made.like = "a label";
+  // 19: a circle button made in the edit mode
+  auto nineteen = add("zhulis.ui-tweaker/new-19", "CCMenuItemSpriteExtra", "p19", {40, 40}, box);
+  nineteen->made.kind = "circle button";
+  nineteen->made.frame = "geode.loader/geode-logo-outline-gold.png";
+  nineteen->made.baseColor = "DarkPurple";
+  nineteen->made.baseSize = "MediumAlt";
+  nineteen->made.like = "geode-button";
+  nineteen->made.parent = lookup(NodeDesc{.id = "p19"}, "parent");
   return all;
 }
 

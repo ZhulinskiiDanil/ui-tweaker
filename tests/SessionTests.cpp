@@ -35,6 +35,7 @@ namespace
     node.sizeChanged = true;
     node.visible = false;
     node.visibleChanged = true;
+    node.made = {"circle button", "top.png", "Blue", "Small", "a\ntext", "bigFont.fnt", 12.5f, "geode-button", {"auto parent = this", "auto x = y"}};
     return node;
   }
 
@@ -49,7 +50,10 @@ namespace
            a.layout.name == b.layout.name && a.layout.hasAnchorOptions == b.layout.hasAnchorOptions &&
            a.layout.anchorNow == b.layout.anchorNow && a.layout.prevGap == b.layout.prevGap &&
            a.scaleChanged == b.scaleChanged && a.anchorChanged == b.anchorChanged && a.zOrderChanged == b.zOrderChanged &&
-           a.sizeChanged == b.sizeChanged && a.visible == b.visible && a.visibleChanged == b.visibleChanged;
+           a.sizeChanged == b.sizeChanged && a.visible == b.visible && a.visibleChanged == b.visibleChanged &&
+           a.made.kind == b.made.kind && a.made.frame == b.made.frame && a.made.baseColor == b.made.baseColor &&
+           a.made.baseSize == b.made.baseSize && a.made.text == b.made.text && a.made.font == b.made.font &&
+           a.made.fontSize == b.made.fontSize && a.made.like == b.made.like && a.made.parent == b.made.parent;
   }
 } // namespace
 

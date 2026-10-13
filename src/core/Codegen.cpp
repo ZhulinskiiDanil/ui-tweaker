@@ -180,6 +180,9 @@ namespace
              "), this, nullptr)";
     if (made.kind == "text button")
       return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + "), this, nullptr)";
+    if (made.kind == "circle button")
+      return "CCMenuItemSpriteExtra::create(CircleButtonSprite::createWithSpriteFrameName(" + literal(made.frame) +
+             ", 1.f, CircleBaseColor::" + made.baseColor + ", CircleBaseSize::" + made.baseSize + "), this, nullptr)";
     if (made.kind == "label")
       return "CCLabelBMFont::create(" + literal(made.text) + ", " + literal(made.font) + ")";
     if (made.kind == "ttf")
@@ -194,7 +197,7 @@ namespace
     auto const& made = node.made;
     auto id = node.id.substr(node.id.find('/') == std::string::npos ? 0 : node.id.find('/') + 1);
     // Where it comes from, wrapped as the other comments are
-    bool button = made.kind == "button" || made.kind == "text button";
+    bool button = made.kind == "button" || made.kind == "text button" || made.kind == "circle button";
     std::string about = "A new " + node.className + " like " + made.like + ", in " +
                         describe(node.parentId, node.parentClass) + ": give it an ID of your own";
     if (button)
