@@ -45,7 +45,7 @@ namespace
       .axisLayout = "{} has a {}: updateLayout() puts the node back in line, so the position is lost. The code sets "
                     "its gap in the layout instead",
       .simpleAxisLayout = "{} has a {}: updateLayout() puts the node back in line, so the position is lost. The code "
-                          "has the gap before it as an AxisGap, and the position as a comment",
+                          "suggests, as comments, an AxisGap before it (the whole line is laid out again) and the position",
       .otherLayout = "{} has a {}: updateLayout() may move the node back",
       .layoutMoves = "{} has a {}: its updateLayout() sets this node's position, so a setPosition of yours lasts until "
                      "it runs",
@@ -119,7 +119,7 @@ namespace
       .axisLayout = "У {} {}: updateLayout() вернёт ноду в ряд, позиция потеряется. Код задаёт вместо неё отступ в "
                     "layout",
       .simpleAxisLayout = "У {} {}: updateLayout() вернёт ноду в ряд, позиция потеряется. В коде отступ перед ней "
-                          "как AxisGap, а позиция в комментарии",
+                          "как AxisGap (ряд перестроится весь) и позиция — в комментариях",
       .otherLayout = "У {} {}: updateLayout() может вернуть ноду на место",
       .layoutMoves = "У {} {}: его updateLayout() задаёт позицию этой ноды, ваш setPosition продержится до "
                      "следующего вызова",

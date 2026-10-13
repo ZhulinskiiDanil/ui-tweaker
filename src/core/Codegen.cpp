@@ -122,9 +122,11 @@ namespace
       }
       else if (node.layout.prevGap)
       {
-        // A SimpleAxisLayout has no gap per node: an AxisGap node before it is one
-        out << indent << "// A gap before it, on top of the layout's own: node->getParent()->insertBefore(AxisGap::create("
-            << expr::number(*node.layout.prevGap) << "), node);\n";
+        // A SimpleAxisLayout has no gap per node: an AxisGap node before it is one, instead of the layout's gap
+        // there. The whole line is laid out again with it (a centered row moves), so it's a suggestion
+        out << indent << "// The gap before it instead of the layout's, the line laid out again around it:\n"
+            << indent << "// node->getParent()->insertBefore(AxisGap::create(" << expr::number(*node.layout.prevGap)
+            << "), node); node->getParent()->updateLayout();\n";
       }
       // The position itself, for a node taken out of the layout
       if (usesExtent && !screen)

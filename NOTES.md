@@ -114,8 +114,8 @@
 
 | When | Mods | Tests | geode build | Self test | Screenshot |
 | --- | --- | --- | --- | --- | --- |
-| 11:50 (v0.11.0) | yours | 18/18 | ok | PASS 189 / play 203 / editor 201 / tour 899 / reload 199 / session 201 / code 189 / aspect 189 / grid 188 / ime 189 | |
-| 11:50 (v0.11.0) | vanilla | 18/18 | ok | PASS 191 / 205 / 203 / tour 977 / 203 / 203 / 191 / 191 / 190 / 191; real input 15/15; restart 6/6 | |
+| 11:41 (v0.11.0) | yours | 18/18 | ok | PASS 189 / play 203 / editor 201 / tour 899 / reload 199 / session 201 / code 189 / aspect 189 / grid 188 / ime 189 | |
+| 11:41 (v0.11.0) | vanilla | 18/18 | ok | PASS 191 / 205 / 203 / tour 977 / 203 / 203 / 191 / 191 / 190 / 191; real input 15/15; restart 6/6 | |
 | 11:30 soak | vanilla | | | `tools/soak.sh 150` (drags, wheel, undo, Ctrl+D and undo, tree and code open): 880 → 908 → 935 → 959 → 977 → 996 → 1011 → 1031 MB; idle 2 min with the edit mode on: +14 MB, off: +15 MB: the game's own rise, the same rate | |
 | 10:10 (v0.10.0) | yours | 18/18 | ok | PASS 164 / play 178 / editor 176 / tour 874 (13 scenes) / reload 174 / session 176 / code 164 / aspect 164 | grid mid-drag, panel above the taskbar |
 | 10:10 (v0.10.0) | vanilla | 18/18 | ok | PASS 166 / 180 / 178 / tour 948 / 178 / 178 / 166 / 166; real input 13/13; restart 6/6 | README screenshots made again |

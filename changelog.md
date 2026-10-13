@@ -1,3 +1,7 @@
+# v0.11.1 (not released yet: on main)
+
+- The comment for a node in a SimpleAxisLayout says what an `AxisGap` does: it replaces the layout's gap before the node and the whole line is laid out again (a centered row moves), so it stays a suggestion
+
 # v0.11.0
 
 - Values typed with several nodes selected: the fields typed into go to each of them (`pw`, `ph` its own parent's), one step to undo; the others stay each node's own. A scale for a whole row of buttons at once
