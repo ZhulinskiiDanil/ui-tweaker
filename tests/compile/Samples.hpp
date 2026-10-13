@@ -103,6 +103,20 @@ inline std::vector<codegen::NodeDesc> samples()
   sixteen->rotationChanged = true;
   sixteen->opacity = 100;
   sixteen->opacityChanged = true;
+  // 17: a button made in the edit mode, in a menu with an ID, scaled
+  auto seventeen = add("zhulis.ui-tweaker/new-17", "CCMenuItemSpriteExtra", "p17", {150, 60}, box);
+  seventeen->zOrder = 3;
+  seventeen->scaleX = seventeen->scaleY = 1.25f;
+  seventeen->made.kind = "button";
+  seventeen->made.frame = "GJ_infoIcon_001.png";
+  seventeen->made.like = "info-button";
+  seventeen->made.parent = lookup(NodeDesc{.id = "p17"}, "parent");
+  // 18: a label made in the edit mode, in the layer itself
+  auto eighteen = add("zhulis.ui-tweaker/new-18", "CCLabelBMFont", "", {200, 280}, screen);
+  eighteen->made.kind = "label";
+  eighteen->made.text = "Hello";
+  eighteen->made.font = "bigFont.fnt";
+  eighteen->made.like = "a label";
   return all;
 }
 

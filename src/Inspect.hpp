@@ -8,6 +8,7 @@
 
 #include <Geode/Geode.hpp>
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,8 @@ namespace inspect
     float rotation = 0;
     // 255 for a node without one (not a CCRGBAProtocol)
     int opacity = 255;
+    // In the scene: false only before a node made in the edit mode is added
+    bool present = true;
 
     bool operator==(NodeState const& other) const;
   };
@@ -82,6 +85,11 @@ namespace inspect
   cocos2d::CCNode* followPath(cocos2d::CCNode* node, codegen::NodeDesc const& desc);
   // describe remembers how a node is found for half a second; code that's copied is made with it found again
   void forgetLookups();
+  // How a node like this one is made, as the code makes it: a sprite's frame, a button's image, a label's text.
+  // Nothing for a node that can't be made so
+  std::optional<codegen::NodeDesc::Made> madeLike(cocos2d::CCNode* node);
+  // A node made as the code would make it
+  cocos2d::CCNode* make(codegen::NodeDesc::Made const& made);
   // The node a description is of in a scene, found as its code would find it: by its ID, its path or its parent's ID
   // and index, from the layer of the description's class. Null if there's none of its class there
   cocos2d::CCNode* resolve(cocos2d::CCNode* scene, codegen::NodeDesc const& desc);

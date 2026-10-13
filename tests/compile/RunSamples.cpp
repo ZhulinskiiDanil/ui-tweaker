@@ -120,6 +120,25 @@ void buildScene(CCNode& layer)
       buildPath(layer, desc);
       continue;
     }
+    // Made by the code: only its parent is there (the layer itself for one without a parent ID), the node found
+    // after the code ran
+    if (!desc.made.kind.empty())
+    {
+      CCNode* parent = &layer;
+      if (!desc.parentId.empty())
+      {
+        parent = new CCMenu();
+        parent->id = desc.parentId;
+        parent->size = desc.frame.kind == codegen::FrameKind::Parent ? CCSize{desc.frame.extent.width, desc.frame.extent.height}
+                                                                      : CCSize{WIN.width, WIN.height};
+        layer.addChild(parent);
+      }
+      else
+        layer.size = {WIN.width, WIN.height};
+      g_nodes.push_back(nullptr);
+      g_parents.push_back(parent);
+      continue;
+    }
     auto parent = new CCNode();
     parent->id = desc.parentId;
     parent->size = desc.frame.kind == codegen::FrameKind::Parent ? CCSize{desc.frame.extent.width, desc.frame.extent.height}
@@ -169,6 +188,28 @@ void checkSample(int index)
   auto const all = samples();
   auto const& desc = all[index];
   auto node = g_nodes[index];
+  if (!desc.made.kind.empty())
+  {
+    // Made by the code, in its parent, with the ID the mod's prefix gives it
+    auto suffix = desc.id.substr(desc.id.find('/') + 1);
+    node = g_parents[index]->getChildByID("mod.id/" + suffix);
+    std::printf("sample %d: made %s\n", index, node ? "yes" : "no");
+    CHECK(node != nullptr);
+    if (!node)
+      return;
+    CHECK(node->zOrder == desc.zOrder);
+    if (desc.made.kind == "button")
+    {
+      auto button = dynamic_cast<CCMenuItemSpriteExtra*>(node);
+      auto sprite = button ? dynamic_cast<CCSprite*>(button->image) : nullptr;
+      CHECK(sprite && sprite->frame == desc.made.frame);
+    }
+    if (desc.made.kind == "label")
+    {
+      auto label = dynamic_cast<CCLabelBMFont*>(node);
+      CHECK(label && label->text == desc.made.text && label->font == desc.made.font);
+    }
+  }
   auto layout = desc.layout.kind;
   std::printf("sample %d: (%.2f, %.2f) scale %.2f x %.2f\n", index, node->position.x, node->position.y, node->scaleX,
               node->scaleY);

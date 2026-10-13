@@ -212,6 +212,11 @@ public:
     child->parent = this;
     children.push_back(child);
   }
+  void addChild(CCNode* child, int z)
+  {
+    addChild(child);
+    child->zOrder = z;
+  }
 
   CCNode* getChildByIDRecursive(std::string_view wanted)
   {
@@ -297,12 +302,53 @@ class CCSprite : public CCNode, public CCRGBAProtocol
 public:
   // The frame it shows, for getChildBySpriteFrameName
   std::string frame;
+  static CCSprite* createWithSpriteFrameName(char const* name)
+  {
+    auto sprite = new CCSprite();
+    sprite->frame = name;
+    return sprite;
+  }
 };
+
+using SEL_MenuHandler = void (CCNode::*)(CCNode*);
 
 class CCMenuItemSpriteExtra : public CCNode
 {
 public:
   float m_baseScale = 1;
+  CCNode* image = nullptr;
+  static CCMenuItemSpriteExtra* create(CCNode* sprite, CCNode*, SEL_MenuHandler)
+  {
+    auto button = new CCMenuItemSpriteExtra();
+    button->image = sprite;
+    button->addChild(sprite);
+    return button;
+  }
+};
+
+class ButtonSprite : public CCNode
+{
+public:
+  std::string text;
+  static ButtonSprite* create(char const* value)
+  {
+    auto sprite = new ButtonSprite();
+    sprite->text = value;
+    return sprite;
+  }
+};
+
+class CCLabelBMFont : public CCNode
+{
+public:
+  std::string text, font;
+  static CCLabelBMFont* create(char const* value, char const* fnt)
+  {
+    auto label = new CCLabelBMFont();
+    label->text = value;
+    label->font = fnt;
+    return label;
+  }
 };
 
 namespace geode::cocos

@@ -47,6 +47,9 @@ namespace editor
   void stepAnchor(int dx, int dy);
   // V: the selected nodes hidden, or shown again (the tree has hidden nodes too)
   void toggleVisible();
+  // Ctrl+D: a node like the selected one (its frame, its button's image, its label's text) made next to it, in the
+  // same parent, selected; its code makes it
+  void duplicate();
   // The selected nodes' edges or centers lined up on the screen: several to the box of them all, one to its
   // parent's (Alt+A, D, H, W, S, V as in Figma)
   void alignTo(align::Edge edge);

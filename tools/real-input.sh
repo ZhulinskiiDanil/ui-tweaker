@@ -67,6 +67,10 @@ input key z ctrl
 input ctrlwheel 1; sleep 1.5
 expect "Turned main-title" "Ctrl+wheel turned the title"
 input key z ctrl
+# Ctrl+D makes one like it
+input key d ctrl; sleep 1.5
+expect "Made zhulis.ui-tweaker/new-" "Ctrl+D made a title like it"
+input key z ctrl
 # The play button selected, its right side dragged by its handle
 input move "$px" "$py"; input down; input up; sleep 0.5
 input drag "$hx" "$hy" "$(python -c "print($hx + 20)")" "$hy"; sleep 1.5

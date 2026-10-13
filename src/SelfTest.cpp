@@ -896,6 +896,75 @@ namespace
     box->removeFromParent();
   }
 
+  // Ctrl+D: a button and a label made like ones of a menu in the main menu, next to them, selected; dragged; their
+  // code makes them where they are; undone, redone, undone
+  void duplicating(CCNode* layer)
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto menu = CCMenu::create();
+    menu->setID("selftest-dup-menu"_spr);
+    menu->ignoreAnchorPointForPosition(false);
+    menu->setContentSize({200, 80});
+    menu->setPosition({win.width / 2, win.height / 2 - 40});
+    layer->addChild(menu, 1000);
+    auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    auto button = CCMenuItemSpriteExtra::create(sprite ? static_cast<CCNode*>(sprite) : CCSprite::create(), nullptr, nullptr);
+    button->setID("selftest-dup-button"_spr);
+    button->setPosition({50, 40});
+    button->setScale(1.2f);
+    button->m_baseScale = 1.2f;
+    menu->addChild(button);
+    auto label = CCLabelBMFont::create("Hello", "bigFont.fnt");
+    label->setID("selftest-dup-label"_spr);
+    label->setPosition({140, 40});
+    label->setScale(0.5f);
+    menu->addChild(label);
+
+    for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(label)})
+    {
+      auto name = inspect::name(source);
+      editor::select(source);
+      auto steps = editor::historySize();
+      editor::duplicate();
+      auto made = editor::selected();
+      check(made && made != source && made->getParent() == menu && std::string(made->getID()).find("new-") != std::string::npos,
+            fmt::format("Ctrl+D made a node like {} in its menu, selected", name));
+      if (!made || made == source)
+        continue;
+      check(close(made->getPositionX(), source->getPositionX() + 8) && close(made->getScaleX(), source->getScaleX()),
+            fmt::format("the one like {} is next to it, as big", name));
+      check(editor::historySize() == steps + 1, "making it is a step");
+      auto center = inspect::worldQuad(made).center();
+      editor::setSnapping(false);
+      editor::grab(made, {center.x, center.y});
+      editor::dragTo(CCPoint{center.x, center.y} + ccp(20, 10));
+      editor::release();
+      editor::setSnapping(std::nullopt);
+      auto code = editor::codeFor(made);
+      log::info("Self test: the code for a node made like {}:\n{}", name, code);
+      bool makes = source == button
+                       ? code.find("CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\"), this, nullptr)") != std::string::npos
+                       : code.find("CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")") != std::string::npos;
+      check(makes, fmt::format("the code makes one like {}", name));
+      check(code.find("getChildByIDRecursive(\"zhulis.ui-tweaker/selftest-dup-menu\")") != std::string::npos &&
+                code.find("parent->addChild(node, 0);") != std::string::npos,
+            "it goes in the menu, found by its ID");
+      auto problem = inspect::checkCode(made, code);
+      check(problem.empty(), fmt::format("the code puts the made node where it is: {}", problem));
+      check(editor::undo() && editor::undo() && !made->getParent(), "two Ctrl+Z: the drag, then the node taken out");
+      check(editor::redo() && made->getParent() == menu, "Ctrl+Y put it back in the menu");
+      editor::undo();
+      check(!made->getParent(), "and Ctrl+Z took it out again");
+    }
+    // A layer (not a sprite, a button or a label) can't be made so
+    editor::select(menu);
+    auto steps = editor::historySize();
+    editor::duplicate();
+    check(editor::historySize() == steps && editor::selected() == menu, "a menu isn't made like this");
+    editor::select(nullptr);
+    menu->removeFromParent();
+  }
+
   void several(CCNode* first, CCNode* second)
   {
     auto a = inspect::stateOf(first);
@@ -1022,6 +1091,7 @@ namespace
       layouts(layer);
       turning();
       gridding();
+      duplicating(layer);
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);

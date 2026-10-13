@@ -150,8 +150,67 @@ namespace
     return result;
   }
 
+  // The expression that makes a node like the one described
+  std::string making(codegen::NodeDesc::Made const& made)
+  {
+    if (made.kind == "sprite")
+      return "CCSprite::createWithSpriteFrameName(" + literal(made.frame) + ")";
+    if (made.kind == "button")
+      return "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(" + literal(made.frame) +
+             "), this, nullptr)";
+    if (made.kind == "text button")
+      return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + "), this, nullptr)";
+    if (made.kind == "label")
+      return "CCLabelBMFont::create(" + literal(made.text) + ", " + literal(made.font) + ")";
+    if (made.kind == "ttf")
+      return "CCLabelTTF::create(" + literal(made.text) + ", " + literal(made.font) + ", " + expr::number(made.fontSize) + ")";
+    return "";
+  }
+
+  // A node made in the edit mode: made, given an ID, added to its parent, then placed as any edited node is
+  std::string madeBlock(codegen::NodeDesc const& node, bool declareWinSize)
+  {
+    std::ostringstream out;
+    auto const& made = node.made;
+    auto id = node.id.substr(node.id.find('/') == std::string::npos ? 0 : node.id.find('/') + 1);
+    // Where it comes from, wrapped as the other comments are
+    bool button = made.kind == "button" || made.kind == "text button";
+    std::string about = "A new " + node.className + " like " + made.like + ", in " +
+                        describe(node.parentId, node.parentClass) + ": give it an ID of your own";
+    if (button)
+      about += ", and its callback instead of nullptr: menu_selector(YourLayer::onYourButton)";
+    for (auto const& line : text::wrap(about, COMMENT_COLUMNS))
+      out << "// " << line << "\n";
+    // Its parent: found as a node is, or the layer itself
+    std::vector<std::string> conditions = made.parent;
+    if (conditions.empty())
+      conditions.push_back("auto parent = static_cast<CCNode*>(this)");
+    std::string indent;
+    for (size_t i = 0; i < conditions.size(); i++)
+    {
+      out << indent << "if (" << conditions[i] << ")\n";
+      if (i + 1 < conditions.size())
+        indent += "  ";
+    }
+    auto inside = indent + "  ";
+    auto inner = body(node, inside);
+    out << indent << "{\n";
+    if (inner.usesWinSize && declareWinSize)
+      out << inside << "auto winSize = CCDirector::get()->getWinSize();\n";
+    out << inside << "auto node = " << making(made) << ";\n";
+    out << inside << "node->setID(" << literal(id) << "_spr);\n";
+    out << inside << "parent->addChild(node, " << node.zOrder << ");\n";
+    out << inner.lines;
+    if (node.layout.kind != codegen::LayoutKind::None)
+      out << inside << "parent->updateLayout();\n";
+    out << indent << "}\n";
+    return out.str();
+  }
+
   std::string block(codegen::NodeDesc const& node, bool declareWinSize)
   {
+    if (!node.made.kind.empty())
+      return madeBlock(node, declareWinSize);
     std::ostringstream out;
     out << "// " << describe(node.id, node.className) << " in " << describe(node.parentId, node.parentClass) << "\n";
     // Wrapped as code is: a hundred columns or so
@@ -259,10 +318,12 @@ std::string codegen::layoutWarning(NodeDesc const& node, words::Lang lang)
   return "";
 }
 
-std::vector<std::string> codegen::lookup(NodeDesc const& node)
+std::vector<std::string> codegen::lookup(NodeDesc const& node, std::string const& name)
 {
+  // The variable the path starts from, not the one it ends in
+  std::string const start = name == "parent" ? "root" : "parent";
   if (!node.id.empty() && (node.idUnique || node.path.empty()))
-    return {"auto node = this->getChildByIDRecursive(" + literal(node.id) + ")"};
+    return {"auto " + name + " = this->getChildByIDRecursive(" + literal(node.id) + ")"};
 
   // How a step gets its child from `from`
   auto stepCall = [](std::string const& from, NodeDesc::PathStep const& step)
@@ -291,21 +352,21 @@ std::vector<std::string> codegen::lookup(NodeDesc const& node)
 
   // The parent with an ID and the node in one `if`, as most nodes without an ID are
   if (!node.pathFromLayer && path.size() == 1)
-    return {"auto parent = this->getChildByIDRecursive(" + literal(root) + "); auto node = parent ? " +
-            stepCall("parent", path[0]) + " : nullptr"};
+    return {"auto " + start + " = this->getChildByIDRecursive(" + literal(root) + "); auto " + name + " = " + start +
+            " ? " + stepCall(start, path[0]) + " : nullptr"};
 
   std::vector<std::string> out;
   std::string from = "this";
   if (!node.pathFromLayer)
   {
-    out.push_back("auto parent = this->getChildByIDRecursive(" + literal(root) + ")");
-    from = "parent";
+    out.push_back("auto " + start + " = this->getChildByIDRecursive(" + literal(root) + ")");
+    from = start;
   }
   for (size_t i = 0; i < path.size(); i++)
   {
-    auto name = i + 1 == path.size() ? std::string("node") : "child" + std::to_string(i + 1);
-    out.push_back("auto " + name + " = " + stepCall(from, path[i]));
-    from = name;
+    auto step = i + 1 == path.size() ? name : "child" + std::to_string(i + 1);
+    out.push_back("auto " + step + " = " + stepCall(from, path[i]));
+    from = step;
   }
   return out;
 }

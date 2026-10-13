@@ -5,6 +5,8 @@
 #include "core/Text.hpp"
 #include "core/Hooks.hpp"
 
+#include <Geode/binding/ButtonSprite.hpp>
+#include <Geode/binding/CCMenuItemSpriteExtra.hpp>
 #include <Geode/binding/CCScrollLayerExt.hpp>
 #include <Geode/ui/NineSlice.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -183,7 +185,7 @@ bool inspect::NodeState::operator==(NodeState const& other) const
   return position.x == other.position.x && position.y == other.position.y && scaleX == other.scaleX &&
          scaleY == other.scaleY && anchor.x == other.anchor.x && anchor.y == other.anchor.y &&
          zOrder == other.zOrder && size.width == other.size.width && size.height == other.size.height &&
-         visible == other.visible && rotation == other.rotation && opacity == other.opacity;
+         visible == other.visible && rotation == other.rotation && opacity == other.opacity && present == other.present;
 }
 
 inspect::NodeState inspect::stateOf(CCNode* node)
@@ -709,6 +711,69 @@ namespace
     }
   }
 } // namespace
+
+std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
+{
+  codegen::NodeDesc::Made made;
+  made.like = name(node);
+  if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node))
+  {
+    auto image = button->getNormalImage();
+    // A ButtonSprite is a sprite too: its text first
+    if (auto text = typeinfo_cast<ButtonSprite*>(image); text && text->m_label)
+    {
+      made.kind = "text button";
+      made.text = text->m_label->getString();
+      return made;
+    }
+    if (auto sprite = typeinfo_cast<CCSprite*>(image))
+      made.frame = cachedFrameName(sprite);
+    if (made.frame.empty())
+      return std::nullopt;
+    made.kind = "button";
+    return made;
+  }
+  if (auto label = typeinfo_cast<CCLabelBMFont*>(node))
+  {
+    made.kind = "label";
+    made.text = label->getString();
+    made.font = label->getFntFile() ? label->getFntFile() : "";
+    return made.font.empty() ? std::nullopt : std::optional(made);
+  }
+  if (auto label = typeinfo_cast<CCLabelTTF*>(node))
+  {
+    made.kind = "ttf";
+    made.text = label->getString();
+    made.font = label->getFontName() ? label->getFontName() : "";
+    made.fontSize = label->getFontSize();
+    return made;
+  }
+  // A plain sprite (a class of its own wouldn't be made by createWithSpriteFrameName)
+  if (auto sprite = typeinfo_cast<CCSprite*>(node); sprite && className(node) == "CCSprite")
+  {
+    made.frame = cachedFrameName(sprite);
+    if (made.frame.empty())
+      return std::nullopt;
+    made.kind = "sprite";
+    return made;
+  }
+  return std::nullopt;
+}
+
+CCNode* inspect::make(codegen::NodeDesc::Made const& made)
+{
+  if (made.kind == "sprite")
+    return CCSprite::createWithSpriteFrameName(made.frame.c_str());
+  if (made.kind == "button")
+    return CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(made.frame.c_str()), nullptr, nullptr);
+  if (made.kind == "text button")
+    return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str()), nullptr, nullptr);
+  if (made.kind == "label")
+    return CCLabelBMFont::create(made.text.c_str(), made.font.c_str());
+  if (made.kind == "ttf")
+    return CCLabelTTF::create(made.text.c_str(), made.font.c_str(), made.fontSize);
+  return nullptr;
+}
 
 void inspect::forgetLookups()
 {

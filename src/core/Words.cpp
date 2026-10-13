@@ -8,7 +8,7 @@ namespace
       .help1 = "Drag: move   Wheel: scale (Shift: fine)   Arrows: 1 px (Shift: 10)   Ctrl+Z / Ctrl+Y: undo / redo",
       .help2 = "Enter: type values   Ctrl+C: copy code   Ctrl+Shift+C: copy all   Tab: next under the mouse   Alt: distances   Alt+click: "
                "inside   Shift+click: several   PgUp: parent   Ctrl+arrows: anchor   [ ]: z-order   R: reset   V: hide   A: other screens   C: code   T: tree   H: panel   "
-               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout   Ctrl+Delete: forget the kept edits   Ctrl+wheel: turn (Shift: by 1)",
+               "Alt+A/D/H: align left/right/center   Alt+W/S/V: top/bottom/middle   Alt+Shift+H/V: distribute   L: copy as a layout   Ctrl+Delete: forget the kept edits   Ctrl+wheel: turn (Shift: by 1)   Ctrl+D: a new one like it",
       .nothingSelected = "Nothing selected",
       .clickHint = "Click a node to select it, drag to move it",
       .position = "position {}, {}   (screen {}, {})",
@@ -35,6 +35,7 @@ namespace
       .putBack = "Edits put back on {} nodes",
       .forgotKept = "Forgot the kept edits of {} nodes",
       .forgetAsk = "Ctrl+Delete again to forget the kept edits of {} nodes",
+      .cantMake = "Only sprites, buttons and labels can be made like this, in a parent the code can find",
       .column = "column",
       .treeTitle = "Nodes: {} of {}   T: close",
       .searchHint = "/ to search by ID, class, frame or text",
@@ -82,7 +83,7 @@ namespace
                "отменить / вернуть",
       .help2 = "Enter: ввести числа   Ctrl+C: код   Ctrl+Shift+C: код всех   Tab: следующая под мышью   Alt: расстояния   Alt+клик: "
                "внутрь   Shift+клик: несколько   PgUp: родитель   Ctrl+стрелки: anchor   [ ]: z-order   R: сбросить   V: скрыть   A: другие экраны   C: код   T: дерево   H: панель   "
-               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout   Ctrl+Delete: забыть сохранённые правки   Ctrl+колесо: повернуть (Shift: на 1)",
+               "Alt+A/D/H: выровнять влево/вправо/по центру   Alt+W/S/V: вверх/вниз/по середине   Alt+Shift+H/V: распределить   L: копировать как layout   Ctrl+Delete: забыть сохранённые правки   Ctrl+колесо: повернуть (Shift: на 1)   Ctrl+D: новая такая же",
       .nothingSelected = "Ничего не выбрано",
       .clickHint = "Щёлкните по ноде, чтобы выбрать, тащите, чтобы сдвинуть",
       .position = "позиция {}, {}   (на экране {}, {})",
@@ -109,6 +110,7 @@ namespace
       .putBack = "Правки возвращены на {} нод",
       .forgotKept = "Сохранённые правки {} нод забыты",
       .forgetAsk = "Ещё раз Ctrl+Delete, чтобы забыть сохранённые правки {} нод",
+      .cantMake = "Так можно создать только спрайт, кнопку или надпись, в родителе, которого код может найти",
       .column = "столбец",
       .treeTitle = "Ноды: {} из {}   T: закрыть",
       .searchHint = "/ - поиск по ID, классу, кадру или тексту",

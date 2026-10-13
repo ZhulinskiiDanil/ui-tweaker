@@ -112,6 +112,8 @@ namespace
     Align = 10,
     PutBack = 11,
     Turn = 12,
+    // A node made by Ctrl+D: undo takes it out of its parent, redo puts it back
+    Add = 13,
   };
 
   // Ahead of every other listener, so the game and other mods don't see what the edit mode takes
@@ -231,6 +233,16 @@ namespace
     std::vector<CCNode*> sized;
     // The same for visibility: only V's is an edit, not the game hiding a tab's buttons
     std::vector<CCNode*> toggled;
+    // Nodes made by Ctrl+D, where they go and how they're made, while their scene runs
+    struct Made
+    {
+      Retained<CCNode> node;
+      Retained<CCNode> parent;
+      int z = 0;
+      codegen::NodeDesc::Made made;
+    };
+    std::vector<Made> made;
+    int madeCount = 0;
 
     // The code of every edited node, kept up to date while its scene runs: the scene's nodes can't be described
     // once it's gone. Keyed by node, compared only
@@ -380,6 +392,21 @@ namespace
     desc.visibleChanged = desc.visibleChanged && std::find(toggled.begin(), toggled.end(), node) != toggled.end();
     desc.rotationChanged = desc.rotationChanged && turnedHere(node);
     desc.opacityChanged = desc.opacityChanged && fadedHere(node);
+    // Made here: everything it has that a new one doesn't
+    auto const& made = state().made;
+    if (auto entry = std::find_if(made.begin(), made.end(), [&](auto const& m) { return m.node.get() == node; });
+        entry != made.end())
+    {
+      desc.made = entry->made;
+      desc.zOrder = entry->node->getZOrder();
+      desc.scaleChanged = desc.scaleX != 1 || desc.scaleY != 1;
+      desc.anchorChanged = desc.anchor.x != 0.5f || desc.anchor.y != 0.5f;
+      desc.zOrderChanged = false;
+      desc.sizeChanged = false;
+      desc.visibleChanged = !desc.visible;
+      desc.rotationChanged = desc.rotation != 0;
+      desc.opacityChanged = desc.opacity != 255;
+    }
     return desc;
   }
 
@@ -414,7 +441,7 @@ namespace
     snapshot(node);
     s.sessionDirty = true;
     s.sessionTouched = true;
-    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back", "Turned"};
+    static char const* const verbs[] = {"", "Dragged", "Scaled", "Nudged", "Re-anchored", "Reordered", "Typed", "Resized", "Reset", "Shown/hidden", "Aligned", "Put back", "Turned", "Made"};
     log::info("{} {}: position ({}, {}), scale {} x {}", verbs[kind], inspect::name(node), number(after.position.x),
               number(after.position.y), number(after.scaleX), number(after.scaleY));
   }
@@ -493,6 +520,7 @@ namespace
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
+    std::erase_if(s.made, [&](auto const& entry) { return gone(entry.parent); });
     pruneTracked();
     if (s.selected && gone(s.selected))
     {
@@ -1560,6 +1588,10 @@ namespace
     case KEY_L:
       editor::copyLayout();
       break;
+    case KEY_D:
+      if (control)
+        editor::duplicate();
+      break;
     case KEY_Delete:
       if (control)
         editor::forgetKept();
@@ -2110,6 +2142,50 @@ void editor::distribute(bool horizontal)
   moveOnScreen(Align, nodes, align::distribute(boxesOf(nodes), horizontal));
 }
 
+void editor::duplicate()
+{
+  auto& s = state();
+  auto node = s.selected.get();
+  if (!node || s.pressed || s.resizing || !node->getParent())
+    return;
+  auto made = inspect::madeLike(node);
+  if (!made)
+  {
+    Notification::create(ui::words().cantMake, NotificationIcon::Warning, 2.f)->show();
+    return;
+  }
+  auto parent = node->getParent();
+  // How the code gets the parent, as for any node; the layer itself if it's the one the code's hook is in
+  auto parentDesc = inspect::describe(parent);
+  auto own = inspect::describe(node);
+  bool layer = inspect::className(parent) == own.layer;
+  made->parent = layer ? std::vector<std::string>{} : codegen::lookup(parentDesc, "parent");
+  if (!layer && made->parent.empty())
+  {
+    Notification::create(ui::words().cantMake, NotificationIcon::Warning, 2.f)->show();
+    return;
+  }
+  auto clone = inspect::make(*made);
+  if (!clone)
+    return;
+  clone->setID(Mod::get()->expandSpriteName(fmt::format("new-{}", ++s.madeCount)));
+  clone->setScaleX(node->getScaleX());
+  clone->setScaleY(node->getScaleY());
+  if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(clone))
+    button->m_baseScale = node->getScaleX();
+  // A little off the one it's like, to be seen and dragged
+  clone->setPosition(node->getPosition() + ccp(8, -8));
+  int z = node->getZOrder();
+  parent->addChild(clone, z);
+  if (parent->getLayout())
+    parent->updateLayout();
+  s.made.push_back({Retained<CCNode>(clone), Retained<CCNode>(parent), z, *made});
+  auto before = inspect::stateOf(clone);
+  before.present = false;
+  record(clone, before, Add, 0);
+  select(clone);
+}
+
 void editor::toggleVisible()
 {
   auto& s = state();
@@ -2318,9 +2394,21 @@ bool editor::undo()
     if (changes.empty())
       return false;
     std::vector<CCNode*> undone;
+    bool unmade = false;
     for (auto const& change : changes)
     {
       auto node = change.target.get();
+      // Made here: undoing it takes it out
+      if (change.kind == Add)
+      {
+        if (s.selected == node)
+          s.selected.reset();
+        std::erase_if(s.also, [&](auto const& other) { return other.get() == node; });
+        node->removeFromParent();
+        log::info("Undid making {}", inspect::name(node));
+        unmade = true;
+        continue;
+      }
       // Removed since: nothing to put back, and no code to keep for it
       if (!inspect::isIn(node, runningScene()))
       {
@@ -2335,9 +2423,11 @@ bool editor::undo()
                 number(change.before.position.x), number(change.before.position.y), number(change.before.scaleX),
                 number(change.before.scaleY));
     }
-    if (undone.empty())
+    // A step whose nodes are all gone is skipped; one that took a made node out isn't
+    if (undone.empty() && !unmade)
       continue;
-    selectAll(undone);
+    if (!undone.empty())
+      selectAll(undone);
     return true;
   }
 }
@@ -2356,6 +2446,20 @@ bool editor::redo()
     for (auto const& change : changes)
     {
       auto node = change.target.get();
+      // Made here: redoing it puts it back where it was made
+      if (change.kind == Add)
+      {
+        auto const& made = s.made;
+        auto entry = std::find_if(made.begin(), made.end(), [&](auto const& m) { return m.node.get() == node; });
+        if (entry == made.end() || node->getParent() || !inspect::isIn(entry->parent.get(), runningScene()))
+          continue;
+        entry->parent->addChild(node, entry->z);
+        if (entry->parent->getLayout())
+          entry->parent->updateLayout();
+        snapshot(node);
+        redone.push_back(node);
+        continue;
+      }
       if (!inspect::isIn(node, runningScene()))
         continue;
       inspect::apply(node, change.after, change.before.size != change.after.size,

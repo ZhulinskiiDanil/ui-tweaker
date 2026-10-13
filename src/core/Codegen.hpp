@@ -70,6 +70,23 @@ namespace codegen
     std::string layer;
     // That top one is a Geode Popup: a mod's own, whose nodes are made in its setup()
     bool layerIsPopup = false;
+
+    // A node made in the edit mode (Ctrl+D), like another: the code makes it instead of finding it
+    struct Made
+    {
+      // "sprite", "button" (a sprite in a CCMenuItemSpriteExtra), "text button" (a ButtonSprite in one), "label"
+      // (CCLabelBMFont), "ttf" (CCLabelTTF); empty: not made here
+      std::string kind;
+      std::string frame;
+      std::string text;
+      std::string font;
+      float fontSize = 0;
+      // The one it was made like, for the comment
+      std::string like;
+      // How the code gets the parent, as nested ifs' conditions, the last declaring `parent`; empty: the layer
+      std::vector<std::string> parent;
+    };
+    Made made;
     // Among the parent's children castable to className, which one this is (for getChildByType)
     int typeIndex = 0;
     // A class the code can't name (another mod's, in a namespace): typeIndex is which child it is of all, for
@@ -141,7 +158,7 @@ namespace codegen
   // The conditions of the nested `if`s that get the node, the last one declaring `node`:
   // `auto node = this->getChildByIDRecursive("play-button")`, or through its parent's ID and getChildByType, or
   // down a path from a parent with an ID or the layer. Empty if there's no way to it
-  std::vector<std::string> lookup(NodeDesc const& node);
+  std::vector<std::string> lookup(NodeDesc const& node, std::string const& name = "node");
 
   // A block of C++ for one node, ready to paste into a hook of the layer
   std::string generate(NodeDesc const& node);

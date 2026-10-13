@@ -194,6 +194,47 @@ namespace
     CHECK(has(code, "  if (auto rgba = typeinfo_cast<CCRGBAProtocol*>(node))\n    rgba->setOpacity(128);\n"));
   }
 
+  void made()
+  {
+    // A button like the play button, in the main menu found by its ID
+    auto node = inParent({60, 20}, {200, 100});
+    node.id = "zhulis.ui-tweaker/new-1";
+    node.className = "CCMenuItemSpriteExtra";
+    node.parentId = "main-menu";
+    node.zOrder = 2;
+    node.made.kind = "button";
+    node.made.frame = "GJ_playBtn_001.png";
+    node.made.like = "play-button (CCMenuItemSpriteExtra)";
+    node.made.parent = lookup(NodeDesc{.id = "main-menu"}, "parent");
+    auto code = generate(node);
+    CHECK(has(code, "// A new CCMenuItemSpriteExtra like play-button (CCMenuItemSpriteExtra), in main-menu (CCMenu): give"));
+    CHECK(has(code, "menu_selector(YourLayer::onYourButton)"));
+    CHECK(has(code, "if (auto parent = this->getChildByIDRecursive(\"main-menu\"))\n{\n"));
+    CHECK(has(code, "  auto node = CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_playBtn_001.png\"), this, nullptr);\n"));
+    CHECK(has(code, "  node->setID(\"new-1\"_spr);\n  parent->addChild(node, 2);\n"));
+    CHECK(has(code, "node->setPosition("));
+    CHECK(!has(code, "getChildByIDRecursive(\"zhulis.ui-tweaker/new-1\")"));
+    // In the layer itself; a label; a layout updated
+    node.made = {};
+    node.made.kind = "label";
+    node.made.text = "Hi \"you\"";
+    node.made.font = "bigFont.fnt";
+    node.made.like = "x";
+    node.layout = {LayoutKind::Axis, "RowLayout", false, std::nullopt, std::nullopt};
+    code = generate(node);
+    CHECK(has(code, "if (auto parent = static_cast<CCNode*>(this))"));
+    CHECK(has(code, "CCLabelBMFont::create(\"Hi \\\"you\\\"\", \"bigFont.fnt\")"));
+    CHECK(has(code, "parent->updateLayout();"));
+    CHECK(!has(code, "menu_selector"));
+    // The parent's lookup as `parent`, its own start not clashing
+    NodeDesc deep;
+    deep.parentId = "menu";
+    deep.className = "CCMenu";
+    deep.typeIndex = 1;
+    auto conditions = lookup(deep, "parent");
+    CHECK(conditions.size() == 1 && has(conditions[0], "auto root = this->getChildByIDRecursive(\"menu\"); auto parent = root ? "));
+  }
+
   void lookups()
   {
     auto node = onScreen({10, 10});
@@ -358,6 +399,7 @@ int main()
   anchorLayout();
   axisLayout();
   turnedAndFaded();
+  made();
   lookups();
   properties();
   everything();
