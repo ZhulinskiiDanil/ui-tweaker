@@ -9,7 +9,7 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 - Stabilization started 15:45; the last release (v0.13.1) out and checked 15:57; after it only tests, tools and docs (no change to
-  what the mod does), this file last updated 16:47.
+  what the mod does), this file last updated 17:02.
   Everything is committed and pushed, CI green, nothing running
 
 ## Summary (for when you're back)
@@ -202,6 +202,9 @@
 - 16:46 a plain start (no self test, the edit mode never on), with your mods and in vanilla: the mod writes nothing
   to the log, the game runs. Geode's "setting 'grid' not found in savedata" line again: I don't close the game
   normally to make Geode save it, as that would save your game's progress too; it goes at your first normal close.
+- 17:02 the last full run, on the installed release `.geode` of v0.13.1 itself (md5 e3df8dba...): every mode PASS
+  both ways (yours: 234 / 248 / 247 / tour 1165 / 244 / 246 / 234 / 234 / 233 / 234 / 238 / 236; vanilla: 236 /
+  250 / 249 / tour 1258 / 248 / 248 / 236 / 236 / 235 / 236 / 240 / 238); saved.json's md5 the same.
 
 ## Checks
 
