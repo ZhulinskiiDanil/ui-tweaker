@@ -211,6 +211,13 @@ void checkSample(int index)
       CHECK(circle && circle->top == desc.made.frame && circle->color == CircleBaseColor::DarkPurple &&
             circle->size == CircleBaseSize::MediumAlt);
     }
+    if (desc.made.kind == "text button")
+    {
+      auto button = dynamic_cast<CCMenuItemSpriteExtra*>(node);
+      auto text = button ? dynamic_cast<ButtonSprite*>(button->image) : nullptr;
+      CHECK(text && text->text == desc.made.text && text->font == desc.made.font &&
+            text->texture == desc.made.texture);
+    }
     if (desc.made.kind == "label")
     {
       auto label = dynamic_cast<CCLabelBMFont*>(node);

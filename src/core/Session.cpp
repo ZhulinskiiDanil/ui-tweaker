@@ -112,6 +112,15 @@ std::string session::write(Groups const& groups)
         out << "madeFont " << escape(node.made.font) << "\n";
         out << "madeFontSize " << number(node.made.fontSize) << "\n";
         out << "madeLike " << escape(node.made.like) << "\n";
+        if (!node.made.texture.empty())
+        {
+          out << "madeTexture " << escape(node.made.texture) << "\n";
+          out << "madeWidth " << node.made.width << "\n";
+          out << "madeMinWidth " << node.made.minWidth << "\n";
+          out << "madeScale " << number(node.made.scale) << "\n";
+          out << "madeAbsolute " << node.made.absolute << "\n";
+          out << "madeHeight " << number(node.made.height) << "\n";
+        }
         for (auto const& condition : node.made.parent)
           out << "madeParent " << escape(condition) << "\n";
       }
@@ -233,6 +242,18 @@ std::optional<session::Groups> session::read(std::string_view text)
       node.made.fontSize = toFloat(value);
     else if (key == "madeLike")
       node.made.like = unescape(value);
+    else if (key == "madeTexture")
+      node.made.texture = unescape(value);
+    else if (key == "madeWidth")
+      node.made.width = toInt(value);
+    else if (key == "madeMinWidth")
+      node.made.minWidth = toInt(value);
+    else if (key == "madeScale")
+      node.made.scale = toFloat(value);
+    else if (key == "madeAbsolute")
+      node.made.absolute = value == "1";
+    else if (key == "madeHeight")
+      node.made.height = toFloat(value);
     else if (key == "madeParent")
       node.made.parent.push_back(unescape(value));
     else if (key == "typeIndex")

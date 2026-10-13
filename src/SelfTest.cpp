@@ -1018,13 +1018,19 @@ namespace
     circle->setID("selftest-dup-circle"_spr);
     circle->setPosition({95, 40});
     menu->addChild(circle);
+    auto okay = CCMenuItemSpriteExtra::create(ButtonSprite::create("Okay", "bigFont.fnt", "GJ_button_04.png", 0.8f),
+                                              nullptr, nullptr);
+    okay->setID("selftest-dup-okay"_spr);
+    okay->setPosition({50, 10});
+    menu->addChild(okay);
     auto label = CCLabelBMFont::create("Hello", "bigFont.fnt");
     label->setID("selftest-dup-label"_spr);
     label->setPosition({140, 40});
     label->setScale(0.5f);
     menu->addChild(label);
 
-    for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(circle), static_cast<CCNode*>(label)})
+    for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(circle), static_cast<CCNode*>(okay),
+                        static_cast<CCNode*>(label)})
     {
       auto name = inspect::name(source);
       editor::select(source);
@@ -1050,9 +1056,18 @@ namespace
           source == button   ? "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\"), this, nullptr)"
           : source == circle ? "CircleButtonSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\", 1.f, CircleBaseColor::Blue, "
                                "CircleBaseSize::Small)"
+          : source == okay   ? "\"bigFont.fnt\", \"GJ_button_04.png\""
                              : "CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")";
       bool makes = code.find(wanted) != std::string::npos;
       check(makes, fmt::format("the code makes one like {}", name));
+      if (source == okay)
+      {
+        // As big as the original: the same font, background and numbers
+        auto a = source->getContentSize(), b = made->getContentSize();
+        check(close(a.width, b.width) && close(a.height, b.height),
+              fmt::format("the text button made like it is as big: {} x {} and {} x {}", a.width, a.height, b.width,
+                          b.height));
+      }
       check(code.find("getChildByIDRecursive(\"zhulis.ui-tweaker/selftest-dup-menu\")") != std::string::npos &&
                 code.find("parent->addChild(node, 0);") != std::string::npos,
             "it goes in the menu, found by its ID");
@@ -1563,6 +1578,35 @@ namespace
               name, edited, paths, deepPaths);
     // A level is mostly its background under the grid
     check(edited >= 1, fmt::format("{}: {} nodes under the grid", name, edited));
+
+    // Every text button of the scene made again as Ctrl+D makes it (not added anywhere): as big as the game's, its
+    // font and background read right
+    int texts = 0, looks = 0;
+    std::function<void(CCNode*)> visit = [&](CCNode* node)
+    {
+      auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(node);
+      if (auto text = button ? typeinfo_cast<ButtonSprite*>(button->getNormalImage()) : nullptr)
+      {
+        texts++;
+        auto made = inspect::madeLike(node);
+        if (made && !made->texture.empty())
+        {
+          looks++;
+          auto copy = typeinfo_cast<CCMenuItemSpriteExtra*>(inspect::make(*made));
+          auto image = copy ? copy->getNormalImage() : nullptr;
+          auto a = text->getContentSize();
+          auto b = image ? image->getContentSize() : CCSize{};
+          check(close(a.width, b.width, 0.5f) && close(a.height, b.height, 0.5f),
+                fmt::format("{}: the text button made like {} ({}, {}) is as big: {} x {} and {} x {}", name,
+                            inspect::name(node), made->font, made->texture, a.width, a.height, b.width, b.height));
+        }
+      }
+      for (auto child : CCArrayExt<CCNode*>(node->getChildren()))
+        visit(child);
+    };
+    visit(scene);
+    if (texts)
+      log::info("Self test tour: {}: {} text buttons, {} made again with their font and background", name, texts, looks);
   }
 
   // Scene after scene of the game, each looked through by tourScene

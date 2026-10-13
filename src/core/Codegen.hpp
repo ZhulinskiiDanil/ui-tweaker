@@ -90,6 +90,14 @@ namespace codegen
       std::string like;
       // How the code gets the parent, as nested ifs' conditions, the last declaring `parent`; empty: the layer
       std::vector<std::string> parent;
+      // A text button's ButtonSprite as it was made: its background's texture file ("GJ_button_04.png"; empty: the
+      // default look, ButtonSprite::create(text)), its font in `font`, and its numbers
+      std::string texture;
+      int width = 0;
+      int minWidth = 0;
+      float scale = 1;
+      bool absolute = false;
+      float height = 0;
     };
     Made made;
     // Among the parent's children castable to className, which one this is (for getChildByType)

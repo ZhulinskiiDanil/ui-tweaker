@@ -369,11 +369,18 @@ public:
 class ButtonSprite : public CCNode
 {
 public:
-  std::string text;
+  std::string text, font, texture;
   static ButtonSprite* create(char const* value)
   {
     auto sprite = new ButtonSprite();
     sprite->text = value;
+    return sprite;
+  }
+  static ButtonSprite* create(char const* value, int, int, float, bool, char const* fnt, char const* bg, float)
+  {
+    auto sprite = create(value);
+    sprite->font = fnt;
+    sprite->texture = bg;
     return sprite;
   }
 };

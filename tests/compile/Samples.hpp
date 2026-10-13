@@ -125,6 +125,17 @@ inline std::vector<codegen::NodeDesc> samples()
   nineteen->made.baseSize = "MediumAlt";
   nineteen->made.like = "geode-button";
   nineteen->made.parent = lookup(NodeDesc{.id = "p19"}, "parent");
+  // 20: a text button made in the edit mode, with its font and background
+  auto twenty = add("zhulis.ui-tweaker/new-20", "CCMenuItemSpriteExtra", "p20", {60, 30}, box);
+  twenty->made.kind = "text button";
+  twenty->made.text = "Okay";
+  twenty->made.font = "bigFont.fnt";
+  twenty->made.texture = "GJ_button_04.png";
+  twenty->made.minWidth = 40;
+  twenty->made.scale = 0.8f;
+  twenty->made.height = 30;
+  twenty->made.like = "ok-button";
+  twenty->made.parent = lookup(NodeDesc{.id = "p20"}, "parent");
   return all;
 }
 

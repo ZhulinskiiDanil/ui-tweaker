@@ -178,8 +178,13 @@ namespace
     if (made.kind == "button")
       return "CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(" + literal(made.frame) +
              "), this, nullptr)";
-    if (made.kind == "text button")
+    if (made.kind == "text button" && (made.texture.empty() || made.font.empty()))
       return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + "), this, nullptr)";
+    if (made.kind == "text button")
+      return "CCMenuItemSpriteExtra::create(ButtonSprite::create(" + literal(made.text) + ", " +
+             std::to_string(made.width) + ", " + std::to_string(made.minWidth) + ", " + expr::number(made.scale) + ", " +
+             (made.absolute ? "true" : "false") + ", " + literal(made.font) + ", " + literal(made.texture) + ", " +
+             expr::number(made.height) + "), this, nullptr)";
     if (made.kind == "circle button")
       return "CCMenuItemSpriteExtra::create(CircleButtonSprite::createWithSpriteFrameName(" + literal(made.frame) +
              ", 1.f, CircleBaseColor::" + made.baseColor + ", CircleBaseSize::" + made.baseSize + "), this, nullptr)";

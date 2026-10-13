@@ -243,6 +243,23 @@ namespace
                       "CircleBaseSize::MediumAlt), this, nullptr)"));
       CHECK(has(made, "menu_selector"));
     }
+    // A text button with its font and background; without them, the default look
+    {
+      auto text = node;
+      text.layout = {};
+      text.made = {};
+      text.made.kind = "text button";
+      text.made.text = "Okay";
+      text.made.font = "bigFont.fnt";
+      text.made.texture = "GJ_button_04.png";
+      text.made.width = 0;
+      text.made.minWidth = 40;
+      text.made.scale = 0.8f;
+      text.made.height = 30;
+      CHECK(has(generate(text), "ButtonSprite::create(\"Okay\", 0, 40, 0.8f, false, \"bigFont.fnt\", \"GJ_button_04.png\", 30.f)"));
+      text.made.texture.clear();
+      CHECK(has(generate(text), "ButtonSprite::create(\"Okay\"), this, nullptr)"));
+    }
     // Line breaks escaped: a raw one in a literal wouldn't compile
     node.made.text = "Level\nComplete";
     CHECK(has(generate(node), "CCLabelBMFont::create(\"Level\\nComplete\", \"bigFont.fnt\")"));

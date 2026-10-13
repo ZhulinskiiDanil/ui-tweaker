@@ -477,6 +477,31 @@ namespace
     return found != names.end() ? found->second : "";
   }
 
+  // The file a 9-slice's texture was loaded from, as ButtonSprite is given it: "GJ_button_04.png" (no folder, no
+  // -uhd). Empty if it isn't a file of its own (a sheet's frames have that texture too)
+  std::string textureFile(extension::CCScale9Sprite* slice)
+  {
+    auto texture = slice->_scale9Image ? slice->_scale9Image->getTexture() : nullptr;
+    auto textures = CCTextureCache::sharedTextureCache()->m_pTextures;
+    if (!texture || !textures)
+      return "";
+    if (auto frames = CCSpriteFrameCache::get()->m_pSpriteFrames)
+      for (auto [name, frame] : CCDictionaryExt<std::string_view, CCSpriteFrame*>(frames))
+        if (frame->m_pobTexture == texture)
+          return "";
+    for (auto [key, each] : CCDictionaryExt<std::string, CCTexture2D*>(textures))
+    {
+      if (each != texture)
+        continue;
+      auto file = key.substr(key.find_last_of("/\\") == std::string::npos ? 0 : key.find_last_of("/\\") + 1);
+      for (std::string quality : {"-uhd.png", "-hd.png"})
+        if (file.size() > quality.size() && file.ends_with(quality))
+          file = file.substr(0, file.size() - quality.size()) + ".png";
+      return file;
+    }
+    return "";
+  }
+
   // The same, remembered by texture and rect: the code view describes the selected node every frame, and a path
   // down to it can go through several sprites. Forgotten as it grows (and textures are made again on a reload)
   std::string cachedFrameName(CCSprite* sprite)
@@ -790,6 +815,19 @@ std::optional<codegen::NodeDesc::Made> inspect::madeLike(CCNode* node)
     {
       made.kind = "text button";
       made.text = text->m_label->getString();
+      // Its font and background too, when the background is a texture of its own: else the default look
+      auto font = text->m_label->getFntFile();
+      auto texture = text->m_BGSprite ? textureFile(text->m_BGSprite) : "";
+      if (font && *font && !texture.empty() && !text->m_subSprite)
+      {
+        made.font = font;
+        made.texture = texture;
+        made.width = static_cast<int>(std::lround(text->m_width));
+        made.minWidth = static_cast<int>(std::lround(text->m_minWidth));
+        made.scale = text->m_scale;
+        made.absolute = text->m_absolute;
+        made.height = text->m_height;
+      }
       return made;
     }
     // Geode's circle button: its base's frame is geode.loader/baseCircle_<size>_<color>.png, named after the enums;
@@ -855,8 +893,13 @@ CCNode* inspect::make(codegen::NodeDesc::Made const& made)
     return CCSprite::createWithSpriteFrameName(made.frame.c_str());
   if (made.kind == "button")
     return CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName(made.frame.c_str()), nullptr, nullptr);
-  if (made.kind == "text button")
+  if (made.kind == "text button" && (made.texture.empty() || made.font.empty()))
     return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str()), nullptr, nullptr);
+  if (made.kind == "text button")
+    return CCMenuItemSpriteExtra::create(ButtonSprite::create(made.text.c_str(), made.width, made.minWidth, made.scale,
+                                                              made.absolute, made.font.c_str(), made.texture.c_str(),
+                                                              made.height),
+                                         nullptr, nullptr);
   if (made.kind == "circle button")
   {
     // The enums by their names, in their order

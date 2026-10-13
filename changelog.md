@@ -4,6 +4,7 @@
 - A right drag draws a box and selects the nodes wholly inside it (`Shift` adds them to the selection), as in Figma; the nodes it would take are outlined while it's drawn, `Esc` drops it; a level's objects and players (the main menu's flying icon) aren't taken; a right click still selects nothing
 - The whole promise checked end to end (`tools/e2e.sh`): an edit of the main menu, its "Copy all" built into a mod as it's pasted, the game run once with that mod: every node where the edit left it
 - README: GIFs of aligning (the buttons selected with a box) and of `Ctrl+D`; the self test's modes and tools
+- `Ctrl+D` on a text button keeps its font, background, width and height (`ButtonSprite::create(text, width, minWidth, scale, absolute, font, background, height)`): GD's own buttons made again come out exactly as big
 - Fixes from a review: a node made with `Ctrl+D` and hidden with `V` (an edit) isn't taken out by the next `Ctrl+D` or by the edit mode going off
 
 # v0.12.0
