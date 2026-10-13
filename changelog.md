@@ -1,3 +1,7 @@
+# v0.10.1 (not released yet: on main)
+
+- Values typed with several nodes selected: the fields typed into go to each of them (`pw`, `ph` its own parent's), one step to undo; the others stay each node's own. A scale for a whole row of buttons at once
+
 # v0.10.0
 
 - The edits are kept between runs of the game (`session.txt` in the save folder): after a rebuild and a restart, `Ctrl+Shift+C` still has what wasn't pasted yet. `Ctrl+Delete` forgets them

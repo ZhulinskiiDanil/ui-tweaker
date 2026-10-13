@@ -2246,19 +2246,60 @@ void editor::typingKey(int key, bool shift)
         return;
       }
     }
-    auto before = inspect::stateOf(node);
-    auto after = before;
-    after.position = CCPoint(*values[0], *values[1]);
-    // A node scaled unevenly keeps its proportions
-    float ratio = before.scaleX != 0 ? before.scaleY / before.scaleX : 1;
-    after.scaleX = *values[2];
-    after.scaleY = *values[2] * ratio;
-    after.size = CCSize(*values[3], *values[4]);
-    after.rotation = *values[5];
-    if (values.size() > 6)
-      after.opacity = static_cast<int>(std::round(*values[6]));
-    inspect::apply(node, after, true, false, after.rotation != before.rotation, after.opacity != before.opacity);
-    record(node, before, Typed, 0);
+    // With several selected, the fields typed into go to each of them (pw and ph its own parent's), one step; the
+    // fields left as they were stay each node's own
+    std::vector<bool> typed(values.size());
+    for (size_t i = 0; i < values.size(); i++)
+      typed[i] = i >= s.typingStart.size() || s.typing->values()[i] != s.typingStart[i];
+    auto nodes = selection();
+    int group = nodes.size() > 1 ? ++s.groups : 0;
+    for (auto each : nodes)
+    {
+      auto own = values;
+      if (each != node)
+      {
+        auto size = each->getParent() ? each->getParent()->getContentSize() : win;
+        own = s.typing->evaluate([&](std::string_view name) -> std::optional<float>
+                                 {
+                                   if (name == "w")
+                                     return win.width;
+                                   if (name == "h")
+                                     return win.height;
+                                   if (name == "pw")
+                                     return size.width;
+                                   if (name == "ph")
+                                     return size.height;
+                                   return std::nullopt;
+                                 });
+      }
+      auto before = inspect::stateOf(each);
+      auto after = before;
+      bool all = each == node;
+      auto take = [&](size_t i) { return i < own.size() && own[i] && (all || typed[i]); };
+      if (take(0))
+        after.position.x = *own[0];
+      if (take(1))
+        after.position.y = *own[1];
+      // A node scaled unevenly keeps its proportions
+      float ratio = before.scaleX != 0 ? before.scaleY / before.scaleX : 1;
+      if (take(2) && std::fabs(*own[2]) >= 0.01f)
+      {
+        after.scaleX = *own[2];
+        after.scaleY = *own[2] * ratio;
+      }
+      if (take(3) && *own[3] >= 0)
+        after.size.width = *own[3];
+      if (take(4) && *own[4] >= 0)
+        after.size.height = *own[4];
+      // Rotation and opacity only if typed into: the game may be spinning or fading the others
+      if (take(5) && (typed[5] || all))
+        after.rotation = *own[5];
+      if (take(6) && typeinfo_cast<CCRGBAProtocol*>(each) && *own[6] >= 0 && *own[6] <= 255)
+        after.opacity = static_cast<int>(std::round(*own[6]));
+      inspect::apply(each, after, all || typed[3] || typed[4], false, after.rotation != before.rotation,
+                     after.opacity != before.opacity);
+      record(each, before, Typed, 0, group);
+    }
     s.typing.reset();
   }
   else if (auto c = fields::typed(key, shift))

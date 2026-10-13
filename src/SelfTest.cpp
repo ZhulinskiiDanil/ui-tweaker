@@ -542,6 +542,25 @@ namespace
     check(close(gap1, gap2, 0.05f), fmt::format("Alt+Shift+H made the gaps the same: {} and {}", gap1, gap2));
     check(editor::undo() && putBack(), "Ctrl+Z put the distributed nodes back");
 
+    // A value typed with three selected: the scale typed goes to all of them, their positions stay their own
+    editor::select(boxes[0]);
+    editor::toggleSelect(boxes[1]);
+    editor::toggleSelect(boxes[2]);
+    editor::startTyping();
+    editor::typingKey(KEY_Tab, false);
+    editor::typingKey(KEY_Tab, false);
+    editor::typingKey('2', false);
+    editor::typingKey(KEY_Enter, false);
+    bool scaled = true, kept = true;
+    for (size_t i = 0; i < boxes.size(); i++)
+    {
+      scaled = scaled && close(boxes[i]->getScaleX(), 2) && close(boxes[i]->getScaleY(), 2);
+      kept = kept && boxes[i]->getPosition() == before[i].position;
+    }
+    check(scaled, "a scale typed with three selected scales all three");
+    check(kept, "the positions not typed into stay each node's own");
+    check(editor::undo() && putBack(), "one Ctrl+Z put the three back");
+
     // One node: to its parent's box
     auto frame = CCLayerColor::create({60, 120, 255, 80}, 160, 90);
     frame->setPosition({40, 40});
