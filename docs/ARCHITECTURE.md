@@ -38,6 +38,7 @@ The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would mak
 - **Buttons.** `CCMenuItemSpriteExtra`'s press animation scales it back to `m_baseScale`, so the edit and the code set that too.
 - **Sizes and visibility.** A content size is written (with `updateLayout()` for a node with a layout of its own) only if a resize handle or typed values set it: a label's text or a growing layout changing it isn't an edit, and undo doesn't put such a size back. `V` writes `setVisible`.
 - **Hooks.** "Copy all" groups the edits by the layer whose hook they go in: the closest parent that's one of the layers in `core/Hooks.cpp` (17, with the function their interface is made in, from the bindings), else the top one under the scene. A known layer's section is a whole `$modify`, the code after the original, its priority after node-ids' (whose IDs it looks for), under Geode's header and namespace.
+- **Layouts from a selection.** `L` (`codegen::layoutCode`): the selected nodes' bounding boxes in their parent's space go through `core/RowFit.cpp` (the axis they're spread along, their order, the mean gap, the closest of start/center/end across), and the code makes a menu (a plain node if none of them is a button) as big as the box of them all, by its middle (`ignoreAnchorPointForPosition(false)`, anchor 0.5: a plain node's is its corner), with the layout's gap and cross line alignment set, `setAutoScale(false)` and, for a column, `setAxisReverse(true)` (Geode's column goes bottom to top). Every node is found before any is moved, since a node found by its index would be another once a sibling goes. The self test does what the code says with Geode's own `RowLayout`/`ColumnLayout` and checks every node stays where it was.
 - **Style.** The code is made Allman with 2 spaces; `codegen::toKAndR` turns it into K&R with 4 for the setting: a lone opening brace goes up to the line before unless that's a comment.
 - **Checking it.** `core/Expr.cpp` reads the generated expressions back (numbers, `winSize.width`, `+ - * /`, parentheses). The self test and `inspect::checkCode` evaluate the code's `setPosition` (or the anchor and offset through `AnchorLayout::getAnchoredPosition`) and compare with where the node is, to a hundredth; for a popup's button the self test also puts the generated options on it and updates the layout.
 
@@ -63,6 +64,7 @@ The node tree (`TreePanel.cpp`) holds no node: holding a scene's nodes would mak
 | `core/Snap.cpp` | Guides and snapping |
 | `core/Measure.cpp` | Distances between two boxes |
 | `core/Align.cpp` | Lining boxes up and distributing them |
+| `core/RowFit.cpp` | Which axis, order, gap and cross alignment a set of boxes has, for a layout |
 | `core/Aspect.cpp` | Other screens' shapes and what doesn't fit on them |
 | `core/Explain.cpp` | Why a node doesn't move or show, from facts about it |
 | `core/Tree.cpp` | The tree's search |

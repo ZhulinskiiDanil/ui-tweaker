@@ -38,6 +38,10 @@ namespace words
     std::string nothingEdited;
     std::string copiedFor;   // {}: the node
     std::string copiedNodes; // {}: how many
+    std::string layoutNeeds;
+    std::string copiedLayout; // {} {}: row or column, how many
+    std::string row;
+    std::string column;
     std::string treeTitle;   // {} {}: shown, all
     std::string searchHint;
     std::string search;      // {}: the query

@@ -228,6 +228,73 @@ void checkSample(int index)
   }
 }
 
+// A layout sample's nodes in their parent (one with its ID in the layer, or the layer itself), last first: the code
+// has to put them in order
+std::vector<CCNode*> g_layoutNodes;
+
+void buildLayoutScene(CCNode& layer, int index)
+{
+  auto const all = layoutSamples();
+  auto const& desc = all[index];
+  CCNode* parent = &layer;
+  if (!desc.parentIsLayer)
+  {
+    parent = new CCMenu();
+    parent->id = desc.parent.id;
+    parent->size = {WIN.width, WIN.height};
+    layer.addChild(parent);
+  }
+  else
+    layer.size = {BOX.width, BOX.height};
+  g_layoutNodes.assign(desc.nodes.size(), nullptr);
+  for (size_t i = desc.nodes.size(); i-- > 0;)
+  {
+    auto node = make(desc.nodes[i].className);
+    node->id = desc.nodes[i].id;
+    parent->addChild(node);
+    g_layoutNodes[i] = node;
+  }
+}
+
+void checkLayoutSample(CCNode& layer, int index)
+{
+  auto const all = layoutSamples();
+  auto const& desc = all[index];
+  auto const& fit = desc.fit;
+  CCNode* parent = desc.parentIsLayer ? &layer : layer.getChildByIDRecursive(desc.parent.id);
+  CHECK(parent != nullptr);
+  if (!parent)
+    return;
+  auto container = parent->getChildByID(fit.row ? "mod.id/row" : "mod.id/column");
+  std::printf("layout sample %d: %s\n", index, container ? "made" : "not made");
+  CHECK(container != nullptr);
+  if (!container)
+    return;
+  CHECK((dynamic_cast<CCMenu*>(container) != nullptr) == desc.menu);
+  CHECK(!container->ignoresAnchor && close(container->anchor.x, 0.5f) && close(container->anchor.y, 0.5f));
+  CHECK(close(container->size.width, fit.bounds.width) && close(container->size.height, fit.bounds.height));
+  // In the middle of the box of them all, in the parent's space
+  CHECK(close(container->position.x, fit.bounds.midX()) && close(container->position.y, fit.bounds.midY()));
+  // Every node moved into it, in the order along the axis, held as before
+  CHECK(container->children.size() == fit.order.size());
+  for (size_t i = 0; i < fit.order.size() && i < container->children.size(); i++)
+  {
+    CHECK(container->children[i] == g_layoutNodes[fit.order[i]]);
+    CHECK(container->children[i]->references == 1);
+  }
+  auto layout = dynamic_cast<AxisLayout*>(container->layout);
+  CHECK(layout != nullptr);
+  if (!layout)
+    return;
+  CHECK(layout->row == fit.row && close(layout->gap, fit.gap) && !layout->autoScale);
+  CHECK(layout->reverse == !fit.row);
+  auto cross = fit.cross == rowfit::Align::Start ? AxisAlignment::Start
+               : fit.cross == rowfit::Align::End ? AxisAlignment::End
+                                                  : AxisAlignment::Center;
+  CHECK(layout->crossLineAlignment == cross);
+  CHECK(container->layoutUpdates == 1);
+}
+
 #include "samples.inc"
 
 #include "hooks.inc"
@@ -266,6 +333,7 @@ void runHooks()
 int main()
 {
   runSamples();
+  runLayoutSamples();
   runHooks();
   return finish("compiled code");
 }

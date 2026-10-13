@@ -1370,6 +1370,9 @@ namespace
       if (!control)
         editor::reset();
       break;
+    case KEY_L:
+      editor::copyLayout();
+      break;
     case KEY_V:
       // Ctrl+V after Ctrl+C out of habit doesn't hide anything
       if (!control)
@@ -2170,6 +2173,61 @@ size_t editor::editedCount()
   for (auto const& [layer, descs] : allEdits())
     count += descs.size();
   return count;
+}
+
+namespace
+{
+  // The selected nodes as a layout: two or more of one parent, their bounding boxes in its space
+  std::optional<codegen::LayoutDesc> selectedLayout()
+  {
+    auto nodes = editor::selection();
+    if (nodes.size() < 2)
+      return std::nullopt;
+    auto parent = nodes[0]->getParent();
+    if (!parent || std::any_of(nodes.begin(), nodes.end(), [&](CCNode* node) { return node->getParent() != parent; }))
+      return std::nullopt;
+    codegen::LayoutDesc layout;
+    std::vector<geom::Rect> boxes;
+    for (auto node : nodes)
+    {
+      auto box = node->boundingBox();
+      boxes.push_back({box.origin.x, box.origin.y, box.size.width, box.size.height});
+      layout.nodes.push_back(describeEdited(node));
+    }
+    // Only a menu lets a button be pressed
+    layout.menu =
+        std::any_of(nodes.begin(), nodes.end(), [](CCNode* node) { return typeinfo_cast<CCMenuItem*>(node) != nullptr; });
+    layout.fit = rowfit::fit(boxes);
+    layout.parent = inspect::describe(parent);
+    layout.parentIsLayer = inspect::className(parent) == layout.nodes[0].layer &&
+                           (hooks::find(layout.nodes[0].layer) || typeinfo_cast<CCScene*>(parent->getParent()));
+    return layout;
+  }
+} // namespace
+
+std::string editor::layoutCode()
+{
+  auto layout = selectedLayout();
+  return layout ? styled(codegen::layoutCode(*layout)) : "";
+}
+
+void editor::copyLayout()
+{
+  auto layout = selectedLayout();
+  if (!layout)
+  {
+    Notification::create(ui::words().layoutNeeds, NotificationIcon::Warning, 2.f)->show();
+    return;
+  }
+  auto code = styled(codegen::layoutCode(*layout));
+  auto count = std::to_string(layout->nodes.size());
+  clipboard::write(code);
+  log::info("Layout for {} selected nodes:\n{}", count, code);
+  logger_link::mark("copied a layout for " + count + " nodes");
+  auto const& w = ui::words();
+  Notification::create(text::format(w.copiedLayout, {layout->fit.row ? w.row : w.column, count}), NotificationIcon::Success,
+                       1.5f)
+      ->show();
 }
 
 void editor::copySelected()

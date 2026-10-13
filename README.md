@@ -45,6 +45,7 @@ Download `zhulis.ui-tweaker.geode` from the newest of the [releases](https://git
 | `Tab` | The next node under the mouse, deeper each time |
 | `Alt`+click | A part of a button or a label, not the whole of it |
 | `Shift`+click | Adds a node to the selection or takes it out. Drags, arrows and the wheel move all of them, one step to undo; `Ctrl+C` copies the code for all of them |
+| `L` | Copies the selected nodes of one parent as a row or a column: a new menu (or node) with a `RowLayout`/`ColumnLayout` whose gap, size, position and alignment put them where they are now, and the code that moves them into it. Line them up with `Alt` first; the code says if their gaps differ |
 | `Alt`+`A` `D` `H` / `W` `S` `V` | Aligns the selected nodes' left edges, right edges, centers / tops, bottoms, middles on the screen, as in Figma: several to the box of them all, one to its parent's box (or the screen's). `Alt`+`Shift`+`H` / `V` puts the same gap between three or more |
 | `PgUp`, `PgDn` | The parent, the first child |
 | `A` | Other screens: the 16:10, 4:3 and 21:9 screens drawn over this one, the selected node where it would be on each, a red box around every node with an ID that wouldn't fit on one of them. The panel says it too |

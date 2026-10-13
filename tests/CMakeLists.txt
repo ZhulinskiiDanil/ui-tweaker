@@ -19,11 +19,14 @@ add_executable(expr-tests ExprTests.cpp ../src/core/Expr.cpp)
 add_test(NAME expr COMMAND expr-tests)
 
 add_executable(codegen-tests CodegenTests.cpp ../src/core/Codegen.cpp ../src/core/Expr.cpp ../src/core/Geometry.cpp
-    ../src/core/Words.cpp ../src/core/Text.cpp)
+    ../src/core/Words.cpp ../src/core/Text.cpp ../src/core/RowFit.cpp)
 add_test(NAME codegen COMMAND codegen-tests)
 
 add_executable(align-tests AlignTests.cpp ../src/core/Align.cpp)
 add_test(NAME align COMMAND align-tests)
+
+add_executable(rowfit-tests RowFitTests.cpp ../src/core/RowFit.cpp)
+add_test(NAME rowfit COMMAND rowfit-tests)
 
 add_executable(history-tests HistoryTests.cpp)
 add_test(NAME history COMMAND history-tests)
@@ -54,7 +57,7 @@ add_test(NAME fields COMMAND fields-tests)
 
 # The generated code itself, compiled against a fake of Geode's API and run on fake nodes
 set(CODEGEN_SOURCES ../src/core/Codegen.cpp ../src/core/Expr.cpp ../src/core/Geometry.cpp ../src/core/Words.cpp
-    ../src/core/Text.cpp ../src/core/Hooks.cpp)
+    ../src/core/Text.cpp ../src/core/Hooks.cpp ../src/core/RowFit.cpp)
 add_executable(generate-samples compile/GenerateSamples.cpp ${CODEGEN_SOURCES})
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/samples.inc ${CMAKE_CURRENT_BINARY_DIR}/hooks.inc

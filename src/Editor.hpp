@@ -78,6 +78,10 @@ namespace editor
   // The edited nodes here and in the scenes left, which "Copy all" has
   size_t editedCount();
   void copySelected();
+  // L: the selected nodes of one parent as a row or a column of a new menu with an AxisLayout. Empty if they
+  // aren't two or more of one parent
+  std::string layoutCode();
+  void copyLayout();
   void copyAll();
 
   // Alt held: the distances from the selected node to the hovered one. nullopt: as Alt says

@@ -86,6 +86,81 @@ T typeinfo_cast(U* object)
   return dynamic_cast<T>(object);
 }
 
+enum class AxisAlignment
+{
+  Start,
+  Center,
+  End,
+  Even,
+  Between,
+};
+
+class Layout
+{
+public:
+  virtual ~Layout() = default;
+};
+
+class AxisLayout : public Layout
+{
+public:
+  bool row = true;
+  float gap = 5;
+  AxisAlignment axisAlignment = AxisAlignment::Center;
+  AxisAlignment crossLineAlignment = AxisAlignment::Center;
+  bool reverse = false;
+  bool autoScale = true;
+
+  AxisLayout* setGap(float value)
+  {
+    gap = value;
+    return this;
+  }
+  AxisLayout* setAxisAlignment(AxisAlignment value)
+  {
+    axisAlignment = value;
+    return this;
+  }
+  AxisLayout* setCrossAxisLineAlignment(AxisAlignment value)
+  {
+    crossLineAlignment = value;
+    return this;
+  }
+  AxisLayout* setAxisReverse(bool value)
+  {
+    reverse = value;
+    return this;
+  }
+  AxisLayout* setAutoScale(bool value)
+  {
+    autoScale = value;
+    return this;
+  }
+};
+
+class RowLayout : public AxisLayout
+{
+public:
+  static RowLayout* create() { return new RowLayout(); }
+};
+
+class ColumnLayout : public AxisLayout
+{
+public:
+  static ColumnLayout* create()
+  {
+    auto layout = new ColumnLayout();
+    layout->row = false;
+    return layout;
+  }
+};
+
+// GEODE_MOD_ID's prefix, as Geode's literal adds it
+inline std::string operator""_spr(char const* text, size_t size)
+{
+  return "mod.id/" + std::string(text, size);
+}
+
 class CCNode
 {
 public:
@@ -105,6 +180,31 @@ public:
     for (auto child : children)
       delete child;
     delete options;
+    delete layout;
+  }
+
+  static CCNode* create() { return new CCNode(); }
+  void setID(std::string const& value) { id = value; }
+  Layout* layout = nullptr;
+  void setLayout(Layout* value)
+  {
+    if (value != layout)
+      delete layout;
+    layout = value;
+  }
+  bool ignoresAnchor = false;
+  void ignoreAnchorPointForPosition(bool value) { ignoresAnchor = value; }
+  // Held by its parent; retain and release around a move, as the generated code does, are counted
+  int references = 1;
+  void retain() { references++; }
+  void release() { references--; }
+  void removeFromParent()
+  {
+    if (!parent)
+      return;
+    auto& siblings = parent->children;
+    siblings.erase(std::find(siblings.begin(), siblings.end(), this));
+    parent = nullptr;
   }
 
   void addChild(CCNode* child)
@@ -174,6 +274,12 @@ public:
     child->parent = this;
     children.insert(std::find(children.begin(), children.end(), before), child);
   }
+};
+
+class CCMenu : public CCNode
+{
+public:
+  static CCMenu* create() { return new CCMenu(); }
 };
 
 class CCSprite : public CCNode

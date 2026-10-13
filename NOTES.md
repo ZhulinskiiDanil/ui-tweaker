@@ -14,6 +14,7 @@
 | | What | Checked by |
 | --- | --- | --- |
 | 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 2 | `L`: a row/column layout from the selection (`core/RowFit.cpp`, `codegen::layoutCode`) | unit tests, two compiled samples (both styles), the self test applying the code with Geode's real RowLayout/ColumnLayout: every node stays put, both ways |
 | 3 | Nodes without IDs: a path from the closest parent with a findable ID or the layer, each step by ID, frame or type; IDs that aren't unique avoided; `inspect::followPath` | unit tests, three new compiled samples (nested ifs, frames, a twin ID), tour both ways: 74 paths in vanilla, 30 through parents without IDs, all lead to their node |
 | 1 | Align/distribute (`Alt`+`A` `D` `H` `W` `S` `V`, `Alt`+`Shift`+`H` `V`), `core/Align.cpp` with tests; undo keeps a selection that covers the step | self test (turned/flipped/scaled parent, one node in its parent, code read back) both ways; real Alt+A, 10/10 |
 
@@ -59,6 +60,12 @@
   found the code for a LevelSelectLayer sprite leading nowhere: `getChildByIDRecursive("background")` found
   another `background` first. IDs are now checked for that (the node's own too). The fake scene for the compiled
   samples had two bugs of its own (a CCNode step counts every node; buttons as "others" before a button).
+- 08:30 backlog 2, `L`. The self test does what the code says with Geode's real AxisLayout: it found the column
+  off by half its size (a plain CCNode's anchor is its corner, so the code sets 0.5 now) and that Geode's column
+  goes bottom to top (`setAxisReverse(true)` for nodes added top to bottom: without it, 215 points off).
+- 08:30 the second review (separate agent, a15c6f0..HEAD): no critical; 4 important (describe searching the whole
+  layer every frame, Alt swallowing every key, a null parent in align, the cursor hidden again on the end screen),
+  5 minor. Fixing them next.
 
 ## Checks
 

@@ -32,6 +32,23 @@ int main(int argc, char** argv)
   out << codegen::toKAndR(codegen::generateAll(all));
   out << "  }\n};\n\n";
 
+  // L's code, in both styles: run() in the layer (or the parent's layer), `this` being it
+  auto layouts = layoutSamples();
+  for (size_t i = 0; i < layouts.size(); i++)
+    for (bool kAndR : {false, true})
+    {
+      auto code = codegen::layoutCode(layouts[i]);
+      out << "struct LayoutSample" << i << (kAndR ? "KAndR" : "") << " : CCNode\n{\n  void run()\n  {\n";
+      out << (kAndR ? codegen::toKAndR(code) : code);
+      out << "  }\n};\n\n";
+    }
+  out << "inline void runLayoutSamples()\n{\n";
+  for (size_t i = 0; i < layouts.size(); i++)
+    for (bool kAndR : {false, true})
+      out << "  {\n    LayoutSample" << i << (kAndR ? "KAndR" : "") << " layer;\n    buildLayoutScene(layer, " << i
+          << ");\n    layer.run();\n    checkLayoutSample(layer, " << i << ");\n  }\n";
+  out << "}\n\n";
+
   out << "inline void runSamples()\n{\n";
   for (size_t i = 0; i < all.size(); i++)
     out << "  {\n    Sample" << i << " layer;\n    buildScene(layer);\n    layer.run(nodeOf(" << i

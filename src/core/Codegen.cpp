@@ -323,6 +323,141 @@ std::string codegen::generateAll(std::vector<NodeDesc> const& nodes)
   return out.str();
 }
 
+namespace
+{
+  // Lines that find a node and do `what` with it, `node` being it: nested `if`s as a node's block has them
+  std::string found(codegen::NodeDesc const& node, std::string const& what)
+  {
+    auto conditions = codegen::lookup(node);
+    if (conditions.empty())
+      return "";
+    std::string out, indent;
+    for (size_t i = 0; i < conditions.size(); i++)
+    {
+      out += indent + "if (" + conditions[i] + ")\n";
+      indent += "  ";
+    }
+    return out + indent + what + "\n";
+  }
+
+  std::string names(std::vector<codegen::NodeDesc> const& nodes, std::vector<size_t> const& order)
+  {
+    std::string out;
+    for (size_t i = 0; i < order.size(); i++)
+    {
+      auto const& node = nodes[order[i]];
+      out += (i == 0 ? "" : i + 1 == order.size() ? " and " : ", ") + describe(node.id, node.className);
+    }
+    return out;
+  }
+} // namespace
+
+std::string codegen::layoutCode(LayoutDesc const& layout)
+{
+  auto const& fit = layout.fit;
+  if (fit.order.size() < 2 || layout.nodes.size() != fit.order.size())
+    return "";
+  std::ostringstream out;
+  auto const& first = layout.nodes.front();
+  std::string kind = fit.row ? "row" : "column";
+
+  // Why, and what a layout will change
+  std::vector<std::string> notes{names(layout.nodes, fit.order) + " as a " + kind + ": a new " +
+                                 (layout.menu ? "menu" : "node") + " with an AxisLayout that puts them where they are now"};
+  // A number for a comment: 12.5, not 12.5f
+  auto plain = [](float value)
+  {
+    auto text = expr::number(value);
+    return text.ends_with('f') ? text.substr(0, text.size() - 1) : text;
+  };
+  if (fit.gapSpread > 0.5f)
+    notes.push_back("Their gaps differ by up to " + plain(fit.gapSpread) + ": the layout makes each " + plain(fit.gap) +
+                    " (Alt+Shift+" + (fit.row ? "H" : "V") + " makes them the same first)");
+  if (fit.crossSpread > 0.5f)
+    notes.push_back(std::string("They don't line up across the ") + kind + ": the layout lines up their " +
+                    (fit.cross == rowfit::Align::Center ? "middles" : fit.row ? (fit.cross == rowfit::Align::Start ? "bottoms" : "tops")
+                                                                         : (fit.cross == rowfit::Align::Start ? "left edges" : "right edges")));
+  for (auto const& note : notes)
+    for (auto const& line : text::wrap(note, COMMENT_COLUMNS))
+      out << "// " << line << "\n";
+
+  // The new one where the box of them all is, in their parent's frame, from its middle
+  NodeDesc box = first;
+  box.id = "";
+  box.position = {fit.bounds.midX(), fit.bounds.midY()};
+  box.layout = {};
+  auto position = positionExpressions(box);
+  bool screen = box.frame.kind == FrameKind::Screen;
+  auto x = expr::format(position.x, screen ? "winSize.width" : "parentSize.width");
+  auto y = expr::format(position.y, screen ? "winSize.height" : "parentSize.height");
+  bool usesExtent = position.x.k != 0 || position.y.k != 0;
+
+  out << "{\n";
+  if (usesExtent && screen)
+    out << "  auto winSize = CCDirector::get()->getWinSize();\n";
+  out << "  auto " << kind << " = " << (layout.menu ? "CCMenu" : "CCNode") << "::create();\n";
+  out << "  " << kind << "->setID(\"" << kind << "\"_spr);\n";
+  // Placed by its middle: a plain node's anchor is its corner
+  out << "  " << kind << "->ignoreAnchorPointForPosition(false);\n";
+  out << "  " << kind << "->setAnchorPoint({0.5f, 0.5f});\n";
+  out << "  " << kind << "->setContentSize({" << expr::number(fit.bounds.width) << ", " << expr::number(fit.bounds.height)
+      << "});\n";
+  out << "  " << kind << "->setLayout(" << (fit.row ? "RowLayout::create()" : "ColumnLayout::create()") << "\n";
+  out << "    ->setGap(" << expr::number(fit.gap) << ")\n";
+  // As long as they are: the alignment along it is any
+  out << "    ->setAxisAlignment(AxisAlignment::Center)\n";
+  out << "    ->setCrossAxisLineAlignment(AxisAlignment::" << rowfit::alignName(fit.cross) << ")\n";
+  // Top to bottom as they're added
+  if (!fit.row)
+    out << "    ->setAxisReverse(true)\n";
+  // Their own scales kept
+  out << "    ->setAutoScale(false));\n";
+
+  // Their parent gets it: the layer, or a parent found like a node is, `node` being it
+  if (layout.parentIsLayer)
+    out << "  this->addChild(" << kind << ");\n";
+  else if (auto add = found(layout.parent, "node->addChild(" + kind + ");"); !add.empty())
+  {
+    std::istringstream lines(add);
+    for (std::string line; std::getline(lines, line);)
+      out << "  " << line << "\n";
+  }
+  else
+    out << "  // Add " << kind << " to " << describe(layout.parent.id, layout.parent.className)
+        << ", which there's no way to find, where you make it\n";
+  if (usesExtent && !screen)
+    out << "  auto parentSize = " << kind << "->getParent() ? " << kind
+        << "->getParent()->getContentSize() : CCSize{0, 0};\n";
+  out << "  " << kind << "->setPosition({" << x << ", " << y << "});\n";
+
+  // All found before any is moved: a node found by its index among its siblings would be another once one goes
+  out << "  std::vector<CCNode*> nodes;\n";
+  for (auto index : fit.order)
+  {
+    auto const& node = layout.nodes[index];
+    auto lines = found(node, "nodes.push_back(node);");
+    if (lines.empty())
+    {
+      out << "  // " << describe(node.id, node.className) << ": no way to find it, add it to " << kind
+          << " where you make it, in this place of the order\n";
+      continue;
+    }
+    std::istringstream stream(lines);
+    for (std::string line; std::getline(stream, line);)
+      out << "  " << line << "\n";
+  }
+  out << "  for (auto node : nodes)\n";
+  out << "  {\n";
+  out << "    node->retain();\n";
+  out << "    node->removeFromParent();\n";
+  out << "    " << kind << "->addChild(node);\n";
+  out << "    node->release();\n";
+  out << "  }\n";
+  out << "  " << kind << "->updateLayout();\n";
+  out << "}\n";
+  return out.str();
+}
+
 std::string codegen::toKAndR(std::string const& code)
 {
   std::vector<std::string> lines;

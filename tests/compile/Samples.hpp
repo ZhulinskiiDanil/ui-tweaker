@@ -101,3 +101,48 @@ inline std::vector<codegen::NodeDesc> samples()
 
 // The sample without IDs that the code calls `node`
 inline constexpr int NO_ID = 9;
+
+// L's code: three buttons in a row in a parent with an ID, on the screen; three sprites in a column of the layer
+// itself, in a box. Given out of order, the code puts them in order
+inline std::vector<codegen::LayoutDesc> layoutSamples()
+{
+  using namespace codegen;
+  std::vector<LayoutDesc> all;
+  Frame screen{FrameKind::Screen, WIN, {0, 0}};
+  Frame box{FrameKind::Parent, BOX, {}};
+
+  LayoutDesc row;
+  std::vector<geom::Rect> rowBoxes{{220, 30, 40, 40}, {100, 30, 40, 30}, {160, 30, 40, 50}};
+  for (int i = 0; i < 3; i++)
+  {
+    NodeDesc node;
+    node.id = "row-" + std::to_string(i);
+    node.className = "CCMenuItemSpriteExtra";
+    node.parentId = "row-parent";
+    node.parentClass = "CCMenu";
+    node.frame = screen;
+    row.nodes.push_back(node);
+  }
+  row.fit = rowfit::fit(rowBoxes);
+  row.menu = true;
+  row.parent.id = "row-parent";
+  row.parent.className = "CCMenu";
+  all.push_back(row);
+
+  LayoutDesc column;
+  std::vector<geom::Rect> columnBoxes{{20, 10, 30, 20}, {20, 70, 30, 20}, {20, 40, 30, 20}};
+  for (int i = 0; i < 3; i++)
+  {
+    NodeDesc node;
+    node.id = "column-" + std::to_string(i);
+    node.className = "CCSprite";
+    node.parentClass = "MenuLayer";
+    node.frame = box;
+    column.nodes.push_back(node);
+  }
+  column.fit = rowfit::fit(columnBoxes);
+  column.menu = false;
+  column.parentIsLayer = true;
+  all.push_back(column);
+  return all;
+}

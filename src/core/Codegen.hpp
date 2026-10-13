@@ -4,6 +4,7 @@
 // The mod fills in a NodeDesc from the real node; the tests fill it in by hand
 #include "Expr.hpp"
 #include "Geometry.hpp"
+#include "RowFit.hpp"
 #include "Words.hpp"
 
 #include <optional>
@@ -139,6 +140,21 @@ namespace codegen
 
   // Many nodes in one block, each with a comment saying which node it is
   std::string generateAll(std::vector<NodeDesc> const& nodes);
+
+  // Several nodes of one parent as a row or a column of a new menu with an AxisLayout, which puts them where they
+  // are now (as far as their gaps are the same and they line up)
+  struct LayoutDesc
+  {
+    rowfit::Fit fit;
+    // fit.order is indices into these
+    std::vector<NodeDesc> nodes;
+    // Buttons are pressed only in a CCMenu; anything else goes in a plain CCNode
+    bool menu = true;
+    // Their parent, to add the new one to: the layer itself (`this`), or found as a node is
+    bool parentIsLayer = false;
+    NodeDesc parent;
+  };
+  std::string layoutCode(LayoutDesc const& layout);
 
   // The code is made with braces on their own lines and 2 spaces (Allman); this gives it with the opening brace at
   // the end of the line before and 4 spaces (K&R), as most Geode mods are written

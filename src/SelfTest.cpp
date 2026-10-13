@@ -559,6 +559,171 @@ namespace
     parent->removeFromParent();
   }
 
+  // The code L copies, done as it says with Geode's own AxisLayout: a new container with its size, layout and
+  // position, the nodes moved into it in the code's order, laid out. Each node has to stay where it was on the screen
+  void applyLayout(std::string const& code, CCNode* parent, std::vector<CCNode*> nodes, std::string const& what)
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto parentSize = parent->getContentSize();
+    auto lookup = [&](std::string_view name) -> std::optional<float>
+    {
+      if (name == "winSize.width")
+        return win.width;
+      if (name == "winSize.height")
+        return win.height;
+      if (name == "parentSize.width")
+        return parentSize.width;
+      if (name == "parentSize.height")
+        return parentSize.height;
+      return std::nullopt;
+    };
+    auto size = expr::callArguments(code, "setContentSize");
+    auto gap = expr::callArguments(code, "setGap");
+    auto position = expr::callArguments(code, "setPosition");
+    auto cross = expr::callArguments(code, "setCrossAxisLineAlignment");
+    bool row = code.find("RowLayout::create()") != std::string::npos;
+    bool reverse = code.find("setAxisReverse(true)") != std::string::npos;
+    if (size.size() != 2 || gap.size() != 1 || position.size() != 2 || cross.size() != 1)
+    {
+      check(false, fmt::format("{}: the layout's code can be read", what));
+      return;
+    }
+    auto width = expr::evaluate(size[0], lookup), height = expr::evaluate(size[1], lookup);
+    auto x = expr::evaluate(position[0], lookup), y = expr::evaluate(position[1], lookup);
+    auto spacing = expr::evaluate(gap[0], lookup);
+    if (!width || !height || !x || !y || !spacing)
+    {
+      check(false, fmt::format("{}: the layout's numbers can be read", what));
+      return;
+    }
+    auto alignment = cross[0] == "AxisAlignment::Start" ? AxisAlignment::Start
+                     : cross[0] == "AxisAlignment::End" ? AxisAlignment::End
+                                                         : AxisAlignment::Center;
+
+    std::vector<geom::Rect> before;
+    for (auto node : nodes)
+      before.push_back(inspect::worldQuad(node).bounds());
+    // The code's order: where each node's ID is in it
+    auto order = nodes;
+    std::sort(order.begin(), order.end(),
+              [&](CCNode* a, CCNode* b) { return code.find(std::string(a->getID())) < code.find(std::string(b->getID())); });
+
+    CCNode* container = code.find("CCMenu::create()") != std::string::npos ? CCMenu::create() : CCNode::create();
+    container->ignoreAnchorPointForPosition(false);
+    if (code.find("setAnchorPoint({0.5f, 0.5f})") != std::string::npos)
+      container->setAnchorPoint({0.5f, 0.5f});
+    container->setContentSize({*width, *height});
+    auto layout = row ? static_cast<AxisLayout*>(RowLayout::create()) : static_cast<AxisLayout*>(ColumnLayout::create());
+    layout->setGap(*spacing)
+        ->setAxisAlignment(AxisAlignment::Center)
+        ->setCrossAxisLineAlignment(alignment)
+        ->setAutoScale(false);
+    if (reverse)
+      layout->setAxisReverse(true);
+    container->setLayout(layout);
+    parent->addChild(container);
+    container->setPosition({*x, *y});
+    for (auto node : order)
+    {
+      node->retain();
+      node->removeFromParent();
+      container->addChild(node);
+      node->release();
+    }
+    container->updateLayout();
+
+    float worst = 0;
+    std::string moves;
+    for (size_t i = 0; i < nodes.size(); i++)
+    {
+      auto after = inspect::worldQuad(nodes[i]).bounds();
+      worst = std::max({worst, std::fabs(after.x - before[i].x), std::fabs(after.y - before[i].y)});
+      moves += fmt::format(" ({}, {}) -> ({}, {})", before[i].x, before[i].y, after.x, after.y);
+    }
+    if (worst >= 0.1f)
+      log::info("Self test: {} moved:{}", what, moves);
+    check(worst < 0.1f, fmt::format("{}: the layout's code puts every node where it was (off by {} at most)", what, worst));
+    container->removeFromParent();
+  }
+
+  // L on three buttons lined up by Alt+S and Alt+Shift+H: a row; on three sprites by Alt+D and Alt+Shift+V: a
+  // column. Each layout's code done as it says leaves them where they were
+  void layouts(CCNode* layer)
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto menu = CCMenu::create();
+    menu->setID("selftest-row-parent"_spr);
+    menu->ignoreAnchorPointForPosition(false);
+    menu->setContentSize({320, 90});
+    menu->setPosition({win.width / 2, 90});
+    layer->addChild(menu, 1000);
+    std::vector<CCNode*> buttons;
+    float scales[] = {1.f, 0.8f, 1.3f};
+    CCPoint places[] = {{40, 30}, {150, 50}, {250, 40}};
+    for (int i = 0; i < 3; i++)
+    {
+      auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+      auto button = CCMenuItemSpriteExtra::create(sprite ? static_cast<CCNode*>(sprite) : CCSprite::create(), nullptr, nullptr);
+      button->setID(Mod::get()->expandSpriteName(fmt::format("selftest-row-{}", i)));
+      button->setScale(scales[i]);
+      button->m_baseScale = scales[i];
+      button->setPosition(places[i]);
+      menu->addChild(button);
+      buttons.push_back(button);
+    }
+    editor::select(buttons[0]);
+    editor::toggleSelect(buttons[1]);
+    editor::toggleSelect(buttons[2]);
+    check(editor::layoutCode().find("Their gaps differ") != std::string::npos,
+          "the layout's code says when the gaps differ");
+    editor::alignTo(align::Edge::Bottom);
+    editor::distribute(true);
+    auto code = editor::layoutCode();
+    log::info("Self test: the layout for three buttons:\n{}", code);
+    check(code.find("RowLayout::create()") != std::string::npos && code.find("CCMenu::create()") != std::string::npos &&
+              code.find("AxisAlignment::Start") != std::string::npos && code.find("Their gaps differ") == std::string::npos,
+          "three buttons lined up at the bottom are a row of a menu, aligned at the start");
+    applyLayout(code, menu, buttons, "the row");
+
+    auto column = CCNode::create();
+    column->setID("selftest-column-parent"_spr);
+    column->setContentSize({120, 200});
+    column->setPosition({60, 60});
+    layer->addChild(column, 1000);
+    std::vector<CCNode*> sprites;
+    CCPoint spots[] = {{40, 170}, {70, 100}, {55, 30}};
+    for (int i = 0; i < 3; i++)
+    {
+      auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+      if (!sprite)
+        sprite = CCSprite::create();
+      sprite->setID(Mod::get()->expandSpriteName(fmt::format("selftest-column-{}", i)));
+      sprite->setScale(0.7f + 0.2f * i);
+      sprite->setPosition(spots[i]);
+      column->addChild(sprite);
+      sprites.push_back(sprite);
+    }
+    editor::select(sprites[0]);
+    editor::toggleSelect(sprites[1]);
+    editor::toggleSelect(sprites[2]);
+    editor::alignTo(align::Edge::Right);
+    editor::distribute(false);
+    code = editor::layoutCode();
+    log::info("Self test: the layout for three sprites:\n{}", code);
+    check(code.find("ColumnLayout::create()") != std::string::npos && code.find("CCNode::create()") != std::string::npos &&
+              code.find("AxisAlignment::End") != std::string::npos,
+          "three sprites lined up at the right are a column of a plain node, aligned at the end");
+    applyLayout(code, column, sprites, "the column");
+
+    // Nodes of different parents: no layout
+    editor::select(buttons[0]);
+    editor::toggleSelect(sprites[0]);
+    check(editor::layoutCode().empty(), "nodes of two parents have no layout");
+    editor::select(nullptr);
+    menu->removeFromParent();
+    column->removeFromParent();
+  }
+
   void several(CCNode* first, CCNode* second)
   {
     auto a = inspect::stateOf(first);
@@ -682,6 +847,7 @@ namespace
       typing(shown[0]);
       transforms();
       aligning();
+      layouts(layer);
       // A colored box of its own: a node whose size is what it looks like, big enough for every handle
       {
         auto box = CCLayerColor::create({80, 160, 255, 120}, 60, 30);
