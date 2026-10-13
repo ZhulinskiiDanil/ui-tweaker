@@ -9,6 +9,24 @@
 - You said at ~07:00 you'll be home 16:50–17:20 (Warsaw, +02:00): so everything wrapped up by **16:50**,
   stabilization from **~15:50**
 
+## Summary (for when you're back)
+
+- **Releases today**: v0.8.1, v0.9.0, v0.10.0, v0.11.0, v0.12.0 (pre-releases, `.geode` from CI, each installed and
+  checked both ways; Zhulis Mods Manager in the game fetched v0.12.0). On main after v0.12.0: the end-to-end check,
+  README's settings and GIFs (code-wise: one export mode in the self test).
+- **New for modders**: align/distribute (Alt+letters), `L` a row/column layout from a selection, paths to nodes
+  without IDs (and IDs that aren't unique avoided), edits kept between runs and *Put edits back*, rotation and
+  opacity, a *Grid* for round numbers in the code, `Ctrl+D` new nodes like existing ones (sprites, buttons, text
+  and circle buttons, labels), `Alt+C` the way to a node, typed values for several nodes, the tree's search by
+  frame or text, the panel kept off the taskbar, F8 in text fields, the cursor in levels.
+- **Checked**: every feature in the self test (11 modes, both with your mods and in vanilla: the tour alone is 1200
+  checks in vanilla), real mouse and keyboard (16 steps), a restart with an edit put back, the generated code
+  compiled against the fake API and against the real Geode headers, and **end to end**: an edit's "Copy all" built
+  into a mod and run in the game, the nodes exactly where the edit left them (`tools/e2e.sh`).
+- **Reviews**: five by separate agents, every finding fixed (two critical among them: a kept edit put on another
+  layer's node; edits falling out after 200 steps).
+- **Yours to decide**: the Geode Index (`reject-vibecoded`, Improved Logger not on the Index), see "Geode Index".
+
 ## What's done
 
 | | What | Checked by |
