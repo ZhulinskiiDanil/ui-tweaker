@@ -13,6 +13,8 @@
 
 | | What | Checked by |
 | --- | --- | --- |
+| 0 | v0.8.1 released: the self test fixed for vanilla (unlimited fps, the panel), `tools/vanilla.sh`; the CI `.geode` installed and checked both ways; the releases API shows it without a token | self test both ways, tour, real input 9/9 |
+| 1 | Align/distribute (`Alt`+`A` `D` `H` `W` `S` `V`, `Alt`+`Shift`+`H` `V`), `core/Align.cpp` with tests; undo keeps a selection that covers the step | self test (turned/flipped/scaled parent, one node in its parent, code read back) both ways; real Alt+A, 10/10 |
 
 ## Decisions
 
@@ -38,6 +40,13 @@
   pointed the mouse at a sibling that the panel then moved over (nothing is hovered under the panel): it now
   points once the panel has moved. Both ways: menu/play/editor/tour/code/aspect PASS; real input 9/9 (vanilla).
 - 07:10 a background agent researching known GD/Cocos/Geode bugs that could get in this mod's way (you asked).
+- 07:17 v0.8.1 released (pre-release); its own `.geode` from CI installed: menu and tour PASS with your mods
+  (129/445) and in vanilla (131/522); the anonymous releases API lists it with the `.geode`.
+- 07:20 backlog 1, align/distribute. The first self test run showed undo selecting only the nodes that moved (the
+  leftmost one, already in place, has no change in the step), so Alt+A, Ctrl+Z, Alt+W lined up two of three:
+  undo now keeps a selection that has all of the step's nodes. Real `Alt`+`A` reaches the mod (Windows sends Alt
+  combinations as system keys; Geode's event has them). Self test 144 (vanilla) / 142 (yours), real input 10/10.
+- 07:30 the research came back (below, "Known GD/Cocos/Geode quirks"); its findings are now in the backlog.
 
 ## Checks
 
@@ -45,6 +54,37 @@
 | --- | --- | --- | --- | --- | --- |
 | 07:13 | yours | 14/14 | ok | PASS 129 / play 140 / editor 140 / tour 445 / code 129 / aspect 129 | MiSide menu: label selected, distances |
 | 07:13 | vanilla | 14/14 | ok | PASS 131 / 142 / 142 / tour 522 / 131 / 131; real input 9/9 | vanilla menu: Geode button, panel dodged |
+
+## Known GD/Cocos/Geode quirks (research, 07:30)
+
+From a separate agent's reading of the Geode SDK, the bindings, cocos2d-x 2.2 and issues (VERIFIED = seen in the
+source or an issue). What's done about each is marked.
+
+1. **Screen mode / resolution / texture quality reload the whole game** (`GameManager::switchScreenMode` →
+   `reloadAll`; Geode sends `GameEvent(TexturesUnloaded)` and purges bitmap fonts). The overlay in OverlayManager
+   survives with stale labels; edited nodes go. VERIFIED. → to check in the game and handle.
+2. **A mouse release can be lost** (raw input queue cleared while GD isn't in front; only keys get fake key-ups):
+   a drag stuck after Alt-Tab. VERIFIED. The edit mode already ends a press when the window isn't active.
+3. **Transitions**: `getRunningScene()` is the `CCTransitionScene`; the old and new scenes are drawn by hand, not
+   its children. VERIFIED; the self test waits for them to end now (06:57).
+4. **`setZOrder` gives a node a new arrival order even with the same z**, and GD removed `m_uOrderOfArrival` (sorts
+   by its own child index): `[` then `]` or an undo of a z-order moves a node to the end of its row among same-z
+   siblings. VERIFIED. Known, left: restoring GD's child index isn't safe to do from outside.
+5. **Index paths depend on state** (MenuLayer's IDs by `m_clickedGarage`, controllers; NodeIDs #119 #39 #166 #116
+   #133); `getChildBySpriteFrameName` matches a sprite or a button's image by frame. → backlog 3.
+6. **AxisLayout defaults** (gap 5, autoScale resets scales and `m_baseScale`, ignores invisible children, positions
+   every child, forces ignoreAnchor off; `respectAnchor` shifts children). → backlog 2: a new container, every option
+   set explicitly.
+7. **F8 doesn't fire while a text field has the keyboard** (`allow-in-text-inputs` defaults to false). VERIFIED.
+   → to set on the keybind setting.
+8. **Lock cursor freezes `getMousePos()`** in a level with GD's lock-cursor option. VERIFIED. → to handle.
+9. CCMenu clicks the first item in array order: overlapped buttons are clicked differently than drawn. Known.
+10. CCMenuItemToggler's two inner buttons: picked as the toggler (the outermost whole thing). Known.
+11. TableView cells and the editor's button bar are rebuilt: edits there don't survive; their hooks belong elsewhere.
+12. `limitLabelWidth` resets a label's scale on a new text; batched labels in levels.
+13. Opacity/color: only CCMenu cascades by default; CCMotionStreak has no opacity. → backlog 5.
+14. Re-applying edits on a layer's re-creation: the layer's ID set to its class name ("MenuLayer") by the ID
+    provider is the "IDs are ready" marker. → backlog 4.
 
 ## Not done / known
 
