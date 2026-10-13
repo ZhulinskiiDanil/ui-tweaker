@@ -207,6 +207,7 @@ namespace
     bool boxAdd = false;
     std::vector<Retained<CCNode>> boxNodes;
     CCPoint boxAt{-1, -1};
+    int boxFrames = 0;
 
     std::optional<CCPoint> pinned;
     // The cursor a level hid or locked, shown and let go while the edit mode is on, put back after
@@ -586,6 +587,8 @@ namespace
     s.putBackAt = now() + 0.3;
     auto gone = [scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); };
     s.history.forget(gone);
+    s.boxNodes.clear();
+    s.boxAt = CCPoint{-1, -1};
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
     std::erase_if(s.made, [&](auto const& entry) { return gone(entry.node); });
     std::erase_if(s.dropped, [&](auto const& entry) { return gone(entry.node); });
@@ -1384,13 +1387,16 @@ namespace
         auto to = mousePosition();
         geom::Quad box{{geom::Vec2{from->x, from->y}, {to.x, from->y}, {to.x, to.y}, {from->x, to.y}}};
         drawQuad(box, HOVER_FILL, 0.5f, GUIDE);
-        // What it would select, looked for again only when the mouse moved
-        if (ccpDistance(to, s.boxAt) >= 0.5f)
+        // What it would select (nothing for a click's few points, as selectIn), looked for again when the mouse
+        // moved, else a few times a second (the nodes move too)
+        if (ccpDistance(to, s.boxAt) >= 0.5f || ++s.boxFrames >= HOVER_FRAMES)
         {
           s.boxAt = to;
+          s.boxFrames = 0;
           s.boxNodes.clear();
-          for (auto node : inspect::within(runningScene(), box.bounds()))
-            s.boxNodes.emplace_back(node);
+          if (!editor::isClick(*from, to))
+            for (auto node : inspect::within(runningScene(), box.bounds()))
+              s.boxNodes.emplace_back(node);
         }
         for (auto const& node : s.boxNodes)
           drawQuad(inspect::worldQuad(node.get()), HOVER_FILL, 0.5f, HOVER);
@@ -1422,7 +1428,7 @@ namespace
   Retained<CCNode> hovered(CCPoint mouse)
   {
     auto& s = state();
-    if (s.dragging || s.panelDragging || (s.overlay && s.overlay->panelContains(mouse)))
+    if (s.dragging || s.panelDragging || s.boxFrom || (s.overlay && s.overlay->panelContains(mouse)))
       return {};
     // Over the tree, the row's node (checked to be in the scene: the tree doesn't hold its nodes)
     if (s.overlay && s.overlay->tree()->contains(mouse))
@@ -1511,7 +1517,7 @@ namespace
       if (s.overlay && s.overlay->titleContains(mouse))
         s.overlay->panelUnplaced();
       else if ((tree && tree->contains(mouse)) || (s.overlay && s.overlay->panelContains(mouse)) || s.pressed ||
-               s.resizing)
+               s.resizing || s.panelDragging)
         editor::select(nullptr);
       else
       {
@@ -1880,6 +1886,8 @@ void editor::setActive(bool on)
     s.keys.reset();
     s.pressed = s.dragging = s.panelDragging = s.leftDown = false;
     s.boxFrom.reset();
+    s.boxNodes.clear();
+    s.boxAt = CCPoint{-1, -1};
     s.putBackScene = 0;
     s.sessionDirty = true;
     saveSession(true);
@@ -2707,14 +2715,18 @@ void editor::selectSiblings()
   log::info("Selection: {} nodes", selection().size());
 }
 
+bool editor::isClick(CCPoint from, CCPoint to)
+{
+  constexpr float CLICK = 4;
+  return std::fabs(to.x - from.x) < CLICK && std::fabs(to.y - from.y) < CLICK;
+}
+
 void editor::selectIn(CCPoint from, CCPoint to, bool add)
 {
   auto& s = state();
   if (s.pressed || s.resizing)
     return;
-  // Less than this far: a right click
-  constexpr float CLICK = 4;
-  if (std::fabs(to.x - from.x) < CLICK && std::fabs(to.y - from.y) < CLICK)
+  if (isClick(from, to))
   {
     if (!add)
       select(nullptr);

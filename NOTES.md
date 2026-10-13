@@ -146,6 +146,17 @@
   sprite frame shares the texture, a sheet). Unit tests, a compiled sample (fake API and real Geode headers), the
   self test (a "GJ_button_04"/bigFont button made as big), and the tour making again every text button of 13 real
   scenes: 20 of 21 with their look with your mods, 13 of 14 in vanilla, all as big as the game's.
+- 14:25 seventh review (07464da..caafc5d): one critical, fixed: a text button whose background is a mod's
+  resource ("geode.loader/white-square.png", `"bg.png"_spr`) lost its folder, so Ctrl+D asked for a file that
+  isn't there. Now the name is the file with as many folders as it takes for `textureForKey` to give that very
+  texture back, else the default look (self test: Geode's white square as a background). Also: the box's outlined
+  nodes let go with the mode and a scene change, looked for again a few times a second, none for a click's few
+  points or during a panel drag, no hover looked for meanwhile; the tour fails if no text button of a scene gets
+  its look; the whole-screen box with a level's object put wholly in it; Shift adding a node; the mode off/on path
+  for a made node hidden with V (kept, no code: made and hidden changes nothing, Ctrl+Z shows it); the fake
+  ButtonSprite checks every number; `tools/e2e.sh` exits 1 on a failure. Not done: a ButtonSprite's own scale
+  and colors (the code would need statements, not an expression). Both ways: 1, limit, tour, editor PASS; real
+  input 19/19; codecheck.
 
 ## Checks
 
@@ -224,9 +235,10 @@ source or an issue). What's done about each is marked.
 - Color isn't edited: it isn't layout, and a button's press tints it anyway (backlog 5, a choice).
 - `[` `]` and an undo of a z-order give a node a new arrival order (GD's child index): among same-z siblings in a
   layout it moves to the end of its row (quirk 4). Not fixable from outside without touching GD's sorting.
-- Ctrl+D makes a text button with the original's font and background only when the background is a texture of
-  its own (GD's are: 20 of 21 in the tour's scenes with your mods, 13 of 14 in vanilla); else `ButtonSprite`'s default look; a button's image a plain
-  sprite or Geode's circle button (its top sprite's own relative scale, if not 1, isn't kept).
+- Ctrl+D makes a text button with the original's font and background (not its own scale or colors) only when the
+  background is a file of its own, a mod's resource too (GD's are: 20 of 21 in the tour's scenes with your mods,
+  13 of 14 in vanilla); else `ButtonSprite`'s default look; a button's image a plain sprite or Geode's circle
+  button (its top sprite's own relative scale, if not 1, isn't kept).
 - `tools/real-input.sh`'s points are the vanilla main menu's: with your MiSide menu it would click other things,
   so real input runs in vanilla; the self test runs both ways.
 - The game's memory rises about 7 MB a minute in the vanilla game here, the same with the edit mode on, off, idle

@@ -370,17 +370,26 @@ class ButtonSprite : public CCNode
 {
 public:
   std::string text, font, texture;
+  int width = 0, minWidth = 0;
+  float buttonScale = 1, height = 0;
+  bool absolute = false;
   static ButtonSprite* create(char const* value)
   {
     auto sprite = new ButtonSprite();
     sprite->text = value;
     return sprite;
   }
-  static ButtonSprite* create(char const* value, int, int, float, bool, char const* fnt, char const* bg, float)
+  static ButtonSprite* create(char const* value, int width, int minWidth, float scale, bool absolute, char const* fnt,
+                              char const* bg, float height)
   {
     auto sprite = create(value);
+    sprite->width = width;
+    sprite->minWidth = minWidth;
+    sprite->buttonScale = scale;
+    sprite->absolute = absolute;
     sprite->font = fnt;
     sprite->texture = bg;
+    sprite->height = height;
     return sprite;
   }
 };

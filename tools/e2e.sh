@@ -65,4 +65,9 @@ taskkill //IM GeometryDash.exe //F >/dev/null 2>&1
 EOF
 result="$(VANILLA_ALSO="$id" tools/vanilla.sh bash "$run")"
 echo "$result" | grep -v "^vanilla:"
-echo "$result" | grep -q "E2E PASS" && echo "RESULT: PASS" || echo "RESULT: FAIL"
+if echo "$result" | grep -q "E2E PASS"; then
+  echo "RESULT: PASS"
+else
+  echo "RESULT: FAIL"
+  exit 1
+fi

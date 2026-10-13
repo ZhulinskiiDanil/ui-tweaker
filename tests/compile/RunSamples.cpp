@@ -216,7 +216,9 @@ void checkSample(int index)
       auto button = dynamic_cast<CCMenuItemSpriteExtra*>(node);
       auto text = button ? dynamic_cast<ButtonSprite*>(button->image) : nullptr;
       CHECK(text && text->text == desc.made.text && text->font == desc.made.font &&
-            text->texture == desc.made.texture);
+            text->texture == desc.made.texture && text->width == desc.made.width &&
+            text->minWidth == desc.made.minWidth && text->buttonScale == desc.made.scale &&
+            text->absolute == desc.made.absolute && text->height == desc.made.height);
     }
     if (desc.made.kind == "label")
     {

@@ -78,6 +78,8 @@ namespace editor
   // A right drag from `from` to `to`: the nodes wholly inside the box it made (inspect::within), added to the
   // selection if `add` (Shift), else in place of it. A box this small is a right click: nothing selected
   void selectIn(cocos2d::CCPoint from, cocos2d::CCPoint to, bool add);
+  // A right press and release this close: a click, not a box
+  bool isClick(cocos2d::CCPoint from, cocos2d::CCPoint to);
   // The selected nodes, the one the panel shows first
   std::vector<cocos2d::CCNode*> selection();
   cocos2d::CCNode* selected();

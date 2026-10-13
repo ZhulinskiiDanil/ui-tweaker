@@ -793,8 +793,21 @@ namespace
       auto added = editor::selection();
       check(editor::selected() == sprites[0] && std::find(added.begin(), added.end(), sprites[2]) == added.end(),
             "a box cutting through a sprite left it out, and Shift kept the selection");
-      // A box over the whole screen: interface only, nothing of the menu's flying player or its level
+      auto whole = inspect::worldQuad(sprites[1]).bounds();
+      editor::selectIn({whole.minX() - 1, whole.minY() - 1}, {whole.maxX() + 1, whole.maxY() + 1}, true);
+      added = editor::selection();
+      check(editor::selected() == sprites[0] && std::find(added.begin(), added.end(), sprites[1]) != added.end(),
+            "a box with Shift added the sprite wholly in it");
+      // A box over the whole screen: interface only, nothing of a level (an object put wholly in it, the menu's
+      // flying player)
       auto win = CCDirector::get()->getWinSize();
+      auto object = GameObject::createWithKey(1);
+      if (object)
+      {
+        object->setPosition({win.width / 2, win.height / 2});
+        sprites[0]->getParent()->getParent()->addChild(object, 1000);
+      }
+      check(object && inspect::worldQuad(object).bounds().width > 0, "a level's object wholly on the screen");
       editor::selectIn({0, 0}, {win.width, win.height}, false);
       auto everything = editor::selection();
       bool game = std::any_of(everything.begin(), everything.end(), [](CCNode* node)
@@ -806,6 +819,8 @@ namespace
                               });
       check(!everything.empty() && !game,
             fmt::format("a box over the whole screen took {} nodes, none of a level's objects", everything.size()));
+      if (object)
+        object->removeFromParent();
       // A right click: nothing selected
       editor::selectIn({100, 100}, {102, 101}, false);
       check(editor::selection().empty(), "a right click selected nothing");
@@ -989,6 +1004,42 @@ namespace
           "an edit past the history's 200 steps is still in the code for all");
     editor::select(nullptr);
     other->removeFromParent();
+
+    // A made node hidden with V is an edit: it stays through the edit mode going off and on, an undone one doesn't
+    auto holder = CCNode::create();
+    holder->setID("selftest-limit-holder"_spr);
+    if (auto layer = scene->getChildByType<CCLayer>(0))
+      layer->addChild(holder, 1000);
+    else
+      scene->addChild(holder, 1000);
+    auto label = CCLabelBMFont::create("Made", "bigFont.fnt");
+    label->setID("selftest-limit-label"_spr);
+    label->setPosition({win.width / 2, win.height / 2 - 60});
+    holder->addChild(label);
+    editor::select(label);
+    editor::duplicate();
+    auto hidden = editor::selected();
+    editor::select(label);
+    editor::duplicate();
+    auto undone = editor::selected();
+    check(hidden && undone && hidden != label && undone != label && hidden != undone, "Ctrl+D made two labels");
+    if (hidden && undone && hidden != label && undone != label && hidden != undone)
+    {
+      editor::undo();
+      editor::select(hidden);
+      editor::toggleVisible();
+      Ref<CCNode> keepHidden = hidden, keepUndone = undone;
+      editor::setActive(false);
+      editor::setActive(true);
+      // Made and hidden changes nothing: no code for it, but its steps are there to undo
+      check(hidden->getParent() == holder && !hidden->isVisible() &&
+                editor::codeForAll().find(std::string(hidden->getID())) == std::string::npos,
+            "a made node hidden with V stayed through the edit mode going off and on, with no code");
+      // Ctrl+Z still shows it: its steps are kept
+      check(editor::undo() && hidden->isVisible(), "and Ctrl+Z shows it again");
+      check(undone->getParent() == nullptr, "an undone made node went with the edit mode going off");
+    }
+    holder->removeFromParent();
     g_frames = 0;
     finish(false);
   }
@@ -1023,6 +1074,12 @@ namespace
     okay->setID("selftest-dup-okay"_spr);
     okay->setPosition({50, 10});
     menu->addChild(okay);
+    // A background of a mod's own (Geode's tag labels'): its name with the mod's folder
+    auto tag = CCMenuItemSpriteExtra::create(
+        ButtonSprite::create("Tag", "bigFont.fnt", "geode.loader/white-square.png", 0.8f), nullptr, nullptr);
+    tag->setID("selftest-dup-tag"_spr);
+    tag->setPosition({140, 10});
+    menu->addChild(tag);
     auto label = CCLabelBMFont::create("Hello", "bigFont.fnt");
     label->setID("selftest-dup-label"_spr);
     label->setPosition({140, 40});
@@ -1030,7 +1087,7 @@ namespace
     menu->addChild(label);
 
     for (auto source : {static_cast<CCNode*>(button), static_cast<CCNode*>(circle), static_cast<CCNode*>(okay),
-                        static_cast<CCNode*>(label)})
+                        static_cast<CCNode*>(tag), static_cast<CCNode*>(label)})
     {
       auto name = inspect::name(source);
       editor::select(source);
@@ -1057,10 +1114,11 @@ namespace
           : source == circle ? "CircleButtonSprite::createWithSpriteFrameName(\"GJ_infoIcon_001.png\", 1.f, CircleBaseColor::Blue, "
                                "CircleBaseSize::Small)"
           : source == okay   ? "\"bigFont.fnt\", \"GJ_button_04.png\""
+          : source == tag    ? "\"bigFont.fnt\", \"geode.loader/white-square.png\""
                              : "CCLabelBMFont::create(\"Hello\", \"bigFont.fnt\")";
       bool makes = code.find(wanted) != std::string::npos;
       check(makes, fmt::format("the code makes one like {}", name));
-      if (source == okay)
+      if (source == okay || source == tag)
       {
         // As big as the original: the same font, background and numbers
         auto a = source->getContentSize(), b = made->getContentSize();
@@ -1084,6 +1142,7 @@ namespace
     editor::select(label);
     editor::duplicate();
     auto hidden = editor::selected();
+    check(hidden && hidden != label, "Ctrl+D made a label to hide");
     if (hidden && hidden != label)
     {
       editor::toggleVisible();
@@ -1607,6 +1666,7 @@ namespace
     visit(scene);
     if (texts)
       log::info("Self test tour: {}: {} text buttons, {} made again with their font and background", name, texts, looks);
+    check(texts == 0 || looks > 0, fmt::format("{}: {} text buttons, none made with their look", name, texts));
   }
 
   // Scene after scene of the game, each looked through by tourScene

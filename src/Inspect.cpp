@@ -477,27 +477,40 @@ namespace
     return found != names.end() ? found->second : "";
   }
 
-  // The file a 9-slice's texture was loaded from, as ButtonSprite is given it: "GJ_button_04.png" (no folder, no
-  // -uhd). Empty if it isn't a file of its own (a sheet's frames have that texture too)
+  // The name a 9-slice's texture was loaded by, as ButtonSprite is given it: "GJ_button_04.png", a mod's
+  // "geode.loader/white-square.png" (the cache's key is the full path, -uhd and all). Only a name that loads this
+  // very texture again: empty if none does (a key that isn't a file) or it isn't a file of its own (a sheet's frames
+  // have that texture too)
   std::string textureFile(extension::CCScale9Sprite* slice)
   {
     auto texture = slice->_scale9Image ? slice->_scale9Image->getTexture() : nullptr;
-    auto textures = CCTextureCache::sharedTextureCache()->m_pTextures;
-    if (!texture || !textures)
+    auto cache = CCTextureCache::sharedTextureCache();
+    if (!texture || !cache->m_pTextures)
       return "";
     if (auto frames = CCSpriteFrameCache::get()->m_pSpriteFrames)
       for (auto [name, frame] : CCDictionaryExt<std::string_view, CCSpriteFrame*>(frames))
         if (frame->m_pobTexture == texture)
           return "";
-    for (auto [key, each] : CCDictionaryExt<std::string, CCTexture2D*>(textures))
+    for (auto [key, each] : CCDictionaryExt<std::string, CCTexture2D*>(cache->m_pTextures))
     {
       if (each != texture)
         continue;
-      auto file = key.substr(key.find_last_of("/\\") == std::string::npos ? 0 : key.find_last_of("/\\") + 1);
+      std::string path = key;
+      std::replace(path.begin(), path.end(), '\\', '/');
       for (std::string quality : {"-uhd.png", "-hd.png"})
-        if (file.size() > quality.size() && file.ends_with(quality))
-          file = file.substr(0, file.size() - quality.size()) + ".png";
-      return file;
+        if (path.size() > quality.size() && path.ends_with(quality))
+          path = path.substr(0, path.size() - quality.size()) + ".png";
+      // The file alone, then with its folder, then two: the first that loads this texture (textureForKey finds
+      // the name's full path as a load does)
+      auto from = path.size();
+      for (int folders = 0; folders < 3 && from != std::string::npos && from > 0; folders++)
+      {
+        from = path.find_last_of('/', from - 1);
+        auto name = path.substr(from == std::string::npos ? 0 : from + 1);
+        if (cache->textureForKey(name.c_str()) == texture)
+          return name;
+      }
+      return "";
     }
     return "";
   }

@@ -131,7 +131,9 @@ inline std::vector<codegen::NodeDesc> samples()
   twenty->made.text = "Okay";
   twenty->made.font = "bigFont.fnt";
   twenty->made.texture = "GJ_button_04.png";
+  twenty->made.width = 120;
   twenty->made.minWidth = 40;
+  twenty->made.absolute = true;
   twenty->made.scale = 0.8f;
   twenty->made.height = 30;
   twenty->made.like = "ok-button";
