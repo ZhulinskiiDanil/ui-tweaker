@@ -40,6 +40,10 @@ namespace
   // Further down: the kept edits on disk, and put back on a layer made again
   void saveSession(bool force);
   void putBack();
+  template <class Change>
+  bool setsRotation(Change const& change);
+  template <class Change>
+  bool setsOpacity(Change const& change);
 
   // How much of the game's window the taskbar covers, in points on each side: a window with a title bar as big as
   // the screen goes under it (fullscreen covers it). Looked at once a second
@@ -47,6 +51,8 @@ namespace
   {
     float top = 0;
     float bottom = 0;
+    float left = 0;
+    float right = 0;
   };
 
   Covered covered()
@@ -93,6 +99,8 @@ namespace
     float points = CCDirector::get()->getWinSize().height / static_cast<float>(bottom.y - top.y);
     last.bottom = std::max(0.f, static_cast<float>(bottom.y - monitor.rcWork.bottom)) * points;
     last.top = std::max(0.f, static_cast<float>(monitor.rcWork.top - top.y)) * points;
+    last.left = std::max(0.f, static_cast<float>(monitor.rcWork.left - top.x)) * points;
+    last.right = std::max(0.f, static_cast<float>(bottom.x - monitor.rcWork.right)) * points;
     return last;
   }
 
@@ -233,6 +241,15 @@ namespace
     std::vector<CCNode*> sized;
     // The same for visibility: only V's is an edit, not the game hiding a tab's buttons
     std::vector<CCNode*> toggled;
+    // Nodes whose oldest changes went past the history's limit: edited for good (until reset or moved back), and
+    // whether those changes turned them or changed their opacity
+    struct Dropped
+    {
+      Retained<CCNode> node;
+      bool turned = false;
+      bool faded = false;
+    };
+    std::vector<Dropped> dropped;
     // Nodes made by Ctrl+D, where they go and how they're made, while their scene runs
     // Undone, one is hidden in its parent rather than taken out, so nothing here holds the parent (often the layer)
     struct Made
@@ -333,8 +350,10 @@ namespace
 
   bool hasSteps(CCNode* node)
   {
-    auto const& changes = state().history.changes();
-    return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; });
+    auto const& s = state();
+    auto const& changes = s.history.changes();
+    return std::any_of(changes.begin(), changes.end(), [&](auto const& change) { return change.target == node; }) ||
+           std::any_of(s.dropped.begin(), s.dropped.end(), [&](auto const& d) { return d.node.get() == node; });
   }
 
   // Steps that set a rotation or an opacity: a turn, typed values, a put back. A drag's before and after may differ
@@ -342,14 +361,30 @@ namespace
   template <class Change>
   bool setsRotation(Change const& change)
   {
-    return (change.kind == Turn || change.kind == Typed || change.kind == PutBack) &&
+    return (change.kind == Turn || change.kind == Typed || change.kind == PutBack || change.kind == Reset) &&
            change.before.rotation != change.after.rotation;
   }
 
   template <class Change>
   bool setsOpacity(Change const& change)
   {
-    return (change.kind == Typed || change.kind == PutBack) && change.before.opacity != change.after.opacity;
+    return (change.kind == Typed || change.kind == PutBack || change.kind == Reset) &&
+           change.before.opacity != change.after.opacity;
+  }
+
+  // A size or a visibility a drag's before and after differ in is a label's new text or a tab the game switched
+  template <class Change>
+  bool setsSize(Change const& change)
+  {
+    return (change.kind == Resize || change.kind == Typed || change.kind == PutBack || change.kind == Reset) &&
+           change.before.size != change.after.size;
+  }
+
+  template <class Change>
+  bool setsVisibility(Change const& change)
+  {
+    return (change.kind == Visibility || change.kind == PutBack || change.kind == Reset) &&
+           change.before.visible != change.after.visible;
   }
 
   // Whether a step not undone turned the node, or changed its opacity: a spinning or fading node isn't edited by
@@ -357,15 +392,19 @@ namespace
   bool turnedHere(CCNode* node)
   {
     auto const& changes = state().history.changes();
+    auto const& dropped = state().dropped;
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
-                       { return change.target == node && setsRotation(change); });
+                       { return change.target == node && setsRotation(change); }) ||
+           std::any_of(dropped.begin(), dropped.end(), [&](auto const& d) { return d.node.get() == node && d.turned; });
   }
 
   bool fadedHere(CCNode* node)
   {
     auto const& changes = state().history.changes();
+    auto const& dropped = state().dropped;
     return std::any_of(changes.begin(), changes.end(), [&](auto const& change)
-                       { return change.target == node && setsOpacity(change); });
+                       { return change.target == node && setsOpacity(change); }) ||
+           std::any_of(dropped.begin(), dropped.end(), [&](auto const& d) { return d.node.get() == node && d.faded; });
   }
 
   // An edited node that's as it was before its first edit (reset, or moved back by hand): nothing to write. Not a
@@ -447,7 +486,18 @@ namespace
 
     if (!originalOf(node))
       s.originals.emplace_back(Retained<CCNode>(node), before);
-    s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge);
+    // A change past the history's limit can't be undone: its node is edited for good
+    if (auto old = s.history.record({Retained<CCNode>(node), before, after, kind, now(), group}, merge))
+    {
+      auto entry = std::find_if(s.dropped.begin(), s.dropped.end(), [&](auto const& d) { return d.node == old->target; });
+      if (entry == s.dropped.end())
+      {
+        s.dropped.push_back({old->target});
+        entry = s.dropped.end() - 1;
+      }
+      entry->turned = entry->turned || setsRotation(*old);
+      entry->faded = entry->faded || setsOpacity(*old);
+    }
     snapshot(node);
     s.sessionDirty = true;
     s.sessionTouched = true;
@@ -531,6 +581,7 @@ namespace
     s.history.forget(gone);
     std::erase_if(s.originals, [&](auto const& entry) { return gone(entry.first); });
     std::erase_if(s.made, [&](auto const& entry) { return gone(entry.node); });
+    std::erase_if(s.dropped, [&](auto const& entry) { return gone(entry.node); });
     pruneTracked();
     if (s.selected && gone(s.selected))
     {
@@ -654,7 +705,10 @@ namespace
       auto before = inspect::stateOf(node);
       edit(node);
       if (again && s.history.amend(group, node, inspect::stateOf(node), now()))
+      {
         snapshot(node);
+        s.sessionDirty = true;
+      }
       else
         record(node, before, kind, 0, group);
     }
@@ -846,9 +900,9 @@ namespace
     {
       auto win = CCDirector::get()->getWinSize();
       auto size = m_panel->getContentSize();
-      topLeft.x = std::clamp(topLeft.x, 0.f, std::max(0.f, win.width - size.width));
       // Not under the taskbar: in the part of the window that's seen
       auto hidden = covered();
+      topLeft.x = std::clamp(topLeft.x, hidden.left, std::max(hidden.left, win.width - size.width - hidden.right));
       float lowest = std::min(size.height + hidden.bottom, win.height);
       topLeft.y = std::clamp(topLeft.y, lowest, std::max(lowest, win.height - hidden.top));
       m_panelTopLeft = topLeft;
@@ -1785,6 +1839,17 @@ void editor::setActive(bool on)
     s.rehideCursor = s.relockCursor = false;
     s.pinned.reset();
     s.selected.reset();
+    s.also.clear();
+    // A made node that was undone (hidden) goes for good: nothing of the edit mode stays in the game unseen
+    std::erase_if(s.made,
+                  [&](auto const& entry)
+                  {
+                    if (entry.node->isVisible() && inspect::isIn(entry.node.get(), runningScene()))
+                      return false;
+                    if (!entry.node->isVisible())
+                      entry.node->removeFromParent();
+                    return true;
+                  });
     if (s.overlay)
     {
       s.overlay->removeFromParent();
@@ -1797,6 +1862,7 @@ void editor::setActive(bool on)
     s.typing.reset();
     s.history.forget([scene](Retained<CCNode> const& node) { return !inspect::isIn(node.get(), scene); });
     std::erase_if(s.originals, [scene](auto const& entry) { return !inspect::isIn(entry.first.get(), scene); });
+    std::erase_if(s.dropped, [scene](auto const& entry) { return !inspect::isIn(entry.node.get(), scene); });
     pruneTracked();
     logger_link::clear();
     log::info("Edit mode off");
@@ -2393,8 +2459,9 @@ void editor::typingKey(int key, bool shift)
       auto after = before;
       bool all = each == node;
       // A value this node's parent makes impossible (100 / pw with a parent of no size) isn't taken
+      (void)all;
       auto take = [&](size_t i)
-      { return i < own.size() && own[i] && std::isfinite(*own[i]) && std::fabs(*own[i]) <= 1e6f && (all || typed[i]); };
+      { return i < own.size() && own[i] && std::isfinite(*own[i]) && std::fabs(*own[i]) <= 1e6f && typed[i]; };
       if (take(0))
         after.position.x = *own[0];
       if (take(1))
@@ -2411,11 +2478,11 @@ void editor::typingKey(int key, bool shift)
       if (take(4) && *own[4] >= 0)
         after.size.height = *own[4];
       // Rotation and opacity only if typed into: the game may be spinning or fading the others
-      if (take(5) && (typed[5] || all))
+      if (take(5))
         after.rotation = *own[5];
       if (take(6) && typeinfo_cast<CCRGBAProtocol*>(each) && *own[6] >= 0 && *own[6] <= 255)
         after.opacity = static_cast<int>(std::round(*own[6]));
-      inspect::apply(each, after, all || typed[3] || typed[4], false, after.rotation != before.rotation,
+      inspect::apply(each, after, typed[3] || typed[4], false, after.rotation != before.rotation,
                      after.opacity != before.opacity);
       record(each, before, Typed, 0, group);
     }
@@ -2467,8 +2534,8 @@ bool editor::undo()
         std::erase_if(s.live, [&](auto const& entry) { return entry.first == node; });
         continue;
       }
-      inspect::apply(node, change.before, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible, setsRotation(change), setsOpacity(change));
+      inspect::apply(node, change.before, setsSize(change), setsVisibility(change), setsRotation(change),
+                     setsOpacity(change));
       snapshot(node);
       undone.push_back(node);
       log::info("Undid a step of {}: position ({}, {}), scale {} x {}", inspect::name(node),
@@ -2512,8 +2579,8 @@ bool editor::redo()
       }
       if (!inspect::isIn(node, runningScene()))
         continue;
-      inspect::apply(node, change.after, change.before.size != change.after.size,
-                     change.before.visible != change.after.visible, setsRotation(change), setsOpacity(change));
+      inspect::apply(node, change.after, setsSize(change), setsVisibility(change), setsRotation(change),
+                     setsOpacity(change));
       snapshot(node);
       redone.push_back(node);
       log::info("Redid a step of {}", inspect::name(node));
@@ -2828,20 +2895,23 @@ namespace
                         wanted.opacity = desc.opacity;
                       inspect::apply(node, wanted, desc.sizeChanged, desc.visibleChanged, desc.rotationChanged,
                                      desc.opacityChanged);
-                      record(node, before, PutBack, 0, group);
-                      // Nothing changed: already in place (its code pasted since)
-                      if (!hasSteps(node))
-                        continue;
-                      // Its size and visibility are the edit mode's now, as if set here
-                      auto mark = [&](std::vector<CCNode*>& list)
+                      // Its size and visibility the edit mode's, as if set here: before the step, whose snapshot
+                      // writes them
+                      auto mark = [&](std::vector<CCNode*>& list, bool on)
                       {
-                        if (std::find(list.begin(), list.end(), node) == list.end())
+                        if (on && std::find(list.begin(), list.end(), node) == list.end())
                           list.push_back(node);
                       };
-                      if (desc.sizeChanged)
-                        mark(s.sized);
-                      if (desc.visibleChanged)
-                        mark(s.toggled);
+                      mark(s.sized, desc.sizeChanged);
+                      mark(s.toggled, desc.visibleChanged);
+                      record(node, before, PutBack, 0, group);
+                      // Nothing changed: already in place (its code pasted since); not marked then
+                      if (!hasSteps(node))
+                      {
+                        std::erase(s.sized, node);
+                        std::erase(s.toggled, node);
+                        continue;
+                      }
                       count++;
                     }
     if (count > 0)

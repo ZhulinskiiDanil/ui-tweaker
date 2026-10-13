@@ -214,6 +214,10 @@ namespace
     CHECK(has(code, "  node->setID(\"new-1\"_spr);\n  parent->addChild(node, 2);\n"));
     CHECK(has(code, "node->setPosition("));
     CHECK(!has(code, "getChildByIDRecursive(\"zhulis.ui-tweaker/new-1\")"));
+    // Found later (a child of it, Alt+C on it): by the ID its block gives it
+    NodeDesc child;
+    child.id = "zhulis.ui-tweaker/new-3";
+    CHECK(lookup(child)[0] == "auto node = this->getChildByIDRecursive(\"new-3\"_spr)");
     // In the layer itself; a label; a layout updated
     node.made = {};
     node.made.kind = "label";

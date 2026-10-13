@@ -33,7 +33,8 @@ namespace history
 
     // A change of the same kind to the same target within `mergeSeconds` of the last one becomes part of the
     // last one: a turn of the wheel is one step to undo, not twenty. Anything recorded drops the redo
-    void record(Entry change, double mergeSeconds = 0)
+    // The oldest change if there were more than the limit: dropped, it can't be undone any more
+    std::optional<Entry> record(Entry change, double mergeSeconds = 0)
     {
       m_redo.clear();
       if (!m_undo.empty() && mergeSeconds > 0)
@@ -44,12 +45,15 @@ namespace history
         {
           last.after = std::move(change.after);
           last.time = change.time;
-          return;
+          return std::nullopt;
         }
       }
       m_undo.push_back(std::move(change));
-      if (m_undo.size() > m_limit)
-        m_undo.erase(m_undo.begin());
+      if (m_undo.size() <= m_limit)
+        return std::nullopt;
+      Entry dropped = std::move(m_undo.front());
+      m_undo.erase(m_undo.begin());
+      return dropped;
     }
 
     // The last change, for its `before` to be put back. It moves to the redo list

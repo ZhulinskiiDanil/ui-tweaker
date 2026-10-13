@@ -341,18 +341,30 @@ std::string codegen::layoutWarning(NodeDesc const& node, words::Lang lang)
   return "";
 }
 
+namespace
+{
+  // A node made in the edit mode has the user's mod's prefix where the code runs: "new-N"_spr
+  std::string idLiteral(std::string const& id)
+  {
+    std::string_view const prefix = "zhulis.ui-tweaker/new-";
+    if (id.starts_with(prefix))
+      return literal(id.substr(id.find('/') + 1)) + "_spr";
+    return literal(id);
+  }
+} // namespace
+
 std::vector<std::string> codegen::lookup(NodeDesc const& node, std::string const& name)
 {
   // The variable the path starts from, not the one it ends in
   std::string const start = name == "parent" ? "root" : "parent";
   if (!node.id.empty() && (node.idUnique || node.path.empty()))
-    return {"auto " + name + " = this->getChildByIDRecursive(" + literal(node.id) + ")"};
+    return {"auto " + name + " = this->getChildByIDRecursive(" + idLiteral(node.id) + ")"};
 
   // How a step gets its child from `from`
   auto stepCall = [](std::string const& from, NodeDesc::PathStep const& step)
   {
     if (!step.id.empty())
-      return from + "->getChildByID(" + literal(step.id) + ")";
+      return from + "->getChildByID(" + idLiteral(step.id) + ")";
     if (!step.frameName.empty())
       return "geode::cocos::getChildBySpriteFrameName(" + from + ", " + literal(step.frameName) + ")";
     // A class the code can't name (another mod's, in a namespace): which child it is of all
@@ -375,14 +387,14 @@ std::vector<std::string> codegen::lookup(NodeDesc const& node, std::string const
 
   // The parent with an ID and the node in one `if`, as most nodes without an ID are
   if (!node.pathFromLayer && path.size() == 1)
-    return {"auto " + start + " = this->getChildByIDRecursive(" + literal(root) + "); auto " + name + " = " + start +
+    return {"auto " + start + " = this->getChildByIDRecursive(" + idLiteral(root) + "); auto " + name + " = " + start +
             " ? " + stepCall(start, path[0]) + " : nullptr"};
 
   std::vector<std::string> out;
   std::string from = "this";
   if (!node.pathFromLayer)
   {
-    out.push_back("auto " + start + " = this->getChildByIDRecursive(" + literal(root) + ")");
+    out.push_back("auto " + start + " = this->getChildByIDRecursive(" + idLiteral(root) + ")");
     from = start;
   }
   for (size_t i = 0; i < path.size(); i++)

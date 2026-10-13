@@ -1,9 +1,10 @@
-# v0.11.1 (not released yet: on main)
+# v0.12.0
 
-- A node moved back where it was (`R`, by hand, or by another mod that puts it back) isn't in "Copy all" or its count any more: its code would change nothing
 - `Alt+C` copies only the way to the selected node (its lookup around an empty block, `node` cast to its class), for code of your own that needs a node without an ID
-- The generated code is compiled against the real Geode headers too (`tools/codecheck.sh`): every kind of it builds as it's pasted
 - `Ctrl+D` makes Geode's circle buttons too (`CircleButtonSprite` with its icon, its base's color and size, as the Geode button is)
+- A node moved back where it was (`R`, by hand, or by another mod that puts it back) isn't in "Copy all" or its count any more: its code would change nothing
+- The generated code is compiled against the real Geode headers too (`tools/codecheck.sh`): every kind of it builds as it's pasted
+- Fixes from a final review: an edit whose step went past the history's 200 steps stays in "Copy all" and the kept edits; kept sizes and visibility put back are kept when the scene is left; undoing R puts a rotation and an opacity back; typed values apply only the fields typed into (a drag between Enter and Enter isn't undone); turning the edit mode off forgets the other selected nodes and takes undone made nodes out; a lookup through a node made here finds it by its `_spr` ID; the panel keeps out of a taskbar at the left or the right too
 - The comment for a node in a SimpleAxisLayout says what an `AxisGap` does: it replaces the layout's gap before the node and the whole line is laid out again (a centered row moves), so it stays a suggestion
 
 # v0.11.0

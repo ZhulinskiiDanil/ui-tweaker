@@ -833,6 +833,18 @@ namespace
     editor::undo();
     check(close(sprite->getRotation(), 40), "undoing its drag leaves the game's turn alone");
     sprite->stopAllActions();
+
+    // R takes a turn off, and its undo puts the turn back
+    sprite->setRotation(0);
+    editor::select(sprite);
+    editor::turn(1, false);
+    editor::reset();
+    check(close(sprite->getRotation(), 0), "R took the turn off");
+    editor::undo();
+    check(close(sprite->getRotation(), -15), fmt::format("undoing R put the turn back: {}", sprite->getRotation()));
+    editor::undo();
+
+
     editor::select(nullptr);
     sprite->removeFromParent();
   }
@@ -895,6 +907,39 @@ namespace
     editor::select(nullptr);
     onScreen->removeFromParent();
     box->removeFromParent();
+  }
+
+  // =limit: an edit whose step went past the history's 200 steps stays edited, still in the code for all (a mode of
+  // its own: the history is full afterwards)
+  void historyLimit()
+  {
+    auto win = CCDirector::get()->getWinSize();
+    auto scene = CCDirector::get()->getRunningScene();
+    auto sprite = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+    if (!sprite)
+      sprite = CCSprite::create();
+    sprite->setID("selftest-turned-sprite"_spr);
+    sprite->setPosition({win.width / 2 + 60, win.height / 2});
+    scene->addChild(sprite, 1000);
+    auto center2 = inspect::worldQuad(sprite).center();
+    editor::setSnapping(false);
+    editor::grab(sprite, {center2.x, center2.y});
+    editor::dragTo(CCPoint{center2.x, center2.y} + ccp(6, 4));
+    editor::release();
+    editor::setSnapping(std::nullopt);
+    auto other = CCSprite::create();
+    other->setID("selftest-limit-other"_spr);
+    other->setContentSize({10, 10});
+    scene->addChild(other, 1000);
+    editor::select(other);
+    for (int i = 0; i < 202; i++)
+      editor::toggleVisible();
+    check(editor::codeForAll().find("selftest-turned-sprite") != std::string::npos,
+          "an edit past the history's 200 steps is still in the code for all");
+    editor::select(nullptr);
+    other->removeFromParent();
+    g_frames = 0;
+    finish(false);
   }
 
   // Ctrl+D: a button and a label made like ones of a menu in the main menu, next to them, selected; dragged; their
@@ -2016,6 +2061,11 @@ namespace
              return;
            }
            // =ime: the edit mode off and a text field with the keyboard, for tools/real-input.sh's F8 in it
+           if (selftest::mode() == "limit")
+           {
+             historyLimit();
+             return;
+           }
            if (selftest::mode() == "ime")
            {
              editor::setActive(false);
